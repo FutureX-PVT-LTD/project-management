@@ -1,0 +1,25 @@
+{
+  "name": "futurex-project-management",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FutureX Enterprise Project Management Portal for Game and Software Development Teams",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "db:push": "cd backend && npx prisma db push",
+    "db:seed": "cd backend && npx ts-node prisma/seed.ts",
+    "db:studio": "cd backend && npx prisma studio",
+    "test:backend": "cd backend && npm test"
+  },
+  "keywords": [
+    "futurex",
+    "project-management",
+    "game-dev",
+    "dependencies",
+    "delivery"
+  ],
+  "author": "FutureX Development Team",
+  "license": "UNLICENSED"
+}

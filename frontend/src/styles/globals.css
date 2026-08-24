@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* FutureX Brand Green Hierarchy */
+  --fx-green-900: #064E35;
+  --fx-green-800: #076241;
+  --fx-green-700: #087A4B;
+  --fx-green-600: #0B8A55;
+  --fx-green-100: #E8F5EE;
+  --fx-green-50:  #F2FAF6;
+
+  /* Surfaces & Backgrounds */
+  --bg-app:        #F6F8F7;
+  --bg-surface:    #FFFFFF;
+  --bg-subtle:     #FAFBFA;
+
+  /* Typography Colors */
+  --text-primary:  #18211C;
+  --text-secondary:#5F6B64;
+  --text-muted:    #8A948E;
+
+  /* Borders & Dividers */
+  --border:        #E2E7E4;
+  --border-strong: #CDD5D0;
+  --border-subtle: #EDF1EE;
+
+  /* Semantic Accents */
+  --semantic-success: #14804A;
+  --semantic-warning: #B76E00;
+  --semantic-danger:  #C33A3A;
+  --semantic-info:    #3578C9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/* Restrained Enterprise Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D4DDD8;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B0BCB5;
+}
+
+/* Subtle Focus outline */
+:focus-visible {
+  outline: 2px solid var(--fx-green-700);
+  outline-offset: 1px;
+}
+
+/* Fast, calm transitions (120-160ms) */
+.fx-transition {
+  transition: all 140ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-fadeIn {
+  animation: fxFadeIn 140ms ease-out forwards;
+}
+
+@keyframes fxFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
