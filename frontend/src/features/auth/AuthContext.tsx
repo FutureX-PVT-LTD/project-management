@@ -2,13 +2,14 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { AuthUser, UserRole } from '@futurex/shared';
 import { api } from '@/services/api/api-client';
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (email: string, password: string, returnTo?: string | null) => Promise<AuthUser>;
+  login: (email: string, password: string, returnTo?: string | null, rememberMe?: boolean) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   hasRole: (...roles: UserRole[]) => boolean;
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
 
   const refreshUser = useCallback(async () => {
     try {
@@ -37,10 +39,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const login = async (email: string, password: string, returnTo?: string | null): Promise<AuthUser> => {
-    const res = await api.post('/auth/login', { email, password });
+  const login = async (
+    email: string,
+    password: string,
+    returnTo?: string | null,
+    rememberMe?: boolean,
+  ): Promise<AuthUser> => {
+    const res = await api.post('/auth/login', { email, password, rememberMe });
     const authenticatedUser: AuthUser = res.user;
     setUser(authenticatedUser);
+
+    // Clear any previous query cache before fresh navigation
+    queryClient.clear();
 
     // Validate and handle safe redirection
     if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
@@ -63,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       // Ignore network errors on logout
     } finally {
+      queryClient.clear();
       setUser(null);
       router.push('/login');
     }

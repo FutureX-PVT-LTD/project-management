@@ -30,8 +30,8 @@ export class ProjectsService {
       where.status = statusFilter;
     }
 
-    // Role-based visibility
-    if (user.globalRole !== UserRole.OWNER) {
+    // Role-based visibility: OWNER and ADMIN see all workspace projects
+    if (user.globalRole !== UserRole.OWNER && user.globalRole !== UserRole.ADMIN) {
       where.OR = [
         { projectManagerId: user.id },
         { members: { some: { userId: user.id } } },
@@ -268,7 +268,11 @@ export class ProjectsService {
     };
   }
 
-  async create(dto: CreateProjectDto, actorId: string) {
+  async create(dto: CreateProjectDto, actorId: string, actorRole?: UserRole) {
+    if (actorRole === UserRole.TEAM_MEMBER) {
+      throw new ForbiddenException('Team members are not permitted to create projects.');
+    }
+
     const cleanKey = dto.key.toUpperCase().trim();
     const existing = await this.prisma.project.findUnique({
       where: { key: cleanKey },
@@ -277,6 +281,8 @@ export class ProjectsService {
     if (existing) {
       throw new BadRequestException(`Project key "${cleanKey}" is already in use`);
     }
+
+    const projectManagerId = dto.projectManagerId || actorId;
 
     const project = await this.prisma.project.create({
       data: {
@@ -287,14 +293,14 @@ export class ProjectsService {
         health: dto.health || ProjectHealth.ON_TRACK,
         startDate: dto.startDate ? new Date(dto.startDate) : new Date(),
         targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
-        projectManagerId: dto.projectManagerId,
+        projectManagerId,
         members: {
           create: [
             // Automatically add project manager
-            { userId: dto.projectManagerId, role: ProjectMemberRole.MANAGER },
+            { userId: projectManagerId, role: ProjectMemberRole.MANAGER },
             // Add other members
             ...(dto.memberIds || [])
-              .filter((m) => m.userId !== dto.projectManagerId)
+              .filter((m) => m.userId !== projectManagerId)
               .map((m) => ({
                 userId: m.userId,
                 role: m.role || ProjectMemberRole.MEMBER,
@@ -305,15 +311,17 @@ export class ProjectsService {
     });
 
     // Notify project manager & members
-    await this.prisma.notification.create({
-      data: {
-        userId: dto.projectManagerId,
-        type: NotificationType.PROJECT_MEMBER_ADDED,
-        title: 'Assigned as Project Manager',
-        message: `You were assigned as Project Manager for ${project.name} (${project.key})`,
-        linkUrl: `/projects/${project.id}`,
-      },
-    });
+    if (projectManagerId !== actorId) {
+      await this.prisma.notification.create({
+        data: {
+          userId: projectManagerId,
+          type: NotificationType.PROJECT_MEMBER_ADDED,
+          title: 'Assigned as Project Manager',
+          message: `You were assigned as Project Manager for ${project.name} (${project.key})`,
+          linkUrl: `/projects/${project.id}`,
+        },
+      });
+    }
 
     await this.recordAudit(actorId, AuditAction.PROJECT_CREATED, 'Project', project.id, {
       key: project.key,
@@ -323,10 +331,26 @@ export class ProjectsService {
     return this.findById(project.id, { id: actorId, globalRole: UserRole.OWNER });
   }
 
-  async update(id: string, dto: UpdateProjectDto, actorId: string) {
-    const project = await this.prisma.project.findUnique({ where: { id } });
+  async update(id: string, dto: UpdateProjectDto, actorId: string, actorRole?: UserRole) {
+    if (actorRole === UserRole.TEAM_MEMBER) {
+      throw new ForbiddenException('Team members cannot modify project settings.');
+    }
+
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      include: { members: true },
+    });
     if (!project) {
       throw new NotFoundException('Project not found');
+    }
+
+    if (actorRole === UserRole.PROJECT_MANAGER) {
+      const isManager =
+        project.projectManagerId === actorId ||
+        project.members.some((m) => m.userId === actorId && m.role === 'MANAGER');
+      if (!isManager) {
+        throw new ForbiddenException('Project Managers may only update projects they manage.');
+      }
     }
 
     const updated = await this.prisma.project.update({
@@ -467,9 +491,31 @@ export class ProjectsService {
     return { health, reason };
   }
 
-  async addMember(projectId: string, userId: string, role: ProjectMemberRole, actorId: string) {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+  async addMember(
+    projectId: string,
+    userId: string,
+    role: ProjectMemberRole,
+    actorId: string,
+    actorRole?: UserRole,
+  ) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { members: true },
+    });
     if (!project) throw new NotFoundException('Project not found');
+
+    if (actorRole === UserRole.TEAM_MEMBER) {
+      throw new ForbiddenException('Team members cannot manage project members.');
+    }
+
+    if (actorRole === UserRole.PROJECT_MANAGER) {
+      const isManager =
+        project.projectManagerId === actorId ||
+        project.members.some((m) => m.userId === actorId && m.role === 'MANAGER');
+      if (!isManager) {
+        throw new ForbiddenException('Project Managers may only manage members in projects they manage.');
+      }
+    }
 
     const member = await this.prisma.projectMember.upsert({
       where: { projectId_userId: { projectId, userId } },
@@ -497,7 +543,31 @@ export class ProjectsService {
     return member;
   }
 
-  async removeMember(projectId: string, userId: string, actorId: string) {
+  async removeMember(
+    projectId: string,
+    userId: string,
+    actorId: string,
+    actorRole?: UserRole,
+  ) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { members: true },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    if (actorRole === UserRole.TEAM_MEMBER) {
+      throw new ForbiddenException('Team members cannot manage project members.');
+    }
+
+    if (actorRole === UserRole.PROJECT_MANAGER) {
+      const isManager =
+        project.projectManagerId === actorId ||
+        project.members.some((m) => m.userId === actorId && m.role === 'MANAGER');
+      if (!isManager) {
+        throw new ForbiddenException('Project Managers may only manage members in projects they manage.');
+      }
+    }
+
     await this.prisma.projectMember.deleteMany({
       where: { projectId, userId },
     });
@@ -509,7 +579,31 @@ export class ProjectsService {
     return { success: true, message: 'Member removed from project' };
   }
 
-  async postUpdate(projectId: string, authorId: string, dto: PostProjectUpdateDto) {
+  async postUpdate(
+    projectId: string,
+    authorId: string,
+    dto: PostProjectUpdateDto,
+    actorRole?: UserRole,
+  ) {
+    const project = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      include: { members: true },
+    });
+    if (!project) throw new NotFoundException('Project not found');
+
+    if (actorRole === UserRole.TEAM_MEMBER) {
+      throw new ForbiddenException('Team members cannot post project status updates.');
+    }
+
+    if (actorRole === UserRole.PROJECT_MANAGER) {
+      const isManager =
+        project.projectManagerId === authorId ||
+        project.members.some((m) => m.userId === authorId && m.role === 'MANAGER');
+      if (!isManager) {
+        throw new ForbiddenException('Project Managers may only post updates for projects they manage.');
+      }
+    }
+
     const update = await this.prisma.projectUpdate.create({
       data: {
         projectId,

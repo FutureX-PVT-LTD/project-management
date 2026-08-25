@@ -72,6 +72,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    // Determine expiration based on rememberMe
+    const isRememberMe = Boolean(loginDto.rememberMe);
+    const refreshDays = isRememberMe ? 30 : 7;
+    const refreshExpiresIn = isRememberMe ? '30d' : (process.env.JWT_REFRESH_EXPIRES_IN || process.env.JWT_REFRESH_EXPIRATION || '7d');
+    const accessExpiresIn = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRATION || '15m';
+    const jwtSecret = process.env.JWT_SECRET || 'futurex_super_secure_jwt_access_secret_key_2026_!@#';
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'futurex_super_secure_jwt_refresh_secret_key_2026_!@#';
+
     // Generate tokens
     const payload = {
       sub: user.id,
@@ -80,22 +88,19 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      secret:
-        process.env.JWT_SECRET || 'futurex_super_secure_jwt_access_secret_key_2026_!@#',
-      expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+      secret: jwtSecret,
+      expiresIn: accessExpiresIn,
     });
 
     const refreshToken = this.jwtService.sign(payload, {
-      secret:
-        process.env.JWT_REFRESH_SECRET ||
-        'futurex_super_secure_jwt_refresh_secret_key_2026_!@#',
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+      secret: jwtRefreshSecret,
+      expiresIn: refreshExpiresIn,
     });
 
     // Save hashed refresh token session
     const refreshTokenHash = await argon2.hash(refreshToken);
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(expiresAt.getDate() + refreshDays);
 
     await this.prisma.session.create({
       data: {
@@ -119,6 +124,7 @@ export class AuthService {
       user.id,
       ipAddress,
       userAgent,
+      { rememberMe: isRememberMe },
     );
 
     return {
@@ -134,15 +140,23 @@ export class AuthService {
       },
       accessToken,
       refreshToken,
+      rememberMe: isRememberMe,
+      refreshExpiresInDays: refreshDays,
     };
   }
 
   async refreshToken(token: string) {
+    if (!token || typeof token !== 'string') {
+      throw new UnauthorizedException('No refresh token provided');
+    }
+
+    const jwtSecret = process.env.JWT_SECRET || 'futurex_super_secure_jwt_access_secret_key_2026_!@#';
+    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'futurex_super_secure_jwt_refresh_secret_key_2026_!@#';
+    const accessExpiresIn = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRATION || '15m';
+
     try {
       const payload = this.jwtService.verify(token, {
-        secret:
-          process.env.JWT_REFRESH_SECRET ||
-          'futurex_super_secure_jwt_refresh_secret_key_2026_!@#',
+        secret: jwtRefreshSecret,
       });
 
       const user = await this.prisma.user.findUnique({
@@ -153,13 +167,18 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh session');
       }
 
-      // Check active sessions
+      // Check active sessions (and recently rotated sessions within 15-second grace window)
+      const fifteenSecondsAgo = new Date(Date.now() - 15 * 1000);
       const sessions = await this.prisma.session.findMany({
         where: {
           userId: user.id,
-          isRevoked: false,
           expiresAt: { gt: new Date() },
+          OR: [
+            { isRevoked: false },
+            { createdAt: { gte: fifteenSecondsAgo } },
+          ],
         },
+        orderBy: { createdAt: 'desc' },
       });
 
       let validSession = null;
@@ -175,11 +194,20 @@ export class AuthService {
         throw new UnauthorizedException('Session expired or revoked');
       }
 
-      // Revoke used session (Token Rotation)
-      await this.prisma.session.update({
-        where: { id: validSession.id },
-        data: { isRevoked: true },
-      });
+      // If this session is not already revoked, revoke it now (Token Rotation)
+      if (!validSession.isRevoked) {
+        await this.prisma.session.update({
+          where: { id: validSession.id },
+          data: { isRevoked: true },
+        });
+      }
+
+      // Calculate remaining session lifetime or default to 7 days
+      const daysRemaining = Math.max(
+        1,
+        Math.ceil((validSession.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+      );
+      const newRefreshExpiresIn = `${daysRemaining}d`;
 
       // Create new tokens
       const newPayload = {
@@ -189,21 +217,18 @@ export class AuthService {
       };
 
       const newAccessToken = this.jwtService.sign(newPayload, {
-        secret:
-          process.env.JWT_SECRET || 'futurex_super_secure_jwt_access_secret_key_2026_!@#',
-        expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+        secret: jwtSecret,
+        expiresIn: accessExpiresIn,
       });
 
       const newRefreshToken = this.jwtService.sign(newPayload, {
-        secret:
-          process.env.JWT_REFRESH_SECRET ||
-          'futurex_super_secure_jwt_refresh_secret_key_2026_!@#',
-        expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+        secret: jwtRefreshSecret,
+        expiresIn: newRefreshExpiresIn,
       });
 
       const newHash = await argon2.hash(newRefreshToken);
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
+      expiresAt.setDate(expiresAt.getDate() + daysRemaining);
 
       await this.prisma.session.create({
         data: {
@@ -226,6 +251,7 @@ export class AuthService {
         },
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
+        refreshExpiresInDays: daysRemaining,
       };
     } catch (error) {
       throw new UnauthorizedException('Invalid or expired refresh token');

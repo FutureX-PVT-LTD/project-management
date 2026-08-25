@@ -14,6 +14,7 @@ import {
   Sparkles,
   Inbox,
   CheckCircle2,
+  Lock,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { TaskStatus, TaskPriority, UserRole } from '@futurex/shared';
@@ -61,6 +62,7 @@ export function MyWorkPage() {
     { id: 'ALL', label: 'All Work' },
     { id: 'IN_PROGRESS', label: 'In Progress' },
     { id: 'READY', label: 'Ready to Start' },
+    { id: 'WAITING', label: 'Waiting on Others' },
     { id: 'REVIEW', label: 'In Review' },
     { id: 'BLOCKED', label: 'Blocked' },
     { id: 'DUE_SOON', label: 'Due Soon' },
@@ -77,6 +79,7 @@ export function MyWorkPage() {
     if (groupBy === 'workflow') {
       const inProgress = allTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.IN_REVIEW);
       const ready = allTasks.filter((t) => t.status === TaskStatus.READY);
+      const waiting = allTasks.filter((t) => t.status === TaskStatus.WAITING);
       const blocked = allTasks.filter((t) => t.status === TaskStatus.BLOCKED);
       const done = allTasks.filter((t) => t.status === TaskStatus.DONE);
       const other = allTasks.filter(
@@ -84,6 +87,7 @@ export function MyWorkPage() {
           t.status !== TaskStatus.IN_PROGRESS &&
           t.status !== TaskStatus.IN_REVIEW &&
           t.status !== TaskStatus.READY &&
+          t.status !== TaskStatus.WAITING &&
           t.status !== TaskStatus.BLOCKED &&
           t.status !== TaskStatus.DONE,
       );
@@ -91,7 +95,8 @@ export function MyWorkPage() {
       const groups = [];
       if (inProgress.length > 0) groups.push({ groupName: 'IN PROGRESS & REVIEW', items: inProgress, count: inProgress.length });
       if (ready.length > 0) groups.push({ groupName: 'READY TO START', items: ready, count: ready.length });
-      if (blocked.length > 0) groups.push({ groupName: 'BLOCKED WORK', items: blocked, count: blocked.length });
+      if (waiting.length > 0) groups.push({ groupName: 'WAITING ON PREREQUISITES', items: waiting, count: waiting.length });
+      if (blocked.length > 0) groups.push({ groupName: 'MANUALLY BLOCKED', items: blocked, count: blocked.length });
       if (other.length > 0) groups.push({ groupName: 'UPCOMING / BACKLOG', items: other, count: other.length });
       if (done.length > 0) groups.push({ groupName: 'COMPLETED DELIVERABLES', items: done, count: done.length });
       return groups.length > 0 ? groups : [{ groupName: 'Assigned Work', items: [] }];
@@ -304,20 +309,26 @@ export function MyWorkPage() {
                               <span>{task.project?.name}</span>
                               {task.milestone && <span>• {task.milestone.title}</span>}
 
-                              {/* Blocker Alert */}
+                              {/* Waiting on Prerequisites Alert */}
+                              {task.status === TaskStatus.WAITING && (
+                                <span className="text-fx-text-secondary font-medium flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded border border-gray-200/60">
+                                  <Lock className="w-3 h-3 text-fx-text-muted shrink-0" />
+                                  {unfinishedDeps.length > 0
+                                    ? `Waiting for: ${unfinishedDeps.map((d: any) => d.predecessorTask?.humanId).join(', ')}`
+                                    : 'Waiting on prerequisite work'}
+                                </span>
+                              )}
+
+                              {/* Manual Blocker Alert */}
                               {isBlocked && (
-                                <span className="text-fx-semantic-danger font-medium flex items-center gap-1">
+                                <span className="text-fx-semantic-danger font-medium flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded border border-red-200/60">
                                   <AlertCircle className="w-3 h-3 shrink-0" />
-                                  {task.isManualBlocked
-                                    ? `Blocked: ${task.manualBlockReason || 'Manual block'}`
-                                    : unfinishedDeps.length > 0
-                                      ? `Waiting for ${unfinishedDeps[0].predecessorTask.humanId}`
-                                      : 'Prerequisites incomplete'}
+                                  {task.manualBlockReason ? `Blocked: ${task.manualBlockReason}` : 'Manually blocked'}
                                 </span>
                               )}
 
                               {task.status === TaskStatus.READY && (
-                                <span className="text-fx-green-900 font-semibold flex items-center gap-1">
+                                <span className="text-fx-green-900 font-semibold flex items-center gap-1 bg-fx-green-50 px-2 py-0.5 rounded border border-[#C6E4D3]">
                                   <Sparkles className="w-3 h-3 text-fx-green-700" />
                                   Ready to start
                                 </span>

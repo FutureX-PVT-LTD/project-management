@@ -64,17 +64,26 @@ export function AppShell({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const isTeamMember = user?.globalRole === UserRole.TEAM_MEMBER;
+  const isPMOrHigher = hasRole(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER);
+  const isAdminOrOwner = hasRole(UserRole.OWNER, UserRole.ADMIN);
+  const canCreate = isPMOrHigher;
+
   const workspaceNavItems = [
     { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { label: 'My Work', href: '/my-work', icon: CheckSquare },
     { label: 'Projects', href: '/projects', icon: FolderKanban },
-    { label: 'Tasks', href: '/tasks', icon: ListTodo },
+    ...(!isTeamMember ? [{ label: 'Tasks', href: '/tasks', icon: ListTodo }] : []),
   ];
 
   const planningNavItems = [
     { label: 'Timeline', href: '/timeline', icon: Calendar },
-    { label: 'Team', href: '/team', icon: Users },
-    { label: 'Reports', href: '/reports', icon: BarChart3 },
+    ...(!isTeamMember
+      ? [
+          { label: 'Team', href: '/team', icon: Users },
+          { label: 'Reports', href: '/reports', icon: BarChart3 },
+        ]
+      : []),
   ];
 
   const systemNavItems = [
@@ -86,9 +95,6 @@ export function AppShell({
     { label: 'Audit Logs', href: '/admin/audit', icon: FileText },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
   ];
-
-  const isAdminOrOwner = hasRole(UserRole.OWNER, UserRole.ADMIN);
-  const canCreate = hasRole(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER);
 
   const getBreadcrumbs = () => {
     if (pathname.startsWith('/dashboard')) return { section: 'Workspace', page: 'Dashboard' };

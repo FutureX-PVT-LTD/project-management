@@ -224,6 +224,7 @@ export class ReportsService {
       (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== TaskStatus.DONE,
     );
     const blockedTasks = allTasks.filter((t) => t.status === TaskStatus.BLOCKED);
+    const waitingTasks = allTasks.filter((t) => t.status === TaskStatus.WAITING);
     const awaitingReviewTasks = allTasks.filter((t) => t.status === TaskStatus.IN_REVIEW);
     const dueThisWeekTasks = allTasks.filter(
       (t) =>
@@ -289,6 +290,7 @@ export class ReportsService {
         if (!memberWorkloadMap.has(m.user.id)) {
           const activeTasks = m.user.assignedTasks.length;
           const blocked = m.user.assignedTasks.filter((t) => t.status === TaskStatus.BLOCKED).length;
+          const waiting = m.user.assignedTasks.filter((t) => t.status === TaskStatus.WAITING).length;
           const hours = m.user.assignedTasks.reduce(
             (sum, t) => sum + (t.estimatedHours || 0),
             0,
@@ -299,13 +301,17 @@ export class ReportsService {
           else if (hours > 35) capacityLevel = 'HIGH';
 
           memberWorkloadMap.set(m.user.id, {
-            userId: m.user.id,
-            name: `${m.user.firstName} ${m.user.lastName}`,
-            avatarUrl: m.user.avatarUrl,
-            jobTitle: m.user.jobTitle,
-            activeTasksCount: activeTasks,
+            user: {
+              id: m.user.id,
+              firstName: m.user.firstName,
+              lastName: m.user.lastName,
+              avatarUrl: m.user.avatarUrl,
+              jobTitle: m.user.jobTitle,
+            },
+            assignedTasksCount: activeTasks,
             blockedTasksCount: blocked,
-            estimatedHours: hours,
+            waitingTasksCount: waiting,
+            allocatedHours: hours,
             capacityLevel,
           });
         }
@@ -318,6 +324,7 @@ export class ReportsService {
         totalTasksCount: allTasks.length,
         overdueCount: overdueTasks.length,
         blockedCount: blockedTasks.length,
+        waitingCount: waitingTasks.length,
         awaitingReviewCount: awaitingReviewTasks.length,
         dueThisWeekCount: dueThisWeekTasks.length,
       },
@@ -333,6 +340,7 @@ export class ReportsService {
         tasksCount: p.tasks.length,
         completedTasksCount: p.tasks.filter((t) => t.status === TaskStatus.DONE).length,
         blockedTasksCount: p.tasks.filter((t) => t.status === TaskStatus.BLOCKED).length,
+        waitingTasksCount: p.tasks.filter((t) => t.status === TaskStatus.WAITING).length,
         overdueTasksCount: p.tasks.filter(
           (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== TaskStatus.DONE,
         ).length,

@@ -111,20 +111,22 @@ export class DependenciesService {
       },
     });
 
-    // If predecessor is not DONE, mark dependent task as BLOCKED
-    if (predTask.status !== TaskStatus.DONE && depTask.status !== TaskStatus.DONE) {
-      await this.prisma.task.update({
-        where: { id: depTask.id },
-        data: { status: TaskStatus.BLOCKED },
-      });
+    // If predecessor is not DONE, mark dependent task as WAITING (if not manually blocked or already completed)
+    if (predTask.status !== TaskStatus.DONE && depTask.status !== TaskStatus.DONE && depTask.status !== TaskStatus.CANCELED) {
+      if (!depTask.isManualBlocked) {
+        await this.prisma.task.update({
+          where: { id: depTask.id },
+          data: { status: TaskStatus.WAITING },
+        });
+      }
 
       if (depTask.assigneeId) {
         await this.prisma.notification.create({
           data: {
             userId: depTask.assigneeId,
             type: NotificationType.TASK_BLOCKED,
-            title: 'Task Blocked by Dependency',
-            message: `"${depTask.title}" (${depTask.humanId}) is now waiting for "${predTask.title}" (${predTask.humanId}).`,
+            title: 'Task Dependency Assigned',
+            message: `"${depTask.title}" (${depTask.humanId}) is waiting for "${predTask.title}" (${predTask.humanId}).`,
             linkUrl: `/projects/${depTask.projectId}?taskId=${depTask.id}`,
           },
         });
@@ -187,14 +189,14 @@ export class DependenciesService {
 
     await this.prisma.taskDependency.delete({ where: { id } });
 
-    // Check if dependent task is still blocked
+    // Check if dependent task has any remaining incomplete predecessors
     const remainingDeps = dependency.dependentTask.blockedBy.filter(
       (b) => b.id !== id && b.predecessorTask.status !== TaskStatus.DONE,
     );
 
     if (
       remainingDeps.length === 0 &&
-      dependency.dependentTask.status === TaskStatus.BLOCKED &&
+      (dependency.dependentTask.status === TaskStatus.WAITING || dependency.dependentTask.status === TaskStatus.BLOCKED) &&
       !dependency.dependentTask.isManualBlocked
     ) {
       await this.prisma.task.update({
@@ -208,9 +210,21 @@ export class DependenciesService {
           projectId: dependency.dependentTask.projectId,
           userId: actorId,
           actionType: TaskActionType.AUTOMATICALLY_UNBLOCKED,
-          description: `Dependency removed. Task is now READY.`,
+          description: `All prerequisite dependencies satisfied. Task is now READY.`,
         },
       });
+
+      if (dependency.dependentTask.assigneeId) {
+        await this.prisma.notification.create({
+          data: {
+            userId: dependency.dependentTask.assigneeId,
+            type: NotificationType.TASK_READY,
+            title: 'Your task is ready to start',
+            message: `"${dependency.dependentTask.title}" (${dependency.dependentTask.humanId}) is now ready to start. All prerequisites are completed.`,
+            linkUrl: `/projects/${dependency.dependentTask.projectId}?taskId=${dependency.dependentTask.id}`,
+          },
+        });
+      }
     }
 
     await this.prisma.taskActivity.create({

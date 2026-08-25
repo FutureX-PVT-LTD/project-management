@@ -17,9 +17,16 @@ export class ApiError extends Error {
   }
 }
 
+// Module-level single-flight refresh promise to coordinate concurrent 401s
+let refreshPromise: Promise<boolean> | null = null;
+
+interface CustomRequestInit extends RequestInit {
+  _retry?: boolean;
+}
+
 async function request<T = any>(
   endpoint: string,
-  options: RequestInit = {},
+  options: CustomRequestInit = {},
 ): Promise<T> {
   const url = endpoint.startsWith('http')
     ? endpoint
@@ -44,26 +51,49 @@ async function request<T = any>(
   try {
     const response = await fetch(url, config);
 
-    // Handle 401 Unauthorized -> Attempt token refresh
-    if (
-      response.status === 401 &&
-      !endpoint.includes('/auth/login') &&
-      !endpoint.includes('/auth/refresh')
-    ) {
-      try {
-        const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-        });
+    // Endpoints that should NEVER trigger refresh attempts
+    const isAuthBypassEndpoint =
+      endpoint.includes('/auth/login') ||
+      endpoint.includes('/auth/refresh') ||
+      endpoint.includes('/auth/logout') ||
+      endpoint.includes('/auth/forgot-password') ||
+      endpoint.includes('/auth/reset-password');
 
-        if (refreshRes.ok) {
-          // Retry original request once
-          const retryResponse = await fetch(url, config);
-          return await handleResponse<T>(retryResponse);
+    // Handle 401 Unauthorized with single-flight mutex
+    if (response.status === 401 && !isAuthBypassEndpoint && !options._retry) {
+      options._retry = true;
+
+      // Coordinate concurrent 401s through a single refresh request
+      if (!refreshPromise) {
+        refreshPromise = (async () => {
+          try {
+            const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+            });
+            return refreshRes.ok;
+          } catch {
+            return false;
+          } finally {
+            refreshPromise = null;
+          }
+        })();
+      }
+
+      const refreshSuccess = await refreshPromise;
+
+      if (refreshSuccess) {
+        // Retry the original request exactly once
+        return await request<T>(endpoint, options);
+      } else {
+        // Refresh failed -> session is genuinely expired
+        if (typeof window !== 'undefined') {
+          const currentPath = window.location.pathname;
+          if (currentPath !== '/login' && currentPath !== '/forgot-password' && currentPath !== '/reset-password') {
+            window.location.href = `/login?returnTo=${encodeURIComponent(currentPath)}`;
+          }
         }
-      } catch (refreshErr) {
-        // Refresh failed, proceed to handle original 401
       }
     }
 

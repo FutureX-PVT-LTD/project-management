@@ -69,6 +69,9 @@ export class TasksService {
       case 'READY':
         where.status = TaskStatus.READY;
         break;
+      case 'WAITING':
+        where.status = TaskStatus.WAITING;
+        break;
       case 'IN_PROGRESS':
         where.status = TaskStatus.IN_PROGRESS;
         break;
@@ -130,7 +133,7 @@ export class TasksService {
       },
     });
 
-    // Priority Work Ordering: Overdue -> Urgent -> High -> Due Soon -> Ready -> In Progress -> Blocked -> Other
+    // Priority Work Ordering: Overdue -> Urgent -> High -> Due Soon -> Ready -> In Progress -> Waiting -> Blocked -> Other
     const priorityWeight: Record<string, number> = {
       URGENT: 100,
       HIGH: 80,
@@ -143,6 +146,7 @@ export class TasksService {
       READY: 60,
       IN_PROGRESS: 50,
       IN_REVIEW: 40,
+      WAITING: 35,
       TODO: 30,
       BLOCKED: 20,
       BACKLOG: 10,
@@ -173,15 +177,19 @@ export class TasksService {
     return tasks.map((t) => this.mapTaskToDto(t));
   }
 
-  async findAll(params: {
-    projectId?: string;
-    milestoneId?: string;
-    assigneeId?: string;
-    status?: TaskStatus;
-    priority?: TaskPriority;
-    search?: string;
-    parentTaskId?: string | null;
-  }) {
+  async findAll(
+    params: {
+      projectId?: string;
+      milestoneId?: string;
+      assigneeId?: string;
+      status?: TaskStatus;
+      priority?: TaskPriority;
+      search?: string;
+      parentTaskId?: string | null;
+    },
+    actorId?: string,
+    actorRole?: UserRole,
+  ) {
     const where: any = { deletedAt: null };
 
     if (params.projectId) where.projectId = params.projectId;
@@ -190,6 +198,16 @@ export class TasksService {
     if (params.status) where.status = params.status;
     if (params.priority) where.priority = params.priority;
     if (params.parentTaskId !== undefined) where.parentTaskId = params.parentTaskId;
+
+    // Role-based visibility for team members and project managers
+    if (actorRole && actorRole !== UserRole.OWNER && actorRole !== UserRole.ADMIN) {
+      where.project = {
+        OR: [
+          { projectManagerId: actorId },
+          { members: { some: { userId: actorId } } },
+        ],
+      };
+    }
 
     if (params.search) {
       const search = params.search.trim();
@@ -267,11 +285,19 @@ export class TasksService {
     return tasks.map((t) => this.mapTaskToDto(t));
   }
 
-  async findById(id: string) {
+  async findById(id: string, actorId?: string, actorRole?: UserRole) {
     const task = await this.prisma.task.findUnique({
       where: { id, deletedAt: null },
       include: {
-        project: { select: { id: true, key: true, name: true } },
+        project: {
+          select: {
+            id: true,
+            key: true,
+            name: true,
+            projectManagerId: true,
+            members: { select: { userId: true, role: true } },
+          },
+        },
         milestone: { select: { id: true, name: true } },
         creator: {
           select: {
@@ -388,6 +414,18 @@ export class TasksService {
       throw new NotFoundException('Task not found');
     }
 
+    // Role-based access validation
+    if (actorRole && actorRole !== UserRole.OWNER && actorRole !== UserRole.ADMIN && actorId) {
+      const isManager = task.project.projectManagerId === actorId;
+      const isMember = task.project.members.some((m) => m.userId === actorId);
+      const isAssignee = task.assigneeId === actorId;
+      const isCollaborator = task.collaborators?.some((c) => c.user?.id === actorId || (c as any).userId === actorId);
+
+      if (!isManager && !isMember && !isAssignee && !isCollaborator) {
+        throw new ForbiddenException('You do not have permission to view this task');
+      }
+    }
+
     return this.mapTaskToDto(task);
   }
 
@@ -431,12 +469,6 @@ export class TasksService {
     let initialStatus = dto.status || TaskStatus.TODO;
     let initialProgress = dto.progress !== undefined ? dto.progress : 0;
 
-    if (initialStatus === TaskStatus.DONE) {
-      initialProgress = 100;
-    } else if (initialStatus === TaskStatus.BACKLOG || initialStatus === TaskStatus.TODO) {
-      initialProgress = 0;
-    }
-
     // If initial dependencies are passed, check if any predecessor is not DONE
     if (dto.dependsOnTaskIds && dto.dependsOnTaskIds.length > 0) {
       const predecessors = await this.prisma.task.findMany({
@@ -446,8 +478,23 @@ export class TasksService {
 
       const allDone = predecessors.every((p) => p.status === TaskStatus.DONE);
       if (!allDone) {
-        initialStatus = TaskStatus.BLOCKED;
+        initialStatus = TaskStatus.WAITING;
+        initialProgress = 0;
       }
+    }
+
+    if (initialStatus === TaskStatus.DONE) {
+      initialProgress = 100;
+    } else if (
+      initialStatus === TaskStatus.BACKLOG ||
+      initialStatus === TaskStatus.TODO ||
+      initialStatus === TaskStatus.WAITING ||
+      initialStatus === TaskStatus.READY
+    ) {
+      initialProgress = 0;
+    } else if (initialStatus === TaskStatus.IN_PROGRESS) {
+      if (initialProgress === 0) initialProgress = 10;
+      if (initialProgress >= 100) initialProgress = 99;
     }
 
     const task = await this.prisma.task.create({
@@ -601,9 +648,11 @@ export class TasksService {
 
         if (unfinishedPredecessors.length > 0) {
           const names = unfinishedPredecessors.map((b) => b.predecessorTask.humanId).join(', ');
-          throw new BadRequestException(
-            `Cannot move task to ${dto.status}. Waiting for prerequisite task(s): ${names}`,
-          );
+          throw new BadRequestException({
+            statusCode: 400,
+            code: 'TASK_DEPENDENCY_PENDING',
+            message: `This task cannot be started until its prerequisite tasks are completed (Waiting for: ${names}).`,
+          });
         }
       }
 
@@ -619,8 +668,13 @@ export class TasksService {
         }
       }
 
-      // Backlog or To Do resets to 0%
-      if (dto.status === TaskStatus.BACKLOG || dto.status === TaskStatus.TODO) {
+      // Backlog, To Do, Waiting, or Ready resets to 0%
+      if (
+        dto.status === TaskStatus.BACKLOG ||
+        dto.status === TaskStatus.TODO ||
+        dto.status === TaskStatus.WAITING ||
+        dto.status === TaskStatus.READY
+      ) {
         nextProgress = 0;
       }
     }
@@ -628,6 +682,15 @@ export class TasksService {
     // Validate progress cannot contradict status
     if (nextStatus === TaskStatus.DONE && nextProgress < 100) {
       throw new BadRequestException('A completed task must have 100% progress');
+    }
+    if (
+      (nextStatus === TaskStatus.BACKLOG ||
+        nextStatus === TaskStatus.TODO ||
+        nextStatus === TaskStatus.WAITING ||
+        nextStatus === TaskStatus.READY) &&
+      nextProgress > 0
+    ) {
+      nextProgress = 0;
     }
 
     // Manual blocker reason requirement
@@ -642,9 +705,11 @@ export class TasksService {
     } else if (dto.isManualBlocked === false && task.isManualBlocked) {
       // Manual block removed
       manualBlockReason = null;
-      // Re-evaluate if still dependency blocked
+      // Re-evaluate if still dependency waiting
       const unfinished = task.blockedBy.filter((b) => b.predecessorTask.status !== TaskStatus.DONE);
-      if (unfinished.length === 0 && nextStatus === TaskStatus.BLOCKED) {
+      if (unfinished.length > 0) {
+        nextStatus = TaskStatus.WAITING;
+      } else if (nextStatus === TaskStatus.BLOCKED) {
         nextStatus = TaskStatus.READY;
       }
     }
@@ -742,8 +807,8 @@ export class TasksService {
   /**
    * Dependency Automation:
    * 1. When Task A becomes DONE -> downstream Task B's predecessors are checked.
-   *    If all predecessors are now DONE, Task B automatically transitions BLOCKED -> READY.
-   * 2. When Task A is reopened from DONE -> downstream Task B reverts to BLOCKED if not DONE.
+   *    If all predecessors are now DONE, Task B automatically transitions WAITING -> READY.
+   * 2. When Task A is reopened from DONE -> downstream Task B reverts to WAITING if not DONE.
    */
   private async handleDependencyAutomation(
     taskId: string,
@@ -776,8 +841,13 @@ export class TasksService {
           (b) => b.predecessorTaskId === taskId || b.predecessorTask.status === TaskStatus.DONE,
         );
 
-        if (allPredecessorsDone && (depTask.status === TaskStatus.BLOCKED || depTask.status === TaskStatus.TODO)) {
-          // Automatically transition BLOCKED -> READY
+        if (
+          allPredecessorsDone &&
+          (depTask.status === TaskStatus.WAITING ||
+            depTask.status === TaskStatus.TODO ||
+            (depTask.status === TaskStatus.BLOCKED && !depTask.isManualBlocked))
+        ) {
+          // Automatically transition to READY
           await this.prisma.task.update({
             where: { id: depTask.id },
             data: { status: TaskStatus.READY },
@@ -796,19 +866,22 @@ export class TasksService {
               data: {
                 userId: depTask.assigneeId,
                 type: NotificationType.TASK_READY,
-                title: 'Task Ready To Start',
-                message: `"${depTask.title}" (${depTask.humanId}) is now ready to start. All prerequisites are completed.`,
+                title: 'Your task is ready to start',
+                message: `"${depTask.title}" (${depTask.humanId}) is now ready to start. All prerequisite tasks are completed.`,
                 linkUrl: `/projects/${depTask.projectId}?taskId=${depTask.id}`,
               },
             });
           }
         }
       } else {
-        // Predecessor was uncompleted/reopened -> revert dependent task to BLOCKED
-        if (depTask.status === TaskStatus.READY || depTask.status === TaskStatus.IN_PROGRESS) {
+        // Predecessor was uncompleted/reopened -> revert dependent task to WAITING (unless manual blocked)
+        if (
+          (depTask.status === TaskStatus.READY || depTask.status === TaskStatus.IN_PROGRESS) &&
+          !depTask.isManualBlocked
+        ) {
           await this.prisma.task.update({
             where: { id: depTask.id },
-            data: { status: TaskStatus.BLOCKED },
+            data: { status: TaskStatus.WAITING, progress: 0 },
           });
 
           await this.recordActivity(
@@ -816,7 +889,7 @@ export class TasksService {
             depTask.projectId,
             actorId,
             TaskActionType.AUTOMATICALLY_BLOCKED,
-            `Prerequisite task reopened. Task automatically became BLOCKED.`,
+            `Prerequisite task reopened. Task automatically returned to WAITING state.`,
           );
 
           if (depTask.assigneeId) {
@@ -824,8 +897,8 @@ export class TasksService {
               data: {
                 userId: depTask.assigneeId,
                 type: NotificationType.TASK_BLOCKED,
-                title: 'Task Blocked',
-                message: `"${depTask.title}" (${depTask.humanId}) is blocked because a prerequisite task was reopened.`,
+                title: 'Task Waiting on Prerequisites',
+                message: `"${depTask.title}" (${depTask.humanId}) returned to WAITING because a prerequisite task was reopened.`,
                 linkUrl: `/projects/${depTask.projectId}?taskId=${depTask.id}`,
               },
             });

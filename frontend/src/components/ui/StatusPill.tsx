@@ -25,6 +25,12 @@ export function StatusPill({ status, size = 'sm', className }: StatusPillProps) 
       text: 'text-[#4A554F]',
       dot: 'bg-[#7A8780]',
     },
+    [TaskStatus.WAITING]: {
+      label: 'WAITING',
+      bg: 'bg-[#F4F5F4]',
+      text: 'text-[#5A6660] font-medium',
+      dot: 'bg-[#8A9690]',
+    },
     [TaskStatus.READY]: {
       label: 'READY',
       bg: 'bg-[#E8F5EE]',

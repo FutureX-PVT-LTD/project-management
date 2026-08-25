@@ -41,8 +41,8 @@ export class ProjectsController {
 
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
   @Post()
-  async create(@Body() dto: CreateProjectDto, @CurrentUser('id') actorId: string) {
-    return this.projectsService.create(dto, actorId);
+  async create(@Body() dto: CreateProjectDto, @CurrentUser() actor: AuthUser) {
+    return this.projectsService.create(dto, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
@@ -50,9 +50,9 @@ export class ProjectsController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateProjectDto,
-    @CurrentUser('id') actorId: string,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.projectsService.update(id, dto, actorId);
+    return this.projectsService.update(id, dto, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
@@ -61,9 +61,9 @@ export class ProjectsController {
     @Param('id') id: string,
     @Body('userId') userId: string,
     @Body('role') role: ProjectMemberRole,
-    @CurrentUser('id') actorId: string,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.projectsService.addMember(id, userId, role || ProjectMemberRole.MEMBER, actorId);
+    return this.projectsService.addMember(id, userId, role || ProjectMemberRole.MEMBER, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
@@ -71,9 +71,9 @@ export class ProjectsController {
   async removeMember(
     @Param('id') id: string,
     @Param('userId') userId: string,
-    @CurrentUser('id') actorId: string,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.projectsService.removeMember(id, userId, actorId);
+    return this.projectsService.removeMember(id, userId, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
@@ -81,8 +81,8 @@ export class ProjectsController {
   async postUpdate(
     @Param('id') id: string,
     @Body() dto: PostProjectUpdateDto,
-    @CurrentUser('id') authorId: string,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.projectsService.postUpdate(id, authorId, dto);
+    return this.projectsService.postUpdate(id, actor.id, dto, actor.globalRole);
   }
 }

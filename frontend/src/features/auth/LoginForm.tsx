@@ -34,7 +34,7 @@ export function LoginForm() {
 
     setIsLoading(true);
     try {
-      await login(trimmedEmail, password, returnTo);
+      await login(trimmedEmail, password, returnTo, rememberMe);
     } catch (err: any) {
       const message = err?.message || '';
       if (message.toLowerCase().includes('deactivated') || message.toLowerCase().includes('disabled')) {
@@ -65,7 +65,7 @@ export function LoginForm() {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <polygon points="12 2 2 7 12 12 22 7 12 2`" />
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
             <polyline points="2 17 12 22 22 17" />
             <polyline points="2 12 12 17 22 12" />
           </svg>

@@ -259,16 +259,25 @@ export function TaskDetailSlideOver({
                 </div>
               )}
 
-              {/* Dependency Blocked Banner */}
-              {hasUnfinishedPredecessors && (
-                <div className="px-6 py-3 bg-red-50/70 border-b border-red-200/80 flex items-start gap-2.5">
-                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              {/* Waiting on Prerequisites Banner */}
+              {task.status === TaskStatus.WAITING && (
+                <div className="px-6 py-3.5 bg-gray-50 border-b border-gray-200 flex items-start gap-3">
+                  <div className="p-1.5 bg-white rounded border border-gray-200 shrink-0 mt-0.5">
+                    <Lock className="w-4 h-4 text-fx-text-muted" />
+                  </div>
                   <div className="text-xs">
-                    <p className="font-semibold text-red-800">
-                      This task cannot start yet. Waiting for {blockedByList.filter((b: any) => b.predecessorTask?.status !== TaskStatus.DONE).length} prerequisite task(s).
+                    <p className="font-semibold text-fx-text-primary">
+                      Prerequisites in progress (Locked)
                     </p>
-                    <p className="text-red-700 mt-0.5">
-                      Prerequisites must be marked DONE before this task automatically becomes READY.
+                    <p className="text-fx-text-secondary mt-0.5 leading-relaxed">
+                      Waiting for:{' '}
+                      <span className="font-medium text-fx-text-primary">
+                        {blockedByList
+                          .filter((b: any) => b.predecessorTask?.status !== TaskStatus.DONE)
+                          .map((b: any) => `${b.predecessorTask?.humanId} · ${b.predecessorTask?.title}`)
+                          .join(', ') || 'Prerequisite tasks'}
+                      </span>
+                      . This task will automatically unlock and become <strong>READY</strong> once all prerequisites are marked DONE.
                     </p>
                   </div>
                 </div>
@@ -276,12 +285,12 @@ export function TaskDetailSlideOver({
 
               {/* Manual Blocked Banner */}
               {task.isManualBlocked && (
-                <div className="px-6 py-3 bg-amber-50/80 border-b border-amber-200 flex items-center justify-between gap-3">
+                <div className="px-6 py-3 bg-red-50/80 border-b border-red-200 flex items-center justify-between gap-3">
                   <div className="flex items-start gap-2.5 text-xs">
-                    <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
                     <div>
-                      <p className="font-semibold text-amber-900">Manually Marked Blocked</p>
-                      <p className="text-amber-800 mt-0.5">Reason: {task.manualBlockReason || 'No reason provided'}</p>
+                      <p className="font-semibold text-red-900">Manually Marked Blocked</p>
+                      <p className="text-red-800 mt-0.5">Reason: {task.manualBlockReason || 'No reason provided'}</p>
                     </div>
                   </div>
                   {(isAssignee || isManager) && (
@@ -361,6 +370,12 @@ export function TaskDetailSlideOver({
                 <div className="px-6 py-2.5 bg-gray-50 border-b border-fx-border flex items-center justify-between gap-3 text-xs">
                   <span className="text-fx-text-muted font-medium">Quick Actions:</span>
                   <div className="flex items-center gap-2">
+                    {task.status === TaskStatus.WAITING && (
+                      <span className="text-[11px] text-fx-text-muted flex items-center gap-1.5 font-medium">
+                        <Lock className="w-3.5 h-3.5" /> Locked on prerequisites
+                      </span>
+                    )}
+
                     {task.status === TaskStatus.READY && (
                       <Button
                         size="xs"
@@ -368,11 +383,11 @@ export function TaskDetailSlideOver({
                         onClick={() =>
                           updateTaskMutation.mutate({
                             status: TaskStatus.IN_PROGRESS,
-                            progress: task.progress === 0 ? 10 : task.progress,
+                            progress: task.progress === 0 ? 15 : task.progress,
                           })
                         }
                         isLoading={updateTaskMutation.isPending}
-                        className="gap-1"
+                        className="gap-1 font-semibold"
                       >
                         <PlayCircle className="w-3.5 h-3.5" /> Start Work
                       </Button>
@@ -385,7 +400,7 @@ export function TaskDetailSlideOver({
                           variant="primary"
                           onClick={() => updateTaskMutation.mutate({ status: TaskStatus.IN_REVIEW })}
                           isLoading={updateTaskMutation.isPending}
-                          className="gap-1 bg-amber-600 hover:bg-amber-700 text-white"
+                          className="gap-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
                         >
                           <ShieldCheck className="w-3.5 h-3.5" /> Submit for Review
                         </Button>
@@ -393,17 +408,22 @@ export function TaskDetailSlideOver({
                           size="xs"
                           variant="secondary"
                           onClick={() => setBlockerModalOpen(true)}
-                          className="gap-1 text-red-600 hover:bg-red-50"
+                          className="gap-1 text-red-600 hover:bg-red-50 font-medium"
                         >
                           <AlertTriangle className="w-3.5 h-3.5" /> Report Blocker
                         </Button>
                       </>
                     )}
 
-                    {task.status === TaskStatus.BLOCKED && !task.isManualBlocked && (
-                      <span className="text-[11px] text-red-600 font-semibold flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> Blocked by prerequisites
-                      </span>
+                    {task.status === TaskStatus.BLOCKED && (
+                      <Button
+                        size="xs"
+                        variant="secondary"
+                        onClick={handleClearBlocker}
+                        className="gap-1 text-fx-green-900 bg-white hover:bg-gray-50"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-fx-green-700" /> Resolve Blocker
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -590,12 +610,12 @@ export function TaskDetailSlideOver({
                     max="100"
                     step="5"
                     value={task.progress}
-                    disabled={task.status === TaskStatus.DONE || (!isManager && !isAssignee)}
+                    disabled={task.status !== TaskStatus.IN_PROGRESS || (!isManager && !isAssignee)}
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       updateTaskMutation.mutate({ progress: val });
                     }}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-fx-green"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-fx-green disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   {task.progress === 100 && task.status === TaskStatus.IN_PROGRESS && !isManager && (
                     <p className="text-[11px] text-amber-700 font-medium mt-1">

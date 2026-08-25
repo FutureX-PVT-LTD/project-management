@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Search,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/AuthContext';
@@ -112,6 +113,7 @@ export function ProjectDetailsPage() {
   const boardColumns = [
     { id: TaskStatus.BACKLOG, title: 'Backlog' },
     { id: TaskStatus.TODO, title: 'To Do' },
+    { id: TaskStatus.WAITING, title: 'Waiting' },
     { id: TaskStatus.READY, title: 'Ready' },
     { id: TaskStatus.IN_PROGRESS, title: 'In Progress' },
     { id: TaskStatus.IN_REVIEW, title: 'In Review' },
@@ -639,33 +641,61 @@ export function ProjectDetailsPage() {
                   </div>
 
                   <div className="space-y-2.5 flex-1 min-h-32">
-                    {colTasks.map((task: any) => (
-                      <div
-                        key={task.id}
-                        onClick={() => setSelectedTaskId(task.id)}
-                        className="bg-white p-3 rounded-[8px] border border-fx-border shadow-card hover:border-fx-green-700/60 cursor-pointer fx-transition space-y-2 text-xs"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-mono font-bold text-fx-text-muted text-[11px]">
-                            {task.humanId}
-                          </span>
-                          <PriorityBadge priority={task.priority} showLabel={false} />
-                        </div>
+                    {colTasks.map((task: any) => {
+                      const unfinishedDeps = (task.blockedBy || []).filter(
+                        (b: any) => b.predecessorTask?.status !== TaskStatus.DONE,
+                      );
 
-                        <p className="font-semibold text-fx-text-primary text-[13px] line-clamp-2 leading-snug">
-                          {task.title}
-                        </p>
+                      return (
+                        <div
+                          key={task.id}
+                          onClick={() => setSelectedTaskId(task.id)}
+                          className={cn(
+                            'bg-white p-3 rounded-lg border border-fx-border shadow-card hover:border-fx-green-700/60 cursor-pointer fx-transition space-y-2 text-xs',
+                            task.status === TaskStatus.READY && 'border-fx-green-700/30 bg-fx-green-50/10',
+                            task.status === TaskStatus.WAITING && 'opacity-90',
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-mono font-bold text-fx-text-muted text-[11px]">
+                              {task.humanId}
+                            </span>
+                            <PriorityBadge priority={task.priority} showLabel={false} />
+                          </div>
 
-                        <div className="pt-2 border-t border-fx-border/60 flex items-center justify-between text-fx-text-muted">
-                          <Avatar
-                            src={task.assignee?.avatarUrl}
-                            firstName={task.assignee?.firstName}
-                            size="xs"
-                          />
-                          <span className="text-[11px] font-medium">{formatDate(task.dueDate)}</span>
+                          <p className="font-semibold text-fx-text-primary text-[13px] line-clamp-2 leading-snug">
+                            {task.title}
+                          </p>
+
+                          {task.status === TaskStatus.WAITING && (
+                            <div className="flex items-center gap-1 text-[10px] text-fx-text-muted bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200/60">
+                              <Lock className="w-3 h-3 shrink-0" />
+                              <span className="truncate">
+                                {unfinishedDeps.length > 0
+                                  ? `Waiting for ${unfinishedDeps.map((d: any) => d.predecessorTask?.humanId).join(', ')}`
+                                  : 'Waiting on prerequisites'}
+                              </span>
+                            </div>
+                          )}
+
+                          {task.status === TaskStatus.IN_PROGRESS && (
+                            <div className="w-full">
+                              <Progress value={task.progress} size="xs" showLabel={false} />
+                            </div>
+                          )}
+
+                          <div className="pt-2 border-t border-fx-border/60 flex items-center justify-between text-fx-text-muted">
+                            <Avatar
+                              src={task.assignee?.avatarUrl}
+                              firstName={task.assignee?.firstName}
+                              lastName={task.assignee?.lastName}
+                              size="xs"
+                            />
+                            <span className="text-[11px] font-medium">{formatDate(task.dueDate)}</span>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );

@@ -42,6 +42,7 @@ export class TasksController {
 
   @Get()
   async findAll(
+    @CurrentUser() actor: AuthUser,
     @Query('projectId') projectId?: string,
     @Query('milestoneId') milestoneId?: string,
     @Query('assigneeId') assigneeId?: string,
@@ -50,20 +51,24 @@ export class TasksController {
     @Query('search') search?: string,
     @Query('parentTaskId') parentTaskId?: string,
   ) {
-    return this.tasksService.findAll({
-      projectId,
-      milestoneId,
-      assigneeId,
-      status,
-      priority,
-      search,
-      parentTaskId: parentTaskId === 'null' ? null : parentTaskId,
-    });
+    return this.tasksService.findAll(
+      {
+        projectId,
+        milestoneId,
+        assigneeId,
+        status,
+        priority,
+        search,
+        parentTaskId: parentTaskId === 'null' ? null : parentTaskId,
+      },
+      actor.id,
+      actor.globalRole,
+    );
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return this.tasksService.findById(id);
+  async findById(@Param('id') id: string, @CurrentUser() actor: AuthUser) {
+    return this.tasksService.findById(id, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
