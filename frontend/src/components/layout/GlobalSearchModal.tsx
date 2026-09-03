@@ -163,7 +163,7 @@ export function GlobalSearchModal({ open, onOpenChange, onSelectTask }: GlobalSe
                       <span className="font-medium text-fx-text-primary truncate">{proj.name}</span>
                     </div>
                     <span className="text-xs text-fx-text-muted shrink-0">
-                      PM: {proj.managerName}
+                      Admin: {proj.managerName}
                     </span>
                   </div>
                 ))}

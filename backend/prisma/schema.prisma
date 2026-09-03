@@ -15,7 +15,7 @@ model User {
   lastName     String
   jobTitle     String?
   avatarUrl    String?
-  globalRole   String    @default("TEAM_MEMBER") // OWNER, ADMIN, PROJECT_MANAGER, TEAM_MEMBER
+  globalRole   String    @default("TEAM_MEMBER") // OWNER, ADMIN, TEAM_MEMBER
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
@@ -36,6 +36,7 @@ model User {
   taskComments       TaskComment[]
   taskAttachments    TaskAttachment[]
   taskActivities     TaskActivity[]
+  taskDailyUpdates   TaskDailyUpdate[]
   taskReviews        TaskReview[]
   projectUpdates     ProjectUpdate[]
   notifications      Notification[]
@@ -97,6 +98,7 @@ model Project {
   tasks           Task[]
   taskAttachments TaskAttachment[]
   taskActivities  TaskActivity[]
+  dailyUpdates    TaskDailyUpdate[]
   updates         ProjectUpdate[]
 
   @@index([key])
@@ -177,6 +179,7 @@ model Task {
   blockedBy     TaskDependency[]   @relation("DependentTasks")
   blocking      TaskDependency[]   @relation("PredecessorTasks")
   reviews       TaskReview[]
+  dailyUpdates  TaskDailyUpdate[]
   comments      TaskComment[]
   attachments   TaskAttachment[]
   activities    TaskActivity[]
@@ -230,6 +233,31 @@ model TaskReview {
   @@index([reviewerId])
 }
 
+model TaskDailyUpdate {
+  id              String   @id @default(uuid())
+  taskId          String
+  projectId       String
+  userId          String
+  progressBefore  Int
+  progressAfter   Int
+  completedToday  String
+  blocker         String?
+  nextStep        String
+  attachmentId    String?
+  workDate        DateTime @default(now()) @db.Date
+  createdAt       DateTime @default(now())
+
+  task       Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  attachment TaskAttachment? @relation(fields: [attachmentId], references: [id], onDelete: SetNull)
+
+  @@unique([taskId, userId, workDate])
+  @@index([taskId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([userId, createdAt])
+}
+
 model TaskComment {
   id        String    @id @default(uuid())
   taskId    String
@@ -262,6 +290,7 @@ model TaskAttachment {
   task     Task?   @relation(fields: [taskId], references: [id], onDelete: SetNull)
   project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   uploader User    @relation(fields: [uploaderId], references: [id])
+  dailyUpdates TaskDailyUpdate[]
 
   @@index([taskId])
   @@index([projectId])

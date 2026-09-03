@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtPayload, UserRole } from '@futurex/shared';
+import { getJwtAccessSecret } from '../auth-secrets';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -25,8 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey:
-        process.env.JWT_SECRET || 'futurex_super_secure_jwt_access_secret_key_2026_!@#',
+      secretOrKey: getJwtAccessSecret(),
     });
   }
 

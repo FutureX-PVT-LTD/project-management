@@ -11,7 +11,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 export class DependenciesController {
   constructor(private dependenciesService: DependenciesService) {}
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post()
   async addDependency(
     @Body() dto: CreateDependencyDto,
@@ -20,7 +20,7 @@ export class DependenciesController {
     return this.dependenciesService.addDependency(dto, actor.id, actor.globalRole);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Delete(':id')
   async removeDependency(
     @Param('id') id: string,
@@ -28,4 +28,5 @@ export class DependenciesController {
   ) {
     return this.dependenciesService.removeDependency(id, actor.id, actor.globalRole);
   }
+
 }

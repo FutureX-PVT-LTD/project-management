@@ -36,8 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (pathname === '/login' || pathname === '/forgot-password' || pathname === '/reset-password') {
+      setIsLoading(false);
+      return;
+    }
+
     refreshUser();
-  }, [refreshUser]);
+  }, [pathname, refreshUser]);
 
   const login = async (
     email: string,

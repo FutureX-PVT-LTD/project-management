@@ -1,79 +1,74 @@
-import React from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
+import React, { ButtonHTMLAttributes, forwardRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
-const buttonVariants = cva(
-  'inline-flex items-center justify-center rounded-md font-medium fx-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fx-green-700/30 disabled:opacity-45 disabled:pointer-events-none text-sm select-none',
-  {
-    variants: {
-      variant: {
-        primary:
-          'bg-fx-green-700 text-white hover:bg-fx-green-800 shadow-subtle active:translate-y-[0.5px]',
-        secondary:
-          'bg-white text-fx-text-primary border border-fx-border hover:bg-fx-bg-subtle hover:border-fx-border-strong active:bg-gray-100',
-        soft:
-          'bg-fx-green-100 text-fx-green-900 hover:bg-fx-green-100/80 font-semibold',
-        ghost:
-          'text-fx-text-secondary hover:text-fx-text-primary hover:bg-gray-100/80 active:bg-gray-200/60',
-        danger:
-          'bg-fx-semantic-danger text-white hover:bg-[#b02f2f] shadow-subtle active:translate-y-[0.5px]',
-        outline:
-          'border border-fx-border text-fx-text-secondary hover:text-fx-text-primary hover:border-fx-border-strong hover:bg-white',
-      },
-      size: {
-        xs: 'h-7 px-2.5 text-xs gap-1 rounded-[6px]',
-        sm: 'h-8 px-3 text-xs gap-1.5 rounded-[6px]',
-        md: 'h-9 px-3.5 text-sm gap-2 rounded-md',
-        lg: 'h-10 px-4 text-sm gap-2 rounded-md',
-        icon: 'h-8 w-8 p-0 rounded-md',
-      },
-    },
-    defaultVariants: {
-      variant: 'primary',
-      size: 'md',
-    },
-  },
-);
-
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  loading?: boolean;
   isLoading?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
-export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, isLoading, children, disabled, ...props }, ref) => {
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      className,
+      variant = 'primary',
+      size = 'md',
+      loading = false,
+      isLoading = false,
+      leftIcon,
+      rightIcon,
+      children,
+      disabled,
+      ...props
+    },
+    ref,
+  ) => {
+    const isSpinnerActive = loading || isLoading;
+    const baseStyles =
+
+      'inline-flex items-center justify-center font-medium rounded-md fx-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fx-green focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none active:scale-[0.99]';
+
+    const variants = {
+      primary:
+        'bg-fx-green text-white hover:bg-fx-green-hover shadow-none border border-transparent active:bg-[#075F3B]',
+      secondary:
+        'bg-white text-fx-text-primary border border-fx-border hover:bg-fx-bg-hover hover:border-fx-border-strong active:bg-gray-100',
+      outline:
+        'bg-transparent text-fx-text-primary border border-fx-border hover:bg-fx-bg-hover hover:border-fx-border-strong',
+      ghost:
+        'bg-transparent text-fx-text-secondary hover:text-fx-text-primary hover:bg-fx-bg-hover',
+      danger:
+        'bg-fx-semantic-danger text-white hover:bg-red-700 shadow-none border border-transparent',
+    };
+
+    const sizes = {
+      xs: 'h-7 px-2 text-xs gap-1 rounded-sm',
+      sm: 'h-8 px-2.5 text-xs gap-1.5',
+      md: 'h-9 px-3.5 text-[13px] gap-2 font-medium',
+      lg: 'h-10 px-4 text-sm gap-2 font-semibold',
+    };
+
     return (
       <button
         ref={ref}
-        className={cn(buttonVariants({ variant, size, className }))}
-        disabled={disabled || isLoading}
+        disabled={disabled || isSpinnerActive}
+        className={cn(baseStyles, variants[variant], sizes[size], className)}
         {...props}
       >
-        {isLoading && (
-          <svg
-            className="animate-spin -ml-0.5 mr-1.5 h-3.5 w-3.5 text-current"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
+        {isSpinnerActive ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          leftIcon && <span className="shrink-0">{leftIcon}</span>
         )}
         {children}
+        {!isSpinnerActive && rightIcon && <span className="shrink-0">{rightIcon}</span>}
       </button>
     );
+
   },
 );
 

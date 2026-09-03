@@ -6,53 +6,57 @@ interface HealthBadgeProps {
   health: ProjectHealth | string;
   reason?: string | null;
   className?: string;
+  showLabel?: boolean;
 }
 
-export function HealthBadge({ health, reason, className }: HealthBadgeProps) {
-  const config: Record<
-    string,
-    { label: string; dot: string; text: string; bg: string }
-  > = {
-    [ProjectHealth.ON_TRACK]: {
-      label: 'On Track',
-      dot: 'bg-[#14804A]',
-      text: 'text-[#064E35]',
-      bg: 'bg-[#E8F5EE]',
-    },
-    [ProjectHealth.AT_RISK]: {
-      label: 'At Risk',
-      dot: 'bg-[#B76E00]',
-      text: 'text-[#8A5200]',
-      bg: 'bg-[#FEF6E6]',
-    },
-    [ProjectHealth.OFF_TRACK]: {
-      label: 'Off Track',
-      dot: 'bg-[#C33A3A]',
-      text: 'text-[#9E2828]',
-      bg: 'bg-[#FDF2F2]',
-    },
-    [ProjectHealth.COMPLETED]: {
-      label: 'Completed',
-      dot: 'bg-[#087A4B]',
-      text: 'text-[#076241]',
-      bg: 'bg-[#E8F5EE]',
-    },
+const healthConfig: Record<string, { label: string; dot: string; text: string; bg: string }> = {
+  [ProjectHealth.ON_TRACK]: {
+    label: 'On Track',
+    dot: 'bg-emerald-600',
+    text: 'text-emerald-800',
+    bg: 'bg-emerald-50/70',
+  },
+  [ProjectHealth.AT_RISK]: {
+    label: 'At Risk',
+    dot: 'bg-amber-600',
+    text: 'text-amber-800',
+    bg: 'bg-amber-50/70',
+  },
+  [ProjectHealth.OFF_TRACK]: {
+    label: 'Off Track',
+    dot: 'bg-rose-600',
+    text: 'text-rose-800',
+    bg: 'bg-rose-50/70',
+  },
+  [ProjectHealth.COMPLETED]: {
+    label: 'Completed',
+    dot: 'bg-fx-green',
+    text: 'text-fx-green-dark',
+    bg: 'bg-fx-green-soft/70',
+  },
+};
+
+export function HealthBadge({
+  health,
+  reason,
+  className,
+  showLabel = true,
+}: HealthBadgeProps) {
+  const config = healthConfig[health] || {
+    label: health,
+    dot: 'bg-gray-400',
+    text: 'text-gray-700',
+    bg: 'bg-gray-50',
   };
 
-  const current = config[health] || config[ProjectHealth.ON_TRACK];
-
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-[11px] font-semibold select-none whitespace-nowrap',
-        current.bg,
-        current.text,
-        className,
+    <div className={cn('inline-flex items-center gap-1.5', className)} title={reason || undefined}>
+      <span className={cn('w-2 h-2 rounded-full shrink-0', config.dot)} />
+      {showLabel && (
+        <span className={cn('text-xs font-medium tracking-tight', config.text)}>
+          {config.label}
+        </span>
       )}
-      title={reason ? `Health: ${current.label} (${reason})` : `Health: ${current.label}`}
-    >
-      <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', current.dot)} />
-      <span>{current.label}</span>
-    </span>
+    </div>
   );
 }

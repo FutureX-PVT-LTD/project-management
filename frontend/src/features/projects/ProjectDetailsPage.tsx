@@ -1,138 +1,77 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import {
   FolderKanban,
   CheckSquare,
-  LayoutGrid,
-  Calendar,
-  Paperclip,
-  Clock,
-  AlertCircle,
-  Plus,
-  ArrowRight,
-  Upload,
-  Link2,
+  GanttChartSquare,
   Users,
-  AlertTriangle,
-  ChevronRight,
-  MessageSquare,
-  Search,
-  Sparkles,
+  Plus,
+  Calendar,
+  AlertCircle,
   Lock,
+  FileText,
+  Activity,
+  ChevronRight,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
+import { TaskStatus, ProjectHealth } from '@futurex/shared';
 import { useAuth } from '@/features/auth/AuthContext';
-import {
-  TaskStatus,
-  TaskPriority,
-  ProjectHealth,
-  ProjectStatus,
-  UserRole,
-} from '@futurex/shared';
 import { HealthBadge } from '@/components/ui/HealthBadge';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { Progress } from '@/components/ui/Progress';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Avatar } from '@/components/ui/Avatar';
-import { Card } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { AppShell } from '@/components/layout/AppShell';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
-import { TaskCreateModal } from '@/features/tasks/TaskCreateModal';
-import { formatDate, formatTimeAgo, cn } from '@/lib/utils';
+import { canManageProjects } from '@/lib/permissions';
+import { formatDate, cn } from '@/lib/utils';
+import Link from 'next/link';
+import { useParams, useSearchParams } from 'next/navigation';
 
-export function ProjectDetailsPage() {
+interface ProjectDetailsPageProps {
+  projectId?: string;
+}
+
+export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsPageProps = {}) {
   const params = useParams();
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const { user, hasRole } = useAuth();
+  const projectId = propProjectId || (params?.id as string) || '';
 
-  const projectId = params.id as string;
-  const initialTaskId = searchParams.get('taskId');
+  const { user } = useAuth();
+  const canManage = canManageProjects(user);
 
-  const [selectedTab, setSelectedTab] = useState<'overview' | 'tasks' | 'board' | 'timeline' | 'files'>('overview');
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(initialTaskId);
-  const [createTaskOpen, setCreateTaskOpen] = useState(false);
-  const [newUpdateNote, setNewUpdateNote] = useState('');
-  const [newUpdateHealth, setNewUpdateHealth] = useState<ProjectHealth>(ProjectHealth.ON_TRACK);
-  const [taskSearch, setTaskSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'board' | 'calendar' | 'timeline' | 'files' | 'activity'>('overview');
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Fetch Project Details
-  const { data: project, isLoading: isProjectLoading } = useQuery({
+  const { data: projectData, isLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => api.get(`/projects/${projectId}`),
     enabled: !!projectId,
   });
 
-  // Fetch Project Tasks
-  const { data: tasks, isLoading: isTasksLoading } = useQuery({
-    queryKey: ['projectTasks', projectId, taskSearch, statusFilter],
-    queryFn: () =>
-      api.get(
-        `/tasks?projectId=${projectId}&search=${encodeURIComponent(taskSearch)}&status=${statusFilter}`,
-      ),
-    enabled: !!projectId,
-  });
+  const project = projectData as any;
+  const tasks = (project?.tasks || []) as any[];
+  const milestones = (project?.milestones || []) as any[];
+  const members = (project?.members || []) as any[];
 
-  // Fetch Project Files
-  const { data: files } = useQuery({
-    queryKey: ['projectFiles', projectId],
-    queryFn: () => api.get(`/files/project/${projectId}`),
-    enabled: !!projectId && selectedTab === 'files',
-  });
-
-  // Post Project Update Mutation
-  const postUpdateMutation = useMutation({
-    mutationFn: (dto: any) => api.post(`/projects/${projectId}/updates`, dto),
-    onSuccess: () => {
-      setNewUpdateNote('');
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-    },
-  });
-
-  const allTasks = (tasks as any[]) || [];
-  const blockedTasks = allTasks.filter((t: any) => t.status === TaskStatus.BLOCKED);
-  const inProgressTasks = allTasks.filter((t: any) => t.status === TaskStatus.IN_PROGRESS);
-  const completedTasks = allTasks.filter((t: any) => t.status === TaskStatus.DONE);
-  const now = new Date();
-  const overdueTasks = allTasks.filter(
-    (t: any) => t.dueDate && new Date(t.dueDate) < now && t.status !== TaskStatus.DONE,
-  );
-
-  const canManage =
-    hasRole(UserRole.OWNER, UserRole.ADMIN) ||
-    (user?.globalRole === UserRole.PROJECT_MANAGER && project?.projectManagerId === user?.id);
-
+  // Board columns
   const boardColumns = [
-    { id: TaskStatus.BACKLOG, title: 'Backlog' },
-    { id: TaskStatus.TODO, title: 'To Do' },
-    { id: TaskStatus.WAITING, title: 'Waiting' },
-    { id: TaskStatus.READY, title: 'Ready' },
-    { id: TaskStatus.IN_PROGRESS, title: 'In Progress' },
-    { id: TaskStatus.IN_REVIEW, title: 'In Review' },
-    { id: TaskStatus.BLOCKED, title: 'Blocked' },
-    { id: TaskStatus.DONE, title: 'Done' },
+    { id: TaskStatus.TODO, label: 'To Do', color: 'bg-gray-400' },
+    { id: TaskStatus.WAITING, label: 'Waiting', color: 'bg-amber-500' },
+    { id: TaskStatus.READY, label: 'Ready to Start', color: 'bg-fx-green' },
+    { id: TaskStatus.IN_PROGRESS, label: 'In Progress', color: 'bg-blue-500' },
+    { id: TaskStatus.IN_REVIEW, label: 'In Review', color: 'bg-purple-500' },
+    { id: TaskStatus.BLOCKED, label: 'Blocked', color: 'bg-red-500' },
+    { id: TaskStatus.DONE, label: 'Completed', color: 'bg-emerald-600' },
   ];
 
-  if (isProjectLoading || !project) {
-    return (
-      <AppShell>
-        <div className="p-16 text-center text-xs text-fx-text-muted">
-          Loading project workspace...
-        </div>
-      </AppShell>
-    );
-  }
+  const isFullWidth = activeTab === 'board' || activeTab === 'timeline' || activeTab === 'calendar';
 
   return (
-    <AppShell onOpenCreateTask={canManage ? () => setCreateTaskOpen(true) : undefined}>
+    <AppShell fullWidth={isFullWidth}>
       <TaskDetailSlideOver
         taskId={selectedTaskId}
         open={!!selectedTaskId}
@@ -140,645 +79,521 @@ export function ProjectDetailsPage() {
         onSelectTask={(id) => setSelectedTaskId(id)}
       />
 
-      {canManage && (
-        <TaskCreateModal
-          open={createTaskOpen}
-          onOpenChange={setCreateTaskOpen}
-          defaultProjectId={projectId}
-        />
-      )}
-
       <div className="space-y-6">
+        {(searchParams.get('created') || searchParams.get('updated') || searchParams.get('taskCreated')) && (
+          <div className="rounded-lg border border-fx-green/20 bg-fx-green-soft px-4 py-3 text-xs font-medium text-fx-green-dark">
+            {searchParams.get('created')
+              ? 'Project created. Create the first task when you are ready.'
+              : searchParams.get('taskCreated')
+                ? 'Task created and added to this project.'
+                : 'Project updated.'}
+          </div>
+        )}
+
         {/* Project Header */}
-        <div className="bg-white rounded-[10px] border border-fx-border p-5 sm:p-6 shadow-card space-y-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="h-10 w-10 rounded-md bg-fx-green-700 text-white font-bold text-sm flex items-center justify-center font-mono shrink-0 shadow-subtle">
-                {project.key}
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-2xl font-bold text-fx-text-primary tracking-tight">
-                    {project.name}
-                  </h1>
-                  <HealthBadge health={project.health} reason={project.healthReason} />
-                  <span className="text-[11px] font-semibold px-2 py-0.5 rounded-[4px] bg-fx-bg-subtle text-fx-text-secondary border border-fx-border uppercase tracking-wider">
-                    {project.status}
+        {isLoading ? (
+          <div className="bg-white border border-fx-border rounded-xl p-5 space-y-3 animate-pulse shadow-none">
+            <div className="h-4 bg-fx-bg-subtle rounded w-32" />
+            <div className="h-7 bg-fx-bg-subtle rounded w-72" />
+            <div className="h-4 bg-fx-bg-subtle rounded w-full max-w-xl" />
+          </div>
+        ) : !project ? (
+          <div className="bg-white border border-fx-border rounded-xl p-8 text-center space-y-3 shadow-none">
+            <AlertCircle className="w-8 h-8 text-fx-semantic-danger mx-auto" />
+            <h2 className="text-sm font-semibold text-fx-text-primary">Project Not Found</h2>
+            <p className="text-xs text-fx-text-secondary">This project may have been removed or you do not have permission to view it.</p>
+            <Link href="/projects">
+              <Button size="sm" variant="secondary">Back to Projects</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="bg-white border border-fx-border rounded-xl p-5 space-y-4 shadow-none">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="space-y-1.5 min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/projects"
+                    className="text-xs text-fx-text-muted hover:text-fx-green fx-transition"
+                  >
+                    Projects
+                  </Link>
+                  <ChevronRight className="w-3.5 h-3.5 text-fx-text-muted" />
+                  <span className="font-mono text-xs font-semibold text-fx-text-muted bg-fx-bg px-1.5 py-0.5 rounded border border-fx-border">
+                    {project?.key || '...'}
                   </span>
+                  <HealthBadge health={project?.health || ProjectHealth.ON_TRACK} />
                 </div>
-                <p className="text-xs sm:text-sm text-fx-text-secondary max-w-3xl leading-relaxed">
-                  {project.description || 'No description provided.'}
-                </p>
+                <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-fx-text-primary">
+                  {project?.name}
+                </h1>
+                {project?.description && (
+                  <p className="text-xs sm:text-sm text-fx-text-secondary leading-relaxed max-w-3xl">
+                    {project.description}
+                  </p>
+                )}
               </div>
-            </div>
+
 
             {canManage && (
-              <div className="flex items-center gap-2 self-start md:self-auto shrink-0">
-                <Button
-                  size="sm"
-                  variant="primary"
-                  onClick={() => setCreateTaskOpen(true)}
-                  className="gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add Task
-                </Button>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link href={`/projects/${projectId}/edit`}>
+                  <Button size="sm" variant="outline" type="button">
+                    Edit Project
+                  </Button>
+                </Link>
+                <Link href={`/projects/${projectId}/members`}>
+                  <Button size="sm" variant="secondary" type="button" leftIcon={<Users className="w-3.5 h-3.5" />}>
+                    Manage Members ({members.length})
+                  </Button>
+                </Link>
+                <Link href={`/projects/${projectId}/tasks/new`}>
+                  <Button size="sm" variant="primary" type="button" leftIcon={<Plus className="w-3.5 h-3.5" />}>
+                    New Task
+                  </Button>
+                </Link>
               </div>
             )}
           </div>
 
-          {/* Sub Header Meta Info */}
-          <div className="pt-3.5 border-t border-fx-border/60 flex flex-wrap items-center justify-between gap-4 text-xs">
-            <div className="flex flex-wrap items-center gap-6 text-fx-text-secondary">
-              <div className="flex items-center gap-2">
-                <span className="text-fx-text-muted">Manager:</span>
-                <Avatar
-                  src={project.projectManager?.avatarUrl}
-                  firstName={project.projectManager?.firstName}
-                  lastName={project.projectManager?.lastName}
-                  size="xs"
-                />
-                <span className="font-semibold text-fx-text-primary">
-                  {project.projectManager ? `${project.projectManager.firstName} ${project.projectManager.lastName}` : 'Unassigned'}
+
+          {/* Quick Metrics Bar */}
+          <div className="pt-3 border-t border-fx-border/70 flex flex-wrap items-center justify-between gap-4 text-xs text-fx-text-secondary">
+            <div className="flex items-center gap-6">
+              <div>
+                <span className="text-fx-text-muted text-[11px]">Progress:</span>{' '}
+                <span className="font-mono font-semibold text-fx-text-primary">
+                  {project?.progress || 0}%
                 </span>
               </div>
-
-              <div className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-fx-text-muted" />
-                <span>{project.members?.length || 0} Team Members</span>
+              <div>
+                <span className="text-fx-text-muted text-[11px]">Tasks:</span>{' '}
+                <span className="font-mono font-semibold text-fx-text-primary">
+                  {tasks.length}
+                </span>
               </div>
-
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-fx-text-muted" />
-                <span>Target: {formatDate(project.targetDate)}</span>
+              <div>
+                <span className="text-fx-text-muted text-[11px]">Managing Admin:</span>{' '}
+                <span className="font-medium text-fx-text-primary">
+                  {project?.projectManager
+                    ? `${project.projectManager.firstName} ${project.projectManager.lastName}`
+                    : 'Unassigned'}
+                </span>
+              </div>
+              <div>
+                <span className="text-fx-text-muted text-[11px]">Target:</span>{' '}
+                <span className="font-mono text-fx-text-secondary">
+                  {project?.targetDate ? formatDate(project.targetDate) : 'No deadline'}
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 w-48">
-              <span className="text-fx-text-muted font-medium shrink-0">Progress:</span>
-              <Progress value={project.progress} size="xs" showLabel={true} />
+            <div className="w-36 hidden sm:block">
+              <Progress value={project?.progress || 0} size="xs" />
             </div>
           </div>
         </div>
+        )}
 
-        {/* Project Horizontal Underline Tabs */}
-        <div className="border-b border-fx-border flex gap-6 text-xs font-semibold overflow-x-auto scrollbar-none">
-          <button
-            onClick={() => setSelectedTab('overview')}
-            className={cn(
-              'pb-3 border-b-2 fx-transition flex items-center gap-1.5 whitespace-nowrap text-xs',
-              selectedTab === 'overview'
-                ? 'border-fx-green-700 text-fx-green-900 font-bold'
-                : 'border-transparent text-fx-text-muted hover:text-fx-text-primary',
-            )}
-          >
-            <FolderKanban className="w-3.5 h-3.5" /> Overview
-          </button>
-          <button
-            onClick={() => setSelectedTab('tasks')}
-            className={cn(
-              'pb-3 border-b-2 fx-transition flex items-center gap-1.5 whitespace-nowrap text-xs',
-              selectedTab === 'tasks'
-                ? 'border-fx-green-700 text-fx-green-900 font-bold'
-                : 'border-transparent text-fx-text-muted hover:text-fx-text-primary',
-            )}
-          >
-            <CheckSquare className="w-3.5 h-3.5" /> Tasks List ({allTasks.length})
-          </button>
-          <button
-            onClick={() => setSelectedTab('board')}
-            className={cn(
-              'pb-3 border-b-2 fx-transition flex items-center gap-1.5 whitespace-nowrap text-xs',
-              selectedTab === 'board'
-                ? 'border-fx-green-700 text-fx-green-900 font-bold'
-                : 'border-transparent text-fx-text-muted hover:text-fx-text-primary',
-            )}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" /> Board
-          </button>
-          <button
-            onClick={() => setSelectedTab('timeline')}
-            className={cn(
-              'pb-3 border-b-2 fx-transition flex items-center gap-1.5 whitespace-nowrap text-xs',
-              selectedTab === 'timeline'
-                ? 'border-fx-green-700 text-fx-green-900 font-bold'
-                : 'border-transparent text-fx-text-muted hover:text-fx-text-primary',
-            )}
-          >
-            <Calendar className="w-3.5 h-3.5" /> Timeline
-          </button>
-          <button
-            onClick={() => setSelectedTab('files')}
-            className={cn(
-              'pb-3 border-b-2 fx-transition flex items-center gap-1.5 whitespace-nowrap text-xs',
-              selectedTab === 'files'
-                ? 'border-fx-green-700 text-fx-green-900 font-bold'
-                : 'border-transparent text-fx-text-muted hover:text-fx-text-primary',
-            )}
-          >
-            <Paperclip className="w-3.5 h-3.5" /> Files
-          </button>
+
+        {/* Lightweight Tab Navigation */}
+        <div className="border-b border-fx-border flex items-center gap-1 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'overview', label: 'Overview', icon: Activity },
+            { id: 'tasks', label: `Tasks (${tasks.length})`, icon: CheckSquare },
+            { id: 'board', label: 'Board', icon: FolderKanban },
+            { id: 'calendar', label: 'Calendar', icon: Calendar },
+            { id: 'timeline', label: 'Timeline', icon: GanttChartSquare },
+            { id: 'files', label: 'Files & Assets', icon: FileText },
+            { id: 'activity', label: 'Activity', icon: Activity },
+          ].map((tab) => {
+
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={cn(
+                  'px-3.5 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 -mb-px flex items-center gap-2 fx-transition',
+                  isActive
+                    ? 'border-fx-green text-fx-green-dark font-semibold'
+                    : 'border-transparent text-fx-text-secondary hover:text-fx-text-primary hover:border-fx-border',
+                )}
+              >
+                <Icon className={cn('w-3.5 h-3.5', isActive ? 'text-fx-green' : 'text-fx-text-muted')} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* TAB 1: OVERVIEW */}
-        {selectedTab === 'overview' && (
-          <div className="space-y-6">
-            {/* 4 Stat Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-white p-3.5 rounded-[10px] border border-fx-border shadow-card">
-                <span className="text-[11px] text-fx-text-muted font-medium block">Total Tasks</span>
-                <span className="text-xl font-bold text-fx-text-primary mt-0.5 block">
-                  {allTasks.length}
-                </span>
-              </div>
+        {/* TAB 1: OVERVIEW (Hierarchical 65% / 35% Composition) */}
+        {activeTab === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column (65% -> 8 cols) */}
+            <div className="lg:col-span-8 space-y-6">
+              {/* Milestones Roadmap */}
+              <div className="bg-white border border-fx-border rounded-lg p-5 space-y-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-primary">
+                  Milestone Roadmap
+                </h2>
 
-              <div className="bg-white p-3.5 rounded-[10px] border border-[#C6E4D3] bg-fx-green-50/50 shadow-card">
-                <span className="text-[11px] text-fx-green-900 font-semibold block">Completed</span>
-                <span className="text-xl font-bold text-fx-green-900 mt-0.5 block">
-                  {completedTasks.length}
-                </span>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-[10px] border border-[#FAD3D3] bg-[#FDF2F2]/50 shadow-card">
-                <span className="text-[11px] text-fx-semantic-danger font-semibold block">Blocked Tasks</span>
-                <span className="text-xl font-bold text-fx-semantic-danger mt-0.5 block">
-                  {blockedTasks.length}
-                </span>
-              </div>
-
-              <div className="bg-white p-3.5 rounded-[10px] border border-fx-border shadow-card">
-                <span className="text-[11px] text-fx-text-muted font-medium block">Overdue Tasks</span>
-                <span className="text-xl font-bold text-fx-semantic-danger mt-0.5 block">
-                  {overdueTasks.length}
-                </span>
-              </div>
-            </div>
-
-            {/* Blocked Tasks Callout Alert */}
-            {blockedTasks.length > 0 && (
-              <div className="p-4 bg-[#FDF2F2]/70 border border-[#FAD3D3] rounded-[10px] space-y-2">
-                <div className="flex items-center gap-2 text-xs font-bold text-fx-semantic-danger">
-                  <AlertCircle className="w-4 h-4 text-fx-semantic-danger" />
-                  {blockedTasks.length} Tasks currently blocked in this project
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  {blockedTasks.map((t: any) => (
-                    <div
-                      key={t.id}
-                      onClick={() => setSelectedTaskId(t.id)}
-                      className="p-2.5 bg-white rounded-md border border-[#FAD3D3] cursor-pointer hover:border-red-400 fx-transition flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="font-mono text-fx-text-muted font-bold text-[11px]">
-                          {t.humanId}
-                        </span>
-                        <span className="truncate font-medium text-fx-text-primary text-xs">
-                          {t.title}
-                        </span>
+                {milestones.length === 0 ? (
+                  <p className="text-xs text-fx-text-muted">No milestones established for this project.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {milestones.map((m: any) => (
+                      <div
+                        key={m.id}
+                        className="p-3 rounded-md bg-fx-bg border border-fx-border/70 space-y-2 text-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-fx-text-primary">{m.name}</span>
+                          <span className="font-mono text-[11px] text-fx-text-muted">
+                            Target: {m.targetDate ? formatDate(m.targetDate) : 'TBD'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Progress value={m.progress || 0} size="xs" className="flex-1" />
+                          <span className="font-mono text-[11px] text-fx-text-secondary">
+                            {m.progress || 0}%
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-[11px] text-fx-text-muted shrink-0 ml-2">
-                        {t.assignee?.firstName || 'Unassigned'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
 
-            {/* 65% / 35% Grid for Milestones & PM Updates */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left (8 cols): Milestones Progression */}
-              <div className="lg:col-span-8 space-y-6">
-                <Card padding="none" className="bg-white">
-                  <div className="px-5 py-3.5 border-b border-fx-border flex items-center justify-between">
-                    <h2 className="text-sm font-semibold text-fx-text-primary">
-                      Milestone Roadmap
-                    </h2>
-                    <span className="text-[11px] text-fx-text-muted font-mono font-medium">
-                      {project.milestones?.length || 0} Milestones
+              {/* Tasks Needing Attention */}
+              <div className="bg-white border border-fx-border rounded-lg p-5 space-y-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-primary">
+                  Tasks In Progress & Review
+                </h2>
+                {tasks.filter(
+                  (t: any) => t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.IN_REVIEW,
+                ).length === 0 ? (
+                  <p className="text-xs text-fx-text-muted">No active in-progress deliverables right now.</p>
+                ) : (
+                  <div className="divide-y divide-fx-border/60">
+                    {tasks
+                      .filter(
+                        (t: any) =>
+                          t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.IN_REVIEW,
+                      )
+                      .slice(0, 5)
+                      .map((task: any) => (
+                        <div
+                          key={task.id}
+                          onClick={() => setSelectedTaskId(task.id)}
+                          className="py-3 first:pt-0 last:pb-0 hover:bg-fx-bg-hover cursor-pointer fx-transition flex items-center justify-between gap-3 text-xs"
+                        >
+                          <div className="space-y-0.5 min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-[11px] text-fx-text-muted">{task.humanId}</span>
+                              <span className="font-semibold text-fx-text-primary truncate">{task.title}</span>
+                            </div>
+                            <p className="text-[11px] text-fx-text-muted">
+                              Assignee: {task.assignee ? `${task.assignee.firstName} ${task.assignee.lastName}` : 'Unassigned'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <PriorityBadge priority={task.priority} />
+                            <StatusPill status={task.status} size="xs" />
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Column (35% -> 4 cols) */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* Project Metadata Details */}
+              <div className="bg-white border border-fx-border rounded-lg p-4 space-y-3 text-xs">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-fx-text-primary">
+                  Project Details
+                </h3>
+                <div className="divide-y divide-fx-border/60">
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-fx-text-muted">Project Code</span>
+                    <span className="font-mono font-semibold text-fx-text-primary">{project?.key}</span>
+                  </div>
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-fx-text-muted">Health Status</span>
+                    <HealthBadge health={project?.health || ProjectHealth.ON_TRACK} />
+                  </div>
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-fx-text-muted">Start Date</span>
+                    <span className="font-mono text-fx-text-secondary">
+                      {project?.startDate ? formatDate(project.startDate) : '—'}
                     </span>
                   </div>
-
-                  <div className="p-5 space-y-4">
-                    {project.milestones?.length === 0 ? (
-                      <p className="text-xs text-fx-text-muted text-center py-4">
-                        No milestones defined yet.
-                      </p>
-                    ) : (
-                      project.milestones?.map((m: any, idx: number) => (
-                        <div
-                          key={m.id}
-                          className="relative pl-6 pb-4 border-l-2 border-fx-border last:border-transparent last:pb-0"
-                        >
-                          <div
-                            className={cn(
-                              'absolute -left-[9px] top-0.5 h-4 w-4 rounded-full border-2 bg-white flex items-center justify-center text-[9px] font-bold',
-                              m.status === 'COMPLETED'
-                                ? 'border-fx-green-700 bg-fx-green-50 text-fx-green-900'
-                                : m.status === 'IN_PROGRESS'
-                                  ? 'border-[#3578C9] bg-blue-50 text-[#205896]'
-                                  : 'border-[#CDD5D0] text-fx-text-muted',
-                            )}
-                          >
-                            {idx + 1}
-                          </div>
-
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="font-semibold text-sm text-fx-text-primary">
-                                  {m.name}
-                                </h3>
-                                <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-fx-bg-subtle text-fx-text-muted border border-fx-border">
-                                  {m.status}
-                                </span>
-                              </div>
-                              <p className="text-xs text-fx-text-secondary mt-0.5">
-                                {m.description}
-                              </p>
-                            </div>
-
-                            <div className="flex items-center gap-3 shrink-0">
-                              <span className="text-xs text-fx-text-muted font-medium">
-                                Target: {formatDate(m.targetDate)}
-                              </span>
-                              <div className="w-24">
-                                <Progress value={m.progress} size="xs" showLabel={true} />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    )}
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-fx-text-muted">Target Delivery</span>
+                    <span className="font-mono text-fx-text-secondary">
+                      {project?.targetDate ? formatDate(project.targetDate) : '—'}
+                    </span>
                   </div>
-                </Card>
+                </div>
               </div>
 
-              {/* Right (4 cols): PM Delivery Updates */}
-              <div className="lg:col-span-4 space-y-6">
-                <Card padding="none" className="bg-white">
-                  <div className="px-4 py-3.5 border-b border-fx-border">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-fx-text-muted">
-                      PM Delivery Updates
-                    </h3>
-                  </div>
-
-                  {canManage && (
-                    <div className="p-3.5 border-b border-fx-border bg-fx-bg-subtle space-y-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-fx-text-secondary">Health:</span>
-                        <select
-                          value={newUpdateHealth}
-                          onChange={(e: any) => setNewUpdateHealth(e.target.value)}
-                          className="bg-white border border-fx-border rounded-md px-2 py-1 text-xs text-fx-text-primary focus:outline-none focus:border-fx-green-700"
-                        >
-                          {Object.values(ProjectHealth).map((h) => (
-                            <option key={h} value={h}>
-                              {h.replace('_', ' ')}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <textarea
-                        rows={2}
-                        placeholder="Post a status update on blockers, progress, or delivery..."
-                        value={newUpdateNote}
-                        onChange={(e) => setNewUpdateNote(e.target.value)}
-                        className="w-full p-2.5 rounded-md border border-fx-border bg-white text-xs focus:outline-none focus:border-fx-green-700"
-                      />
-                      <div className="flex justify-end">
-                        <Button
-                          size="xs"
-                          variant="primary"
-                          disabled={!newUpdateNote.trim()}
-                          onClick={() =>
-                            postUpdateMutation.mutate({
-                              health: newUpdateHealth,
-                              note: newUpdateNote,
-                            })
-                          }
-                          isLoading={postUpdateMutation.isPending}
-                        >
-                          Post Update
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="divide-y divide-fx-border/60 p-2">
-                    {project.updates?.length === 0 ? (
-                      <p className="p-6 text-center text-xs text-fx-text-muted">
-                        No updates posted yet.
-                      </p>
-                    ) : (
-                      project.updates?.map((u: any) => (
-                        <div key={u.id} className="p-3 text-xs space-y-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <Avatar
-                                src={u.author?.avatarUrl}
-                                firstName={u.author?.firstName}
-                                size="xs"
-                              />
-                              <span className="font-semibold text-fx-text-primary">
-                                {u.author?.firstName} {u.author?.lastName}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-fx-text-muted">
-                              {formatTimeAgo(u.createdAt)}
-                            </span>
-                          </div>
-                          <p className="text-fx-text-secondary pl-5 leading-relaxed">{u.note}</p>
+              {/* Assigned Team Members */}
+              <div className="bg-white border border-fx-border rounded-lg p-4 space-y-3 text-xs">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-fx-text-primary">
+                  Project Members
+                </h3>
+                {(!project?.members || project.members.length === 0) ? (
+                  <p className="text-xs text-fx-text-muted">No members explicitly assigned.</p>
+                ) : (
+                  <div className="divide-y divide-fx-border/60">
+                    {project.members.map((m: any) => (
+                      <div key={m.id} className="py-2 first:pt-0 last:pb-0 flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-fx-green-soft text-fx-green-dark font-semibold text-[11px] flex items-center justify-center shrink-0">
+                          {m.user?.firstName?.[0]}
+                          {m.user?.lastName?.[0]}
                         </div>
-                      ))
-                    )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-fx-text-primary truncate">
+                            {m.user?.firstName} {m.user?.lastName}
+                          </p>
+                          <p className="text-[10px] text-fx-text-muted truncate capitalize">
+                            {m.roleInProject || m.user?.jobTitle || 'Contributor'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </Card>
+                )}
               </div>
             </div>
           </div>
         )}
 
         {/* TAB 2: TASKS LIST VIEW */}
-        {selectedTab === 'tasks' && (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-[10px] border border-fx-border shadow-card text-xs">
-              <div className="w-64">
-                <Input
-                  placeholder="Filter project tasks..."
-                  value={taskSearch}
-                  onChange={(e) => setTaskSearch(e.target.value)}
-                  leftIcon={<Search className="w-3.5 h-3.5" />}
-                  className="h-8 text-xs bg-fx-bg-subtle"
-                />
+        {activeTab === 'tasks' && (
+          <div className="bg-white border border-fx-border rounded-lg overflow-hidden">
+            {canManage && tasks.length === 0 && (
+              <div className="border-b border-fx-border bg-fx-green-soft/40 p-5 text-center text-xs">
+                <p className="font-semibold text-fx-text-primary">No tasks yet.</p>
+                <p className="mt-1 text-fx-text-secondary">
+                  Create the first task for this project and assign it to a team member.
+                </p>
+                <Link href={`/projects/${projectId}/tasks/new`} className="mt-3 inline-block">
+                  <Button size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />}>Create Task</Button>
+                </Link>
               </div>
-
-              <div className="flex items-center gap-2">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="h-8 bg-fx-bg-subtle border border-fx-border rounded-md px-2.5 text-xs text-fx-text-primary focus:outline-none focus:border-fx-green-700"
-                >
-                  <option value="">All Statuses</option>
-                  {Object.values(TaskStatus).map((st) => (
-                    <option key={st} value={st}>
-                      {st.replace('_', ' ')}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <Card padding="none" className="bg-white">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-fx-bg-subtle/80 text-fx-text-muted border-b border-fx-border select-none text-[11px] font-semibold uppercase tracking-wider">
+            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-fx-bg text-fx-text-secondary font-medium border-b border-fx-border">
+                    <th className="py-2.5 px-4">Task</th>
+                    <th className="py-2.5 px-3">Status</th>
+                    <th className="py-2.5 px-3">Assignee</th>
+                    <th className="py-2.5 px-3">Priority</th>
+                    <th className="py-2.5 px-3">Progress</th>
+                    <th className="py-2.5 px-4 text-right">Due Date</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-fx-border/60 text-fx-text-primary">
+                  {tasks.length === 0 ? (
                     <tr>
-                      <th className="px-4 py-3 w-28">Task ID</th>
-                      <th className="px-4 py-3">Title</th>
-                      <th className="px-4 py-3">Assignee</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Priority</th>
-                      <th className="px-4 py-3">Dependencies</th>
-                      <th className="px-4 py-3 w-28">Progress</th>
-                      <th className="px-4 py-3">Due Date</th>
+                      <td colSpan={6} className="py-8 text-center text-fx-text-muted">
+                        No tasks created for this project yet.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-fx-border/60">
-                    {allTasks.map((task: any) => {
-                      const isOverdue =
-                        task.dueDate &&
-                        new Date(task.dueDate) < now &&
-                        task.status !== TaskStatus.DONE;
-                      const hasDeps = task.blockedBy && task.blockedBy.length > 0;
-
-                      return (
-                        <tr
-                          key={task.id}
-                          onClick={() => setSelectedTaskId(task.id)}
-                          className={cn(
-                            'hover:bg-fx-bg-subtle cursor-pointer fx-transition',
-                            task.status === TaskStatus.READY && 'bg-fx-green-50/20',
-                          )}
-                        >
-                          <td className="px-4 py-3 font-mono font-bold text-fx-text-muted text-[11px]">
-                            {task.humanId}
-                          </td>
-                          <td className="px-4 py-3 font-semibold text-fx-text-primary text-[13px] max-w-xs truncate">
-                            {task.title}
-                          </td>
-                          <td className="px-4 py-3 text-fx-text-secondary whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              <Avatar
-                                src={task.assignee?.avatarUrl}
-                                firstName={task.assignee?.firstName}
-                                lastName={task.assignee?.lastName}
-                                size="xs"
-                              />
-                              <span>
-                                {task.assignee
-                                  ? `${task.assignee.firstName} ${task.assignee.lastName}`
-                                  : 'Unassigned'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <StatusPill status={task.status} size="xs" />
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <PriorityBadge priority={task.priority} />
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            {hasDeps ? (
-                              <span className="text-fx-semantic-danger font-mono text-[11px] font-semibold flex items-center gap-1">
-                                <Link2 className="w-3 h-3" />
-                                {task.blockedBy.map((b: any) => b.predecessorTask?.humanId).join(', ')}
-                              </span>
-                            ) : (
-                              <span className="text-fx-text-muted">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Progress value={task.progress} size="xs" showLabel={true} />
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <span
-                              className={cn(
-                                isOverdue
-                                  ? 'text-fx-semantic-danger font-bold'
-                                  : 'text-fx-text-secondary',
-                              )}
-                            >
-                              {formatDate(task.dueDate)}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </div>
-        )}
-
-        {/* TAB 3: BOARD KANBAN VIEW */}
-        {selectedTab === 'board' && (
-          <div className="flex gap-4 overflow-x-auto pb-4 items-start min-h-[600px] scrollbar-none">
-            {boardColumns.map((col) => {
-              const colTasks = allTasks.filter((t: any) => t.status === col.id);
-              return (
-                <div
-                  key={col.id}
-                  className="w-[280px] bg-fx-bg-subtle rounded-[10px] border border-fx-border p-3 flex flex-col shrink-0 space-y-3"
-                >
-                  <div className="flex items-center justify-between px-1">
-                    <span className="font-bold text-[11px] text-fx-text-primary uppercase tracking-wider">
-                      {col.title}
-                    </span>
-                    <span className="font-mono text-[11px] font-semibold bg-white border border-fx-border px-2 py-0.5 rounded-full text-fx-text-muted">
-                      {colTasks.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-2.5 flex-1 min-h-32">
-                    {colTasks.map((task: any) => {
-                      const unfinishedDeps = (task.blockedBy || []).filter(
-                        (b: any) => b.predecessorTask?.status !== TaskStatus.DONE,
-                      );
-
-                      return (
-                        <div
-                          key={task.id}
-                          onClick={() => setSelectedTaskId(task.id)}
-                          className={cn(
-                            'bg-white p-3 rounded-lg border border-fx-border shadow-card hover:border-fx-green-700/60 cursor-pointer fx-transition space-y-2 text-xs',
-                            task.status === TaskStatus.READY && 'border-fx-green-700/30 bg-fx-green-50/10',
-                            task.status === TaskStatus.WAITING && 'opacity-90',
-                          )}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono font-bold text-fx-text-muted text-[11px]">
+                  ) : (
+                    tasks.map((task: any) => (
+                      <tr
+                        key={task.id}
+                        onClick={() => setSelectedTaskId(task.id)}
+                        className="hover:bg-fx-bg-hover cursor-pointer fx-transition"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] text-fx-text-muted shrink-0">
                               {task.humanId}
                             </span>
-                            <PriorityBadge priority={task.priority} showLabel={false} />
+                            <span className="font-semibold text-fx-text-primary truncate max-w-sm">
+                              {task.title}
+                            </span>
                           </div>
-
-                          <p className="font-semibold text-fx-text-primary text-[13px] line-clamp-2 leading-snug">
-                            {task.title}
-                          </p>
-
-                          {task.status === TaskStatus.WAITING && (
-                            <div className="flex items-center gap-1 text-[10px] text-fx-text-muted bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200/60">
-                              <Lock className="w-3 h-3 shrink-0" />
-                              <span className="truncate">
-                                {unfinishedDeps.length > 0
-                                  ? `Waiting for ${unfinishedDeps.map((d: any) => d.predecessorTask?.humanId).join(', ')}`
-                                  : 'Waiting on prerequisites'}
-                              </span>
-                            </div>
-                          )}
-
-                          {task.status === TaskStatus.IN_PROGRESS && (
-                            <div className="w-full">
-                              <Progress value={task.progress} size="xs" showLabel={false} />
-                            </div>
-                          )}
-
-                          <div className="pt-2 border-t border-fx-border/60 flex items-center justify-between text-fx-text-muted">
-                            <Avatar
-                              src={task.assignee?.avatarUrl}
-                              firstName={task.assignee?.firstName}
-                              lastName={task.assignee?.lastName}
-                              size="xs"
-                            />
-                            <span className="text-[11px] font-medium">{formatDate(task.dueDate)}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                        </td>
+                        <td className="py-3 px-3">
+                          <StatusPill status={task.status} size="xs" />
+                        </td>
+                        <td className="py-3 px-3 text-fx-text-secondary">
+                          {task.assignee
+                            ? `${task.assignee.firstName} ${task.assignee.lastName}`
+                            : 'Unassigned'}
+                        </td>
+                        <td className="py-3 px-3">
+                          <PriorityBadge priority={task.priority} />
+                        </td>
+                        <td className="py-3 px-3 w-28">
+                          <Progress value={task.progress || 0} showLabel={true} size="xs" />
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono text-fx-text-secondary">
+                          {task.dueDate ? formatDate(task.dueDate) : '—'}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* TAB 4: TIMELINE */}
-        {selectedTab === 'timeline' && (
-          <Card padding="md" className="bg-white space-y-6 overflow-x-auto">
-            <div>
-              <h2 className="text-sm font-semibold text-fx-text-primary">
-                Project Execution Timeline
-              </h2>
-              <p className="text-xs text-fx-text-muted mt-0.5">
-                Visual finish-to-start deliverable timeline and milestone markers.
-              </p>
-            </div>
+        {/* TAB 3: KANBAN BOARD (Full-Width, 280-300px Columns, Horizontal Scroll) */}
+        {activeTab === 'board' && (
+          <div className="overflow-x-auto pb-6">
+            <div className="flex items-start gap-4 min-w-[1900px]">
+              {boardColumns.map((col) => {
+                const colTasks = tasks.filter((t: any) => t.status === col.id);
 
-            <div className="space-y-4 min-w-[700px]">
-              {allTasks.map((task: any) => {
-                const hasDeps = task.blockedBy && task.blockedBy.length > 0;
                 return (
-                  <div key={task.id} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
+                  <div
+                    key={col.id}
+                    className="w-[280px] bg-white border border-fx-border rounded-2xl p-3.5 space-y-3 shrink-0 shadow-none"
+                  >
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between pb-2 border-b border-fx-border/60">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-fx-text-muted text-[11px]">
-                          {task.humanId}
-                        </span>
-                        <span className="font-semibold text-fx-text-primary">{task.title}</span>
-                        {hasDeps && (
-                          <span className="text-[10px] bg-red-50 text-fx-semantic-danger px-1.5 rounded font-mono">
-                            Depends on {task.blockedBy.map((b: any) => b.predecessorTask?.humanId).join(', ')}
-                          </span>
-                        )}
+                        <span className={cn('w-2 h-2 rounded-full shrink-0', col.color)} />
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-fx-text-primary">
+                          {col.label}
+                        </h3>
                       </div>
-                      <span className="text-fx-text-muted font-mono">{task.progress}%</span>
+                      <span className="text-[11px] font-mono font-medium text-fx-text-muted bg-fx-bg px-2 py-0.5 rounded-md border border-fx-border">
+                        {colTasks.length}
+                      </span>
                     </div>
-                    <Progress value={task.progress} size="xs" />
+
+                    {/* Column Task Cards */}
+                    <div className="space-y-2.5 min-h-[120px]">
+                      {colTasks.map((task: any) => {
+                        const isWaiting = task.status === TaskStatus.WAITING;
+                        const unfinishedDeps = (task.blockedBy || []).filter(
+                          (b: any) => b.predecessorTask?.status !== TaskStatus.DONE,
+                        );
+
+                        return (
+                          <div
+                            key={task.id}
+                            onClick={() => setSelectedTaskId(task.id)}
+                            className={cn(
+                              'bg-white border border-fx-border rounded-xl p-3 hover:border-fx-border-strong cursor-pointer fx-transition space-y-2.5 text-xs shadow-none',
+                              isWaiting && 'bg-amber-50/20 border-amber-200/70',
+                            )}
+                          >
+                            <div className="space-y-1">
+                              <span className="font-mono text-[11px] font-medium text-fx-text-muted">
+                                {task.humanId}
+                              </span>
+                              <h4 className="font-semibold text-fx-text-primary line-clamp-2 leading-snug">
+                                {task.title}
+                              </h4>
+                            </div>
+
+
+                            {/* Dependencies callout if waiting */}
+                            {isWaiting && unfinishedDeps.length > 0 && (
+                              <div className="flex items-center gap-1 text-[10px] text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/60 font-medium">
+                                <Lock className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                                <span>Waiting on: {unfinishedDeps.map((d: any) => d.predecessorTask?.humanId).join(', ')}</span>
+                              </div>
+                            )}
+
+                            {/* Card Footer: Assignee, Priority, Due Date */}
+                            <div className="pt-2 border-t border-fx-border/60 flex items-center justify-between text-[11px]">
+                              <PriorityBadge priority={task.priority} compact={true} />
+                              <span className="text-fx-text-muted font-mono">
+                                {task.dueDate ? formatDate(task.dueDate) : ''}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
             </div>
-          </Card>
+          </div>
         )}
 
-        {/* TAB 5: FILES */}
-        {selectedTab === 'files' && (
-          <Card padding="md" className="bg-white space-y-4">
-            <h2 className="text-sm font-semibold text-fx-text-primary">Project Attachments</h2>
-            <div className="space-y-2 text-xs">
-              {files?.length === 0 ? (
-                <p className="text-fx-text-muted p-8 text-center">
-                  No files uploaded in this project yet.
-                </p>
-              ) : (
-                files?.map((f: any) => (
-                  <div
-                    key={f.id}
-                    className="p-3 rounded-md border border-fx-border flex items-center justify-between bg-fx-bg-subtle"
+        {/* TAB 4: CALENDAR */}
+        {activeTab === 'calendar' && (
+          <div className="bg-white border border-fx-border rounded-lg overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-fx-border/60">
+              {[...tasks]
+                .filter((task) => task.dueDate)
+                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+                .map((task) => (
+                  <button
+                    key={task.id}
+                    onClick={() => setSelectedTaskId(task.id)}
+                    className="p-4 text-left text-xs hover:bg-fx-bg-hover"
                   >
-                    <div className="flex items-center gap-2">
-                      <Paperclip className="w-4 h-4 text-fx-text-muted" />
-                      <div>
-                        <p className="font-semibold text-fx-text-primary">{f.fileName}</p>
-                        <p className="text-[11px] text-fx-text-muted">
-                          {(f.fileSize / 1024).toFixed(1)} KB • Uploaded by {f.uploader?.firstName}
-                        </p>
-                      </div>
-                    </div>
-                    <a
-                      href={f.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-fx-green-700 font-semibold hover:underline"
-                    >
-                      Download
-                    </a>
-                  </div>
-                ))
-              )}
+                    <p className="font-mono text-[11px] text-fx-text-muted">{task.humanId}</p>
+                    <p className="font-semibold text-fx-text-primary">{task.title}</p>
+                    <p className="mt-1 text-fx-text-secondary">Due {formatDate(task.dueDate)}</p>
+                  </button>
+                ))}
             </div>
-          </Card>
+            {tasks.filter((task) => task.dueDate).length === 0 && (
+              <p className="p-8 text-center text-xs text-fx-text-muted">No task due dates scheduled.</p>
+            )}
+          </div>
+        )}
+
+        {/* TAB 5: TIMELINE */}
+        {activeTab === 'timeline' && (
+          <div className="bg-white border border-fx-border rounded-lg p-6 text-center text-xs text-fx-text-muted space-y-2">
+            <GanttChartSquare className="w-8 h-8 text-fx-green mx-auto" />
+            <p className="font-semibold text-fx-text-primary">Gantt Timeline Schedule</p>
+            <p>View cross-project milestones and task dependencies on the global timeline view.</p>
+            <Link href="/timeline">
+              <Button size="sm" variant="secondary" className="mt-3">
+                Open Global Timeline
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* TAB 6: FILES */}
+        {activeTab === 'files' && (
+          <div className="bg-white border border-fx-border rounded-lg p-8 text-center text-xs text-fx-text-muted space-y-2">
+            <FileText className="w-8 h-8 text-fx-green mx-auto" />
+            <p className="font-semibold text-fx-text-primary">Game Assets & Documents</p>
+            <p>Design documents, art assets, and build manifests linked to this game project.</p>
+          </div>
+        )}
+
+        {/* TAB 7: ACTIVITY */}
+        {activeTab === 'activity' && (
+          <div className="bg-white border border-fx-border rounded-lg overflow-hidden">
+            {(project?.latestDailyUpdates || []).length === 0 ? (
+              <p className="p-8 text-center text-xs text-fx-text-muted">No recent project activity yet.</p>
+            ) : (
+              <div className="divide-y divide-fx-border/60">
+                {project.latestDailyUpdates.map((update: any) => (
+                  <div key={update.id} className="p-4 text-xs">
+                    <p className="font-semibold text-fx-text-primary">
+                      {update.user?.firstName} {update.user?.lastName} updated {update.task?.humanId}
+                    </p>
+                    <p className="mt-1 text-fx-text-secondary">{update.completedToday}</p>
+                    <p className="mt-1 font-mono text-[11px] text-fx-text-muted">
+                      {update.progressBefore}% to {update.progressAfter}% · {formatDate(update.createdAt)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </AppShell>

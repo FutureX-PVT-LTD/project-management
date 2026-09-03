@@ -17,9 +17,10 @@ export class ReportsController {
     return this.reportsService.getOwnerDashboardData();
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Get('pm-dashboard')
   async getPMDashboard(@CurrentUser('id') pmUserId: string) {
+
     return this.reportsService.getPMDashboardData(pmUserId);
   }
 

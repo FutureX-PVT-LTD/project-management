@@ -24,7 +24,16 @@ export class ReportsService {
           projectManager: {
             select: { id: true, firstName: true, lastName: true, avatarUrl: true },
           },
-          members: true,
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  globalRole: true,
+                },
+              },
+            },
+          },
           milestones: { orderBy: { orderIndex: 'asc' } },
           tasks: {
             where: { deletedAt: null },
@@ -120,7 +129,7 @@ export class ReportsService {
       needsAttention.push({
         type: 'AT_RISK',
         title: `Project ${p.name} is At Risk`,
-        subtitle: p.healthReason || 'Requires Project Manager review',
+        subtitle: p.healthReason || 'Requires Admin review',
         projectKey: p.key,
         projectId: p.id,
       });
@@ -144,6 +153,9 @@ export class ReportsService {
       },
       portfolio: projects.map((p) => {
         const curMilestone = p.milestones.find((m) => m.status !== 'COMPLETED') || p.milestones[0];
+        const visibleMembers = p.members.filter(
+          (m) => m.userId !== p.projectManager?.id && m.user?.globalRole === UserRole.TEAM_MEMBER,
+        );
         const pTasks = p.tasks;
         const pDone = pTasks.filter((t) => t.status === TaskStatus.DONE).length;
         const pBlocked = pTasks.filter((t) => t.status === TaskStatus.BLOCKED).length;
@@ -163,7 +175,7 @@ export class ReportsService {
             ? `${p.projectManager.firstName} ${p.projectManager.lastName}`
             : 'Unassigned',
           projectManagerAvatar: p.projectManager?.avatarUrl,
-          membersCount: p.members.length,
+          membersCount: visibleMembers.length,
           currentMilestoneName: curMilestone?.name,
           targetDate: p.targetDate ? p.targetDate.toISOString() : null,
           totalTasks: pTasks.length,
@@ -199,6 +211,7 @@ export class ReportsService {
                 lastName: true,
                 avatarUrl: true,
                 jobTitle: true,
+                globalRole: true,
                 assignedTasks: {
                   where: { deletedAt: null, status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELED] } },
                   select: { id: true, status: true, estimatedHours: true },
@@ -286,7 +299,9 @@ export class ReportsService {
     // Workload aggregation
     const memberWorkloadMap = new Map<string, any>();
     managedProjects.forEach((p) => {
-      p.members.forEach((m) => {
+      p.members
+        .filter((m) => m.userId !== p.projectManagerId && m.user?.globalRole === UserRole.TEAM_MEMBER)
+        .forEach((m) => {
         if (!memberWorkloadMap.has(m.user.id)) {
           const activeTasks = m.user.assignedTasks.length;
           const blocked = m.user.assignedTasks.filter((t) => t.status === TaskStatus.BLOCKED).length;

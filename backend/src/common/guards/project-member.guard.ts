@@ -34,7 +34,7 @@ export class ProjectMemberGuard implements CanActivate {
       throw new NotFoundException('Project not found');
     }
 
-    // Project Manager of this project or assigned member
+    // Managing Admin of this project or assigned member
     if (project.projectManagerId === user.id) {
       return true;
     }

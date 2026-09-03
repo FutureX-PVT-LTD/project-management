@@ -87,17 +87,21 @@ npm run dev
 
 ---
 
-## 🔑 Demo Credentials
+## 🔑 Initial System Access
 
-| Role | Name | Email | Password |
+| Role | Account Name | Configured Email | Default Password |
 | :--- | :--- | :--- | :--- |
-| **Studio Owner** | Deshan Silva | `owner@futurex.com` | `Owner123!@#` |
-| **Admin** | Dilshan Perera | `admin@futurex.com` | `Admin123!@#` |
-| **Project Manager** | Kasun Mendis | `pm.kasun@futurex.com` | `Manager123!@#` |
-| **3D Artist** | Amal Perera | `artist.amal@futurex.com` | `Artist123!@#` |
-| **Game Developer** | Nimal Fernando | `dev.nimal@futurex.com` | `Dev123!@#` |
-| **QA Lead** | Kavindi Jayawardena | `qa.kavindi@futurex.com` | `Qa123!@#` |
-| **UI/UX Designer** | Shehan Silva | `designer.shehan@futurex.com` | `Designer123!@#` |
+| **System Admin** | `FutureX Admin` | `admin@futurex.com` | `AdminPassword2026!@#` |
+
+*(Configurable via `ADMIN_SEED_NAME`, `ADMIN_SEED_EMAIL`, and `ADMIN_SEED_PASSWORD` in `backend/.env`)*
+
+### 🧪 Real Data Testing Workflow
+1. Log in with the seeded **Admin** account.
+2. Navigate to **User Directory** (`/admin/users`) to create real team members (e.g. Project Managers, Developers, Artists).
+3. Create a **New Project** and assign members.
+4. Add **Tasks** with assignees, effort estimates, and Finish-to-Start dependencies.
+5. Log in as an assigned employee to submit progress updates and see dependent tasks unlock in real-time.
+
 
 ---
 

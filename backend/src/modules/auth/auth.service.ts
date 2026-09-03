@@ -15,6 +15,7 @@ import {
   ResetPasswordDto,
 } from './dto/login.dto';
 import { UserRole, AuditAction } from '@futurex/shared';
+import { getJwtAccessSecret, getJwtRefreshSecret } from './auth-secrets';
 
 @Injectable()
 export class AuthService {
@@ -77,8 +78,8 @@ export class AuthService {
     const refreshDays = isRememberMe ? 30 : 7;
     const refreshExpiresIn = isRememberMe ? '30d' : (process.env.JWT_REFRESH_EXPIRES_IN || process.env.JWT_REFRESH_EXPIRATION || '7d');
     const accessExpiresIn = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRATION || '15m';
-    const jwtSecret = process.env.JWT_SECRET || 'futurex_super_secure_jwt_access_secret_key_2026_!@#';
-    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'futurex_super_secure_jwt_refresh_secret_key_2026_!@#';
+    const jwtSecret = getJwtAccessSecret();
+    const jwtRefreshSecret = getJwtRefreshSecret();
 
     // Generate tokens
     const payload = {
@@ -150,8 +151,8 @@ export class AuthService {
       throw new UnauthorizedException('No refresh token provided');
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'futurex_super_secure_jwt_access_secret_key_2026_!@#';
-    const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'futurex_super_secure_jwt_refresh_secret_key_2026_!@#';
+    const jwtSecret = getJwtAccessSecret();
+    const jwtRefreshSecret = getJwtRefreshSecret();
     const accessExpiresIn = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRATION || '15m';
 
     try {

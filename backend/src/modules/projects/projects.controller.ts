@@ -39,13 +39,13 @@ export class ProjectsController {
     return this.projectsService.findById(id, user);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post()
   async create(@Body() dto: CreateProjectDto, @CurrentUser() actor: AuthUser) {
     return this.projectsService.create(dto, actor.id, actor.globalRole);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -55,7 +55,7 @@ export class ProjectsController {
     return this.projectsService.update(id, dto, actor.id, actor.globalRole);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post(':id/members')
   async addMember(
     @Param('id') id: string,
@@ -66,7 +66,7 @@ export class ProjectsController {
     return this.projectsService.addMember(id, userId, role || ProjectMemberRole.MEMBER, actor.id, actor.globalRole);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Delete(':id/members/:userId')
   async removeMember(
     @Param('id') id: string,
@@ -76,7 +76,7 @@ export class ProjectsController {
     return this.projectsService.removeMember(id, userId, actor.id, actor.globalRole);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post(':id/updates')
   async postUpdate(
     @Param('id') id: string,

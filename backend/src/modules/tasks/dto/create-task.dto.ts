@@ -156,3 +156,26 @@ export class ReviewTaskDto {
   @IsOptional()
   feedback?: string;
 }
+
+export class CreateTaskDailyUpdateDto {
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  progress: number;
+
+  @IsString()
+  @IsNotEmpty()
+  completedToday: string;
+
+  @IsString()
+  @IsOptional()
+  blocker?: string | null;
+
+  @IsString()
+  @IsNotEmpty()
+  nextStep: string;
+
+  @IsString()
+  @IsOptional()
+  attachmentId?: string | null;
+}

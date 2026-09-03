@@ -46,22 +46,9 @@ export class DependenciesService {
       throw new BadRequestException('Tasks must belong to the same project');
     }
 
-    // PM project authorization
-    if (actorRole === UserRole.PROJECT_MANAGER) {
-      const isPM =
-        predTask.project.projectManagerId === actorId ||
-        (await this.prisma.projectMember.findFirst({
-          where: { projectId: predTask.projectId, userId: actorId, role: 'MANAGER' },
-        }));
-      if (!isPM) {
-        throw new ForbiddenException(
-          'Project Managers may only manage dependencies in projects they manage.',
-        );
-      }
-    }
-
     // Check duplicate
     const existing = await this.prisma.taskDependency.findUnique({
+
       where: {
         predecessorTaskId_dependentTaskId: {
           predecessorTaskId: dto.predecessorTaskId,
@@ -170,24 +157,8 @@ export class DependenciesService {
       throw new NotFoundException('Dependency not found');
     }
 
-    if (actorRole === UserRole.PROJECT_MANAGER) {
-      const isPM =
-        dependency.dependentTask.project.projectManagerId === actorId ||
-        (await this.prisma.projectMember.findFirst({
-          where: {
-            projectId: dependency.dependentTask.projectId,
-            userId: actorId,
-            role: 'MANAGER',
-          },
-        }));
-      if (!isPM) {
-        throw new ForbiddenException(
-          'Project Managers may only manage dependencies in projects they manage.',
-        );
-      }
-    }
-
     await this.prisma.taskDependency.delete({ where: { id } });
+
 
     // Check if dependent task has any remaining incomplete predecessors
     const remainingDeps = dependency.dependentTask.blockedBy.filter(

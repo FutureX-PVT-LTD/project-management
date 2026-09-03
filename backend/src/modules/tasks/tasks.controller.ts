@@ -8,9 +8,15 @@ import {
   Body,
   Query,
   UseGuards,
+  HttpCode,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
-import { CreateTaskDto, UpdateTaskDto, ReviewTaskDto } from './dto/create-task.dto';
+import {
+  CreateTaskDailyUpdateDto,
+  CreateTaskDto,
+  ReviewTaskDto,
+  UpdateTaskDto,
+} from './dto/create-task.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -71,7 +77,7 @@ export class TasksController {
     return this.tasksService.findById(id, actor.id, actor.globalRole);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post()
   async create(
     @Body() dto: CreateTaskDto,
@@ -89,7 +95,17 @@ export class TasksController {
     return this.tasksService.update(id, dto, actor.id, actor.globalRole);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Post(':id/daily-updates')
+  @HttpCode(201)
+  async submitDailyUpdate(
+    @Param('id') id: string,
+    @Body() dto: CreateTaskDailyUpdateDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.tasksService.submitDailyUpdate(id, actor.id, actor.globalRole, dto);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post(':id/review')
   async review(
     @Param('id') id: string,
@@ -99,7 +115,7 @@ export class TasksController {
     return this.tasksService.review(id, actor.id, actor.globalRole, dto);
   }
 
-  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER)
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Delete(':id')
   async delete(
     @Param('id') id: string,
@@ -107,4 +123,5 @@ export class TasksController {
   ) {
     return this.tasksService.delete(id, actor.id, actor.globalRole);
   }
+
 }

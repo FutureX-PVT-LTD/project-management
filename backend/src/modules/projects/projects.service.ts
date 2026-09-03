@@ -15,6 +15,8 @@ import {
   ProjectStatus,
   ProjectHealth,
   ProjectMemberRole,
+  TaskStatus,
+  TaskPriority,
   AuditAction,
   NotificationType,
 } from '@futurex/shared';
@@ -31,11 +33,11 @@ export class ProjectsService {
     }
 
     // Role-based visibility: OWNER and ADMIN see all workspace projects
-    if (user.globalRole !== UserRole.OWNER && user.globalRole !== UserRole.ADMIN) {
-      where.OR = [
-        { projectManagerId: user.id },
-        { members: { some: { userId: user.id } } },
-      ];
+    // TEAM_MEMBER sees ONLY projects where they are an assigned member
+    if (user.globalRole === UserRole.TEAM_MEMBER) {
+      where.members = {
+        some: { userId: user.id },
+      };
     }
 
     const projects = await this.prisma.project.findMany({
@@ -60,6 +62,7 @@ export class ProjectsService {
                 lastName: true,
                 avatarUrl: true,
                 jobTitle: true,
+                globalRole: true,
               },
             },
           },
@@ -71,16 +74,48 @@ export class ProjectsService {
           where: { deletedAt: null },
           select: {
             id: true,
+            humanId: true,
+            title: true,
+            description: true,
             status: true,
             priority: true,
             dueDate: true,
             estimatedHours: true,
             progress: true,
+            assigneeId: true,
+            milestoneId: true,
+            createdAt: true,
+            updatedAt: true,
+            assignee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                avatarUrl: true,
+                jobTitle: true,
+                globalRole: true,
+              },
+            },
+            blockedBy: {
+              include: {
+                predecessorTask: {
+                  select: {
+                    id: true,
+                    humanId: true,
+                    title: true,
+                    status: true,
+                  },
+                },
+              },
+            },
           },
+          orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
         },
       },
       orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
     });
+
 
     return projects.map((p) => {
       const totalTasks = p.tasks.length;
@@ -93,6 +128,9 @@ export class ProjectsService {
 
       // Find current milestone
       const currentMilestone = p.milestones.find((m) => m.status !== 'COMPLETED') || p.milestones[0];
+      const visibleMembers = p.members.filter(
+        (m) => m.userId !== p.projectManagerId && m.user?.globalRole === UserRole.TEAM_MEMBER,
+      );
 
       return {
         id: p.id,
@@ -109,8 +147,8 @@ export class ProjectsService {
         completedDate: p.completedDate ? p.completedDate.toISOString() : null,
         projectManagerId: p.projectManagerId,
         projectManager: p.projectManager,
-        membersCount: p.members.length,
-        members: p.members.map((m) => ({
+        membersCount: visibleMembers.length,
+        members: visibleMembers.map((m) => ({
           id: m.id,
           userId: m.userId,
           role: m.role as ProjectMemberRole,
@@ -179,16 +217,59 @@ export class ProjectsService {
             },
           },
         },
+        dailyUpdates: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: {
+            task: {
+              select: { id: true, humanId: true, title: true, status: true, progress: true },
+            },
+            user: {
+              select: { id: true, firstName: true, lastName: true, avatarUrl: true, jobTitle: true },
+            },
+          },
+        },
         tasks: {
           where: { deletedAt: null },
           select: {
             id: true,
+            humanId: true,
+            title: true,
+            description: true,
             status: true,
             priority: true,
             dueDate: true,
             estimatedHours: true,
             progress: true,
+            assigneeId: true,
+            milestoneId: true,
+            createdAt: true,
+            updatedAt: true,
+            assignee: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                avatarUrl: true,
+                jobTitle: true,
+                globalRole: true,
+              },
+            },
+            blockedBy: {
+              include: {
+                predecessorTask: {
+                  select: {
+                    id: true,
+                    humanId: true,
+                    title: true,
+                    status: true,
+                  },
+                },
+              },
+            },
           },
+          orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
         },
       },
     });
@@ -213,6 +294,9 @@ export class ProjectsService {
     const overdueTasks = project.tasks.filter(
       (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== 'DONE' && t.status !== 'CANCELED',
     ).length;
+    const visibleMembers = project.members.filter(
+      (m) => m.userId !== project.projectManagerId && m.user?.globalRole === UserRole.TEAM_MEMBER,
+    );
 
     return {
       id: project.id,
@@ -229,7 +313,7 @@ export class ProjectsService {
       completedDate: project.completedDate ? project.completedDate.toISOString() : null,
       projectManagerId: project.projectManagerId,
       projectManager: project.projectManager,
-      members: project.members.map((m) => ({
+      members: visibleMembers.map((m) => ({
         id: m.id,
         projectId: m.projectId,
         userId: m.userId,
@@ -259,6 +343,42 @@ export class ProjectsService {
         createdAt: u.createdAt.toISOString(),
         author: u.author,
       })),
+      latestDailyUpdates: project.dailyUpdates.map((u) => ({
+        id: u.id,
+        taskId: u.taskId,
+        projectId: u.projectId,
+        userId: u.userId,
+        task: u.task,
+        user: u.user,
+        progressBefore: u.progressBefore,
+        progressAfter: u.progressAfter,
+        completedToday: u.completedToday,
+        blocker: u.blocker,
+        nextStep: u.nextStep,
+        workDate: u.workDate.toISOString(),
+        createdAt: u.createdAt.toISOString(),
+      })),
+      tasks: project.tasks.map((t) => ({
+        id: t.id,
+        humanId: t.humanId,
+        title: t.title,
+        description: t.description,
+        status: t.status as TaskStatus,
+        priority: t.priority as TaskPriority,
+        dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+        estimatedHours: t.estimatedHours,
+        progress: t.progress,
+        assigneeId: t.assigneeId,
+        milestoneId: t.milestoneId,
+        assignee: t.assignee,
+        blockedBy: t.blockedBy.map((b) => ({
+          id: b.id,
+          predecessorTaskId: b.predecessorTaskId,
+          predecessorTask: b.predecessorTask,
+        })),
+        createdAt: t.createdAt.toISOString(),
+        updatedAt: t.updatedAt.toISOString(),
+      })),
       totalTasksCount: totalTasks,
       completedTasksCount: completedTasks,
       blockedTasksCount: blockedTasks,
@@ -273,7 +393,11 @@ export class ProjectsService {
       throw new ForbiddenException('Team members are not permitted to create projects.');
     }
 
-    const cleanKey = dto.key.toUpperCase().trim();
+    const cleanKey = dto.key.toUpperCase().trim().replace(/[^A-Z0-9]/g, '');
+    if (!/^[A-Z0-9]{2,6}$/.test(cleanKey)) {
+      throw new BadRequestException('Project key must be 2-6 letters or numbers.');
+    }
+
     const existing = await this.prisma.project.findUnique({
       where: { key: cleanKey },
     });
@@ -282,7 +406,25 @@ export class ProjectsService {
       throw new BadRequestException(`Project key "${cleanKey}" is already in use`);
     }
 
-    const projectManagerId = dto.projectManagerId || actorId;
+    // Authenticated Admin/Owner is automatically the managing Admin
+    const projectManagerId = actorId;
+
+    // Filter and validate assigned team members (strictly active TEAM_MEMBER users)
+    const rawMemberIds = (dto.memberIds || [])
+      .map((m: any) => (typeof m === 'string' ? m : m.userId))
+      .filter((uid: string) => Boolean(uid) && uid !== actorId);
+
+    const eligibleMembers = rawMemberIds.length > 0
+      ? await this.prisma.user.findMany({
+          where: {
+            id: { in: rawMemberIds },
+            globalRole: UserRole.TEAM_MEMBER,
+            isActive: true,
+            deletedAt: null,
+          },
+          select: { id: true },
+        })
+      : [];
 
     const project = await this.prisma.project.create({
       data: {
@@ -295,29 +437,22 @@ export class ProjectsService {
         targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
         projectManagerId,
         members: {
-          create: [
-            // Automatically add project manager
-            { userId: projectManagerId, role: ProjectMemberRole.MANAGER },
-            // Add other members
-            ...(dto.memberIds || [])
-              .filter((m) => m.userId !== projectManagerId)
-              .map((m) => ({
-                userId: m.userId,
-                role: m.role || ProjectMemberRole.MEMBER,
-              })),
-          ],
+          create: eligibleMembers.map((m) => ({
+            userId: m.id,
+            role: ProjectMemberRole.MEMBER,
+          })),
         },
       },
     });
 
-    // Notify project manager & members
-    if (projectManagerId !== actorId) {
+    // Notify assigned members
+    for (const member of eligibleMembers) {
       await this.prisma.notification.create({
         data: {
-          userId: projectManagerId,
+          userId: member.id,
           type: NotificationType.PROJECT_MEMBER_ADDED,
-          title: 'Assigned as Project Manager',
-          message: `You were assigned as Project Manager for ${project.name} (${project.key})`,
+          title: 'Assigned to Project',
+          message: `You were added to project ${project.name} (${project.key})`,
           linkUrl: `/projects/${project.id}`,
         },
       });
@@ -344,16 +479,8 @@ export class ProjectsService {
       throw new NotFoundException('Project not found');
     }
 
-    if (actorRole === UserRole.PROJECT_MANAGER) {
-      const isManager =
-        project.projectManagerId === actorId ||
-        project.members.some((m) => m.userId === actorId && m.role === 'MANAGER');
-      if (!isManager) {
-        throw new ForbiddenException('Project Managers may only update projects they manage.');
-      }
-    }
-
     const updated = await this.prisma.project.update({
+
       where: { id },
       data: {
         name: dto.name?.trim(),
@@ -364,7 +491,6 @@ export class ProjectsService {
         manualHealthOverride: dto.manualHealthOverride,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
         targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
-        projectManagerId: dto.projectManagerId,
       },
     });
 
@@ -423,68 +549,37 @@ export class ProjectsService {
       include: {
         tasks: {
           where: { deletedAt: null },
-          select: {
-            id: true,
-            status: true,
-            priority: true,
-            dueDate: true,
-            isManualBlocked: true,
-            createdAt: true,
-          },
-        },
-        milestones: {
-          where: { status: { notIn: ['COMPLETED'] } },
-          select: { id: true, name: true, targetDate: true },
+          select: { status: true, dueDate: true },
         },
       },
     });
 
-    if (!project) {
-      return { health: ProjectHealth.ON_TRACK, reason: 'Project not found' };
-    }
+    if (!project) return { health: ProjectHealth.ON_TRACK, reason: 'Project initialized' };
 
-    if (project.status === ProjectStatus.COMPLETED) {
-      return { health: ProjectHealth.COMPLETED, reason: 'Project completed successfully' };
-    }
-
+    const total = project.tasks.length;
+    const blocked = project.tasks.filter((t) => t.status === 'BLOCKED').length;
     const now = new Date();
-    const overdueUrgentTasks = project.tasks.filter(
-      (t) =>
-        t.dueDate &&
-        new Date(t.dueDate) < now &&
-        ['URGENT', 'HIGH'].includes(t.priority) &&
-        t.status !== 'DONE' &&
-        t.status !== 'CANCELED',
-    );
-
-    const overdueMilestones = project.milestones.filter(
-      (m) => new Date(m.targetDate) < now,
-    );
-
-    const blockedTasks = project.tasks.filter((t) => t.status === 'BLOCKED');
+    const overdue = project.tasks.filter(
+      (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== 'DONE' && t.status !== 'CANCELED',
+    ).length;
 
     let health = ProjectHealth.ON_TRACK;
-    let reason = 'All deliverables on schedule';
+    let reason = 'Deliverables on schedule';
 
-    if (overdueUrgentTasks.length > 0) {
-      health = ProjectHealth.AT_RISK;
-      reason = `${overdueUrgentTasks.length} overdue high/urgent priority task${overdueUrgentTasks.length > 1 ? 's' : ''}`;
-    } else if (overdueMilestones.length > 0) {
-      health = ProjectHealth.AT_RISK;
-      reason = `Milestone "${overdueMilestones[0].name}" is past due target date`;
-    } else if (blockedTasks.length >= 3) {
-      health = ProjectHealth.AT_RISK;
-      reason = `${blockedTasks.length} tasks currently blocked by dependencies or blockers`;
+    if (blocked > 0 || overdue > 0) {
+      if (blocked >= 3 || overdue >= 3 || (total > 0 && (blocked + overdue) / total > 0.3)) {
+        health = ProjectHealth.OFF_TRACK;
+        reason = `${blocked} blocked tasks and ${overdue} overdue deliverables`;
+      } else {
+        health = ProjectHealth.AT_RISK;
+        reason = `${blocked > 0 ? `${blocked} task blocked` : ''} ${overdue > 0 ? `${overdue} overdue deliverable` : ''}`.trim();
+      }
     }
 
-    // Only auto-update if not manually overridden
     if (!project.manualHealthOverride) {
       await this.prisma.project.update({
         where: { id: projectId },
-        data: {
-          health,
-          healthReason: reason,
-        },
+        data: { health, healthReason: reason },
       });
     }
 
@@ -508,19 +603,21 @@ export class ProjectsService {
       throw new ForbiddenException('Team members cannot manage project members.');
     }
 
-    if (actorRole === UserRole.PROJECT_MANAGER) {
-      const isManager =
-        project.projectManagerId === actorId ||
-        project.members.some((m) => m.userId === actorId && m.role === 'MANAGER');
-      if (!isManager) {
-        throw new ForbiddenException('Project Managers may only manage members in projects they manage.');
-      }
+    // Verify target user is an active TEAM_MEMBER
+    const targetUser = await this.prisma.user.findUnique({
+      where: { id: userId, deletedAt: null },
+    });
+    if (!targetUser || !targetUser.isActive) {
+      throw new BadRequestException('Target user is not an active user');
+    }
+    if (targetUser.globalRole !== UserRole.TEAM_MEMBER) {
+      throw new BadRequestException('Only TEAM_MEMBER users can be assigned as project members');
     }
 
     const member = await this.prisma.projectMember.upsert({
       where: { projectId_userId: { projectId, userId } },
-      create: { projectId, userId, role },
-      update: { role },
+      create: { projectId, userId, role: ProjectMemberRole.MEMBER },
+      update: { role: ProjectMemberRole.MEMBER },
       include: { user: true },
     });
 
@@ -537,7 +634,7 @@ export class ProjectsService {
     await this.recordAudit(actorId, AuditAction.PROJECT_MEMBER_ADDED, 'ProjectMember', member.id, {
       projectId,
       userId,
-      role,
+      role: ProjectMemberRole.MEMBER,
     });
 
     return member;
@@ -557,15 +654,6 @@ export class ProjectsService {
 
     if (actorRole === UserRole.TEAM_MEMBER) {
       throw new ForbiddenException('Team members cannot manage project members.');
-    }
-
-    if (actorRole === UserRole.PROJECT_MANAGER) {
-      const isManager =
-        project.projectManagerId === actorId ||
-        project.members.some((m) => m.userId === actorId && m.role === 'MANAGER');
-      if (!isManager) {
-        throw new ForbiddenException('Project Managers may only manage members in projects they manage.');
-      }
     }
 
     await this.prisma.projectMember.deleteMany({
@@ -595,16 +683,8 @@ export class ProjectsService {
       throw new ForbiddenException('Team members cannot post project status updates.');
     }
 
-    if (actorRole === UserRole.PROJECT_MANAGER) {
-      const isManager =
-        project.projectManagerId === authorId ||
-        project.members.some((m) => m.userId === authorId && m.role === 'MANAGER');
-      if (!isManager) {
-        throw new ForbiddenException('Project Managers may only post updates for projects they manage.');
-      }
-    }
-
     const update = await this.prisma.projectUpdate.create({
+
       data: {
         projectId,
         authorId,

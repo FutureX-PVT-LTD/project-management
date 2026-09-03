@@ -2,166 +2,123 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { Bell, CheckCheck, Inbox } from 'lucide-react';
+import { Bell, CheckCheck, Clock, Inbox, AlertCircle, Info } from 'lucide-react';
 import { api } from '@/lib/api-client';
-import { Card } from '@/components/ui/Card';
+import { asArray } from '@/lib/api-data';
+import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { AppShell } from '@/components/layout/AppShell';
-import { formatTimeAgo, cn } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 
 export function NotificationsPage() {
-  const router = useRouter();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [filterUnread, setFilterUnread] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['notifications'],
+  const { data: notifData, isLoading } = useQuery({
+    queryKey: ['notifications', filterUnread],
     queryFn: () => api.get('/notifications'),
   });
 
-  const markReadMutation = useMutation({
-    mutationFn: (id: string) => api.patch(`/notifications/${id}/read`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
-  });
-
-  const markAllReadMutation = useMutation({
+  const markAllAsReadMutation = useMutation({
     mutationFn: () => api.patch('/notifications/read-all'),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
-  const allNotifications = (data?.notifications as any[]) || [];
-  const unreadCount = data?.unreadCount || 0;
-
-  const filtered = allNotifications.filter((n: any) => {
-    if (filter === 'unread') return !n.isRead;
-    return true;
+  const markAsReadMutation = useMutation({
+    mutationFn: (id: string) => api.patch(`/notifications/${id}/read`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
   });
 
-  const handleItemClick = (n: any) => {
-    if (!n.isRead) {
-      markReadMutation.mutate(n.id);
-    }
-    if (n.linkUrl) {
-      router.push(n.linkUrl);
-    }
-  };
+  const allNotifications = asArray<any>(notifData, 'notifications');
+  const notifications = filterUnread
+    ? allNotifications.filter((n) => !n.isRead)
+    : allNotifications;
 
   return (
     <AppShell>
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="space-y-5 max-w-3xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-fx-border pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-fx-text-primary tracking-tight">
-                Notification Center
-              </h1>
-              {unreadCount > 0 && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-fx-green-50 text-fx-green-900 font-semibold border border-fx-green-100">
-                  {unreadCount} unread
-                </span>
-              )}
-            </div>
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-fx-text-primary">
+              Notifications
+            </h1>
             <p className="text-xs sm:text-sm text-fx-text-secondary mt-0.5">
-              Task assignments, prerequisite completions, and project alerts.
+              Prerequisite unlocks, status updates, and assignment alerts.
             </p>
           </div>
 
-          {unreadCount > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setFilterUnread(!filterUnread)}
+            >
+              {filterUnread ? 'Show All' : 'Unread Only'}
+            </Button>
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => markAllReadMutation.mutate()}
-              isLoading={markAllReadMutation.isPending}
-              className="gap-1.5"
+              loading={markAllAsReadMutation.isPending}
+              onClick={() => markAllAsReadMutation.mutate()}
+              leftIcon={<CheckCheck className="w-3.5 h-3.5" />}
             >
-              <CheckCheck className="w-4 h-4 text-fx-green-700" /> Mark All as Read
+              Mark all as read
             </Button>
-          )}
-        </div>
-
-        {/* Filter Tabs Bar */}
-        <div className="flex items-center gap-1.5 text-xs">
-          <button
-            onClick={() => setFilter('all')}
-            className={cn(
-              'px-3.5 py-1.5 rounded-md font-medium fx-transition select-none text-xs',
-              filter === 'all'
-                ? 'bg-fx-green-50 text-fx-green-900 font-semibold shadow-subtle'
-                : 'text-fx-text-secondary hover:text-fx-text-primary hover:bg-fx-bg-subtle',
-            )}
-          >
-            All ({allNotifications.length})
-          </button>
-          <button
-            onClick={() => setFilter('unread')}
-            className={cn(
-              'px-3.5 py-1.5 rounded-md font-medium fx-transition select-none text-xs',
-              filter === 'unread'
-                ? 'bg-fx-green-50 text-fx-green-900 font-semibold shadow-subtle'
-                : 'text-fx-text-secondary hover:text-fx-text-primary hover:bg-fx-bg-subtle',
-            )}
-          >
-            Unread ({unreadCount})
-          </button>
+          </div>
         </div>
 
         {/* Notifications List */}
-        <Card padding="none" className="bg-white">
-          {isLoading ? (
-            <div className="p-12 text-center text-xs text-fx-text-muted">
-              Loading notifications...
-            </div>
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              icon={<Inbox className="w-5 h-5 text-fx-green-700" />}
-              title="You're all caught up"
-              description="No unread notifications at the moment."
-            />
-          ) : (
-            <div className="divide-y divide-fx-border/60">
-              {filtered.map((n: any) => (
-                <div
-                  key={n.id}
-                  onClick={() => handleItemClick(n)}
-                  className={cn(
-                    'p-4 hover:bg-fx-bg-subtle cursor-pointer fx-transition flex items-start gap-3.5 text-xs',
-                    !n.isRead && 'bg-fx-green-50/20 font-medium',
+        {isLoading ? (
+          <div className="bg-white border border-fx-border rounded-xl p-10 text-center text-xs text-fx-text-muted shadow-none">
+            Loading notifications...
+          </div>
+        ) : notifications.length === 0 ? (
+          <EmptyState
+            icon={<Bell className="w-6 h-6 text-fx-green" />}
+            title="All caught up"
+            description="You have no new alerts or notifications."
+          />
+        ) : (
+          <div className="bg-white border border-fx-border rounded-xl divide-y divide-fx-border/60 overflow-hidden shadow-none">
+
+            {notifications.map((n: any) => (
+              <div
+                key={n.id}
+                onClick={() => !n.isRead && markAsReadMutation.mutate(n.id)}
+                className={cn(
+                  'p-4 hover:bg-fx-bg-hover fx-transition flex items-start gap-3 text-xs cursor-pointer',
+                  !n.isRead && 'bg-fx-green-soft/20',
+                )}
+              >
+                <div className="mt-0.5 shrink-0">
+                  {!n.isRead ? (
+                    <span className="w-2 h-2 rounded-full bg-fx-green block" />
+                  ) : (
+                    <span className="w-2 h-2 rounded-full bg-transparent block" />
                   )}
-                >
-                  <div
+                </div>
+
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <p
                     className={cn(
-                      'p-2 rounded-full mt-0.5 shrink-0',
-                      !n.isRead
-                        ? 'bg-fx-green-50 text-fx-green-700 border border-fx-green-100'
-                        : 'bg-fx-bg-subtle text-fx-text-muted border border-fx-border',
+                      'text-xs font-semibold',
+                      !n.isRead ? 'text-fx-text-primary' : 'text-fx-text-secondary',
                     )}
                   >
-                    <Bell className="w-4 h-4" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-semibold text-fx-text-primary text-[13px]">
-                        {n.title}
-                      </h3>
-                      <span className="text-[11px] text-fx-text-muted shrink-0 font-mono">
-                        {formatTimeAgo(n.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-fx-text-secondary mt-1 leading-relaxed">{n.message}</p>
-                  </div>
+                    {n.title}
+                  </p>
+                  <p className="text-xs text-fx-text-secondary leading-relaxed">{n.message}</p>
+                  <p className="text-[10px] text-fx-text-muted pt-1">{formatDate(n.createdAt)}</p>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </AppShell>
   );

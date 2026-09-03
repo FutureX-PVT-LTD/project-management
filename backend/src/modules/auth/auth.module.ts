@@ -4,13 +4,13 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { getJwtAccessSecret } from './auth-secrets';
 
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
-      secret:
-        process.env.JWT_SECRET || 'futurex_super_secure_jwt_access_secret_key_2026_!@#',
+      secret: getJwtAccessSecret(),
       signOptions: { expiresIn: '15m' },
     }),
   ],

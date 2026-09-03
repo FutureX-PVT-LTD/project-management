@@ -2,138 +2,97 @@
 
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ShieldCheck, FileText, Search, Filter, Inbox } from 'lucide-react';
+import { Shield, Search, Filter } from 'lucide-react';
 import { api } from '@/lib/api-client';
-import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Input';
-import { Avatar } from '@/components/ui/Avatar';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { asArray, asRecord } from '@/lib/api-data';
 import { AppShell } from '@/components/layout/AppShell';
-import { formatDate, formatTimeAgo } from '@/lib/utils';
+import { Input } from '@/components/ui/Input';
+import { formatDate } from '@/lib/utils';
 
 export function AuditLogsPage() {
   const [search, setSearch] = useState('');
-  const [actionFilter, setActionFilter] = useState('');
 
-  const { data: logs, isLoading } = useQuery({
-    queryKey: ['audit-logs', actionFilter],
-    queryFn: () => api.get(`/audit?action=${actionFilter}`),
+  const { data: auditData, isLoading } = useQuery({
+    queryKey: ['admin', 'audit-logs', search],
+    queryFn: () => api.get(`/audit-logs${search ? `?search=${encodeURIComponent(search)}` : ''}`),
   });
 
-  const allLogs = ((logs as any[]) || []).filter((l: any) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      l.action?.toLowerCase().includes(s) ||
-      l.entityType?.toLowerCase().includes(s) ||
-      l.user?.firstName?.toLowerCase().includes(s) ||
-      l.user?.lastName?.toLowerCase().includes(s)
-    );
-  });
+  const audit = asRecord(auditData);
+  const logs = asArray(auditData, 'logs');
+  const totalLogs = typeof audit.total === 'number' ? audit.total : logs.length;
 
   return (
     <AppShell>
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-fx-border pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-fx-text-primary tracking-tight">
-                Security & Action Audit Logs
-              </h1>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-fx-green-50 text-fx-green-900 font-semibold border border-fx-green-100">
-                {allLogs.length} entries
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-fx-text-secondary mt-0.5">
-              Immutable ledger of sensitive workspace actions, role changes, and system logins.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-fx-text-primary">
+            Security & Audit Trail
+          </h1>
+          <p className="text-xs sm:text-sm text-fx-text-secondary mt-0.5">
+            Immutable log of user authentication, state mutations, and workspace access events.
+          </p>
         </div>
 
-        {/* Filter Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-[10px] border border-fx-border shadow-card text-xs">
-          <div className="w-full sm:w-72">
+        {/* Search Toolbar */}
+        <div className="bg-white border border-fx-border rounded-xl p-3 flex items-center justify-between shadow-none">
+          <div className="w-full sm:w-64">
             <Input
-              placeholder="Search audit records..."
+              placeholder="Search audit actions..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               leftIcon={<Search className="w-3.5 h-3.5" />}
-              className="h-8 text-xs bg-fx-bg-subtle"
+              className="h-8 text-xs bg-fx-bg"
             />
           </div>
         </div>
 
-        {/* Audit Table */}
-        <Card padding="none" className="bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-fx-bg-subtle/80 text-fx-text-muted border-b border-fx-border select-none text-[11px] font-semibold uppercase tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Timestamp</th>
-                  <th className="py-3 px-4">User</th>
-                  <th className="py-3 px-4">Action</th>
-                  <th className="py-3 px-4">Entity</th>
-                  <th className="py-3 px-4">IP Address</th>
-                  <th className="py-3 px-4">Details / Payload</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-fx-border/60">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-fx-text-muted">
-                      Loading audit records...
-                    </td>
+        {/* Audit Log Table */}
+        {isLoading ? (
+          <div className="bg-white border border-fx-border rounded-xl p-10 text-center text-xs text-fx-text-muted shadow-none">
+            Loading security logs...
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="bg-white border border-fx-border rounded-xl p-8 text-center text-xs text-fx-text-muted shadow-none">
+            No audit records found.
+          </div>
+        ) : (
+          <div className="bg-white border border-fx-border rounded-xl overflow-hidden shadow-none">
+            <div className="px-4 py-2 border-b border-fx-border bg-fx-bg text-[11px] text-fx-text-muted">
+              Showing {logs.length} of {totalLogs} audit records
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-fx-bg text-fx-text-secondary font-medium border-b border-fx-border">
+                    <th className="py-2.5 px-4">Event Action</th>
+                    <th className="py-2.5 px-3">Actor / User</th>
+                    <th className="py-2.5 px-3">IP Address</th>
+                    <th className="py-2.5 px-4 text-right">Timestamp</th>
                   </tr>
-                ) : allLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={6}>
-                      <EmptyState
-                        icon={<FileText className="w-5 h-5 text-fx-green-700" />}
-                        title="No audit records found"
-                        description="No audit logs matched your search filters."
-                      />
-                    </td>
-                  </tr>
-                ) : (
-                  allLogs.map((log: any) => (
-                    <tr key={log.id} className="hover:bg-fx-bg-subtle fx-transition">
-                      <td className="py-3.5 px-4 text-fx-text-muted font-mono whitespace-nowrap text-[11px]">
-                        {new Date(log.createdAt).toLocaleString()}
+                </thead>
+                <tbody className="divide-y divide-fx-border/60 text-fx-text-primary">
+                  {logs.map((log: any) => (
+                    <tr key={log.id} className="hover:bg-fx-bg-hover fx-transition">
+                      <td className="py-3 px-4 font-semibold text-fx-text-primary">
+                        {log.action}
                       </td>
-                      <td className="py-3.5 px-4 text-fx-text-secondary whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <Avatar
-                            src={log.user?.avatarUrl}
-                            firstName={log.user?.firstName}
-                            size="xs"
-                          />
-                          <span className="font-medium text-fx-text-primary">
-                            {log.user ? `${log.user.firstName} ${log.user.lastName}` : 'System'}
-                          </span>
-                        </div>
+                      <td className="py-3 px-3 text-fx-text-secondary">
+                        {log.actor ? `${log.actor.firstName} ${log.actor.lastName}` : 'System'}
                       </td>
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="font-mono text-[11px] font-semibold bg-fx-bg-subtle px-2 py-0.5 rounded border border-fx-border text-fx-text-primary">
-                          {log.action}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-fx-text-secondary font-medium whitespace-nowrap">
-                        {log.entityType || '—'}
-                      </td>
-                      <td className="py-3.5 px-4 text-fx-text-muted font-mono text-[11px] whitespace-nowrap">
+                      <td className="py-3 px-3 font-mono text-[11px] text-fx-text-muted">
                         {log.ipAddress || '127.0.0.1'}
                       </td>
-                      <td className="py-3.5 px-4 text-fx-text-secondary max-w-xs truncate font-mono text-[11px]">
-                        {log.details ? JSON.stringify(log.details) : '—'}
+                      <td className="py-3 px-4 text-right font-mono text-fx-text-secondary">
+                        {formatDate(log.createdAt)}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </Card>
+        )}
       </div>
     </AppShell>
   );

@@ -34,8 +34,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         error = obj.error || exception.name;
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
       this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
+      if (process.env.NODE_ENV !== 'production') {
+        message = exception.message;
+      }
     }
 
     const errorResponse: ApiErrorResponse = {

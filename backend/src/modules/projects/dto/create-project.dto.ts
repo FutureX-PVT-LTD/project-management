@@ -6,12 +6,16 @@ import {
   IsDateString,
   IsArray,
   IsBoolean,
+  Matches,
 } from 'class-validator';
 import { ProjectStatus, ProjectHealth, ProjectMemberRole } from '@futurex/shared';
 
 export class CreateProjectDto {
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[A-Z0-9]{2,6}$/i, {
+    message: 'Project key must be 2-6 letters or numbers.',
+  })
   key: string;
 
   @IsString()
@@ -39,8 +43,8 @@ export class CreateProjectDto {
   targetDate?: string;
 
   @IsString()
-  @IsNotEmpty()
-  projectManagerId: string;
+  @IsOptional()
+  projectManagerId?: string;
 
   @IsArray()
   @IsOptional()

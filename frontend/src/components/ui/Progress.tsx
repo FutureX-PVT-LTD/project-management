@@ -2,23 +2,25 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface ProgressProps {
-  value: number; // 0 - 100
+  value?: number;
+  max?: number;
+  className?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg';
   showLabel?: boolean;
-  className?: string;
-  barColor?: string;
+  color?: string;
 }
 
 export function Progress({
-  value,
+  value = 0,
+  max = 100,
+  className,
   size = 'sm',
   showLabel = false,
-  className,
-  barColor,
+  color = 'bg-fx-green',
 }: ProgressProps) {
-  const clamped = Math.min(100, Math.max(0, value || 0));
+  const percentage = Math.min(Math.max(Math.round((value / max) * 100), 0), 100);
 
-  const sizeClasses = {
+  const sizeStyles = {
     xs: 'h-1',
     sm: 'h-1.5',
     md: 'h-2',
@@ -26,16 +28,21 @@ export function Progress({
   };
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <div className={cn('w-full bg-[#E2E7E4] rounded-full overflow-hidden', sizeClasses[size])}>
+    <div className={cn('w-full flex items-center gap-2', className)}>
+      <div
+        className={cn(
+          'w-full bg-fx-bg-subtle rounded-full overflow-hidden border border-fx-border/60',
+          sizeStyles[size],
+        )}
+      >
         <div
-          className={cn('h-full rounded-full fx-transition', barColor || 'bg-fx-green-700')}
-          style={{ width: `${clamped}%` }}
+          className={cn('h-full fx-transition rounded-full', color)}
+          style={{ width: `${percentage}%` }}
         />
       </div>
       {showLabel && (
-        <span className="text-[12px] text-fx-text-secondary font-mono font-medium w-8 text-right shrink-0">
-          {clamped}%
+        <span className="text-[11px] font-mono text-fx-text-secondary w-7 text-right shrink-0">
+          {percentage}%
         </span>
       )}
     </div>

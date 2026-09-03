@@ -6,7 +6,12 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateTaskDto, UpdateTaskDto, ReviewTaskDto } from './dto/create-task.dto';
+import {
+  CreateTaskDailyUpdateDto,
+  CreateTaskDto,
+  ReviewTaskDto,
+  UpdateTaskDto,
+} from './dto/create-task.dto';
 import { IdGeneratorUtil } from '../../common/utils/id-generator.util';
 import { DependencyGraphUtil } from '../../common/utils/dependency-graph.util';
 import {
@@ -381,6 +386,18 @@ export class TasksService {
             },
           },
         },
+        dailyUpdates: {
+          orderBy: { createdAt: 'desc' },
+          take: 14,
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true, avatarUrl: true, jobTitle: true },
+            },
+            attachment: {
+              select: { id: true, fileName: true, fileUrl: true, fileSize: true, mimeType: true },
+            },
+          },
+        },
         comments: {
           where: { deletedAt: null },
           orderBy: { createdAt: 'asc' },
@@ -442,16 +459,47 @@ export class TasksService {
       throw new NotFoundException('Project not found');
     }
 
-    if (creatorRole === UserRole.PROJECT_MANAGER) {
-      const isPM =
-        project.projectManagerId === creatorId ||
-        (await this.prisma.projectMember.findFirst({
-          where: { projectId: dto.projectId, userId: creatorId, role: 'MANAGER' },
-        }));
-      if (!isPM) {
-        throw new ForbiddenException(
-          'Project Managers may only create tasks in projects they manage.',
-        );
+    if (dto.assigneeId) {
+      const assignee = await this.prisma.user.findFirst({
+        where: {
+          id: dto.assigneeId,
+          globalRole: UserRole.TEAM_MEMBER,
+          isActive: true,
+          deletedAt: null,
+          projectMemberships: { some: { projectId: dto.projectId } },
+        },
+        select: { id: true },
+      });
+
+      if (!assignee) {
+        throw new BadRequestException({
+          code: 'INVALID_PROJECT_ASSIGNEE',
+          message: 'Select an active team member who belongs to this project.',
+        });
+      }
+    }
+
+    if (dto.dependsOnTaskIds?.length) {
+      const uniqueDependencyIds = new Set(dto.dependsOnTaskIds);
+      if (uniqueDependencyIds.size !== dto.dependsOnTaskIds.length) {
+        throw new BadRequestException('Duplicate task dependencies are not allowed.');
+      }
+
+      const predecessors = await this.prisma.task.findMany({
+        where: {
+          id: { in: dto.dependsOnTaskIds },
+          deletedAt: null,
+        },
+        select: { id: true, projectId: true },
+      });
+
+      if (predecessors.length !== dto.dependsOnTaskIds.length) {
+        throw new BadRequestException('One or more prerequisite tasks were not found.');
+      }
+
+      const crossProjectDependency = predecessors.some((p) => p.projectId !== dto.projectId);
+      if (crossProjectDependency) {
+        throw new BadRequestException('Prerequisite tasks must belong to the same project.');
       }
     }
 
@@ -466,7 +514,7 @@ export class TasksService {
     const humanId = IdGeneratorUtil.generateHumanTaskId(project.key, taskNumber);
 
     // Initial status & progress validation
-    let initialStatus = dto.status || TaskStatus.TODO;
+    let initialStatus = dto.status || (dto.assigneeId ? TaskStatus.READY : TaskStatus.TODO);
     let initialProgress = dto.progress !== undefined ? dto.progress : 0;
 
     // If initial dependencies are passed, check if any predecessor is not DONE
@@ -580,20 +628,15 @@ export class TasksService {
 
     // Permission check
     const isOwnerOrAdmin = actorRole === UserRole.OWNER || actorRole === UserRole.ADMIN;
-    const isPM =
-      actorRole === UserRole.PROJECT_MANAGER &&
-      (task.project.projectManagerId === actorId ||
-        (await this.prisma.projectMember.findFirst({
-          where: { projectId: task.projectId, userId: actorId, role: 'MANAGER' },
-        })));
     const isAssignee = task.assigneeId === actorId;
     const isCollaborator = await this.prisma.taskCollaborator.findUnique({
       where: { taskId_userId: { taskId: id, userId: actorId } },
     });
 
-    if (!isOwnerOrAdmin && !isPM && !isAssignee && !isCollaborator) {
+    if (!isOwnerOrAdmin && !isAssignee && !isCollaborator) {
       throw new ForbiddenException('You do not have permission to modify this task');
     }
+
 
     // Normal employee restrictions
     if (actorRole === UserRole.TEAM_MEMBER) {
@@ -612,11 +655,26 @@ export class TasksService {
 
       if (hasPlanningUpdates) {
         throw new ForbiddenException(
-          'Team members cannot modify planning fields or reassign tasks. Contact your Project Manager.',
+          'Team members cannot modify planning fields or reassign tasks. Contact your Admin.',
         );
       }
 
       if (dto.status !== undefined && dto.status !== task.status) {
+        if (task.status === TaskStatus.WAITING) {
+          const unfinishedPredecessors = task.blockedBy.filter(
+            (b) => b.predecessorTask.status !== TaskStatus.DONE,
+          );
+
+          if (unfinishedPredecessors.length > 0) {
+            const names = unfinishedPredecessors.map((b) => b.predecessorTask.humanId).join(', ');
+            throw new BadRequestException({
+              statusCode: 400,
+              code: 'TASK_DEPENDENCY_PENDING',
+              message: `This task cannot be changed until its prerequisites are completed (Waiting for: ${names}).`,
+            });
+          }
+        }
+
         if (dto.status === TaskStatus.DONE) {
           throw new ForbiddenException(
             'Team members cannot mark tasks as DONE. Please submit your work for review.',
@@ -631,6 +689,31 @@ export class TasksService {
             'Team members cannot change task planning status.',
           );
         }
+
+        if (
+          dto.status === TaskStatus.IN_PROGRESS &&
+          task.status !== TaskStatus.READY &&
+          task.status !== TaskStatus.TODO &&
+          task.status !== TaskStatus.BLOCKED
+        ) {
+          throw new BadRequestException('Only assigned To Do or Ready tasks can be started by team members.');
+        }
+
+        if (dto.status === TaskStatus.IN_REVIEW && task.status !== TaskStatus.IN_PROGRESS) {
+          throw new BadRequestException('Only work in progress can be submitted for review.');
+        }
+      }
+
+      if (task.status === TaskStatus.WAITING && dto.progress !== undefined) {
+        const unfinishedPredecessors = task.blockedBy.filter(
+          (b) => b.predecessorTask.status !== TaskStatus.DONE,
+        );
+        const names = unfinishedPredecessors.map((b) => b.predecessorTask.humanId).join(', ');
+        throw new BadRequestException({
+          statusCode: 400,
+          code: 'TASK_DEPENDENCY_PENDING',
+          message: `Progress cannot be updated while this task is waiting for prerequisites${names ? ` (${names})` : ''}.`,
+        });
       }
     }
 
@@ -804,6 +887,160 @@ export class TasksService {
     return this.findById(id);
   }
 
+  async submitDailyUpdate(
+    taskId: string,
+    userId: string,
+    actorRole: UserRole,
+    dto: CreateTaskDailyUpdateDto,
+  ) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId, deletedAt: null },
+      include: {
+        collaborators: true,
+        blockedBy: {
+          include: { predecessorTask: { select: { humanId: true, status: true } } },
+        },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    const isAssignee = task.assigneeId === userId;
+    const isCollaborator = task.collaborators.some((c) => c.userId === userId);
+    if (!isAssignee && !isCollaborator) {
+      throw new ForbiddenException('You can submit daily updates only for work assigned to you.');
+    }
+
+    if (task.status === TaskStatus.WAITING) {
+      const unfinished = task.blockedBy.filter(
+        (b) => b.predecessorTask.status !== TaskStatus.DONE,
+      );
+      throw new BadRequestException({
+        statusCode: 400,
+        code: 'TASK_DEPENDENCY_PENDING',
+        message: `This task is still waiting for ${unfinished.length || 1} prerequisite${unfinished.length === 1 ? '' : 's'}.`,
+      });
+    }
+
+    if (task.status === TaskStatus.DONE || task.status === TaskStatus.CANCELED) {
+      throw new BadRequestException('Daily updates cannot be submitted for completed or canceled tasks.');
+    }
+
+    if (task.status !== TaskStatus.IN_PROGRESS) {
+      throw new BadRequestException({
+        code: 'TASK_NOT_STARTED',
+        message: 'Start this task before submitting a daily update.',
+      });
+    }
+
+    if (dto.progress <= 0 || dto.progress >= 100) {
+      throw new BadRequestException('Daily progress for active work must be between 1% and 99%. Submit work for review when it is complete.');
+    }
+
+    if (dto.progress < task.progress) {
+      throw new BadRequestException({
+        code: 'PROGRESS_CANNOT_DECREASE',
+        message: `Progress cannot go backward from ${task.progress}% to ${dto.progress}%.`,
+      });
+    }
+
+    const completedToday = dto.completedToday.trim();
+    const nextStep = dto.nextStep.trim();
+    const blocker = dto.blocker?.trim() || null;
+
+    if (!completedToday || !nextStep) {
+      throw new BadRequestException('Completed work and next planned step are required.');
+    }
+
+    if (dto.attachmentId) {
+      const attachment = await this.prisma.taskAttachment.findFirst({
+        where: {
+          id: dto.attachmentId,
+          taskId,
+          uploaderId: userId,
+        },
+      });
+
+      if (!attachment) {
+        throw new BadRequestException('Attachment does not belong to this task update.');
+      }
+    }
+
+    const now = new Date();
+    const workDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.taskDailyUpdate.findUnique({
+        where: {
+          taskId_userId_workDate: {
+            taskId,
+            userId,
+            workDate,
+          },
+        },
+      });
+
+      const dailyUpdate = existing
+        ? await tx.taskDailyUpdate.update({
+            where: { id: existing.id },
+            data: {
+              progressAfter: dto.progress,
+              completedToday,
+              blocker,
+              nextStep,
+              attachmentId: dto.attachmentId || null,
+            },
+          })
+        : await tx.taskDailyUpdate.create({
+            data: {
+              taskId,
+              projectId: task.projectId,
+              userId,
+              progressBefore: task.progress,
+              progressAfter: dto.progress,
+              completedToday,
+              blocker,
+              nextStep,
+              attachmentId: dto.attachmentId || null,
+              workDate,
+            },
+          });
+
+      await tx.task.update({
+        where: { id: taskId },
+        data: {
+          progress: dto.progress,
+          status: blocker ? TaskStatus.BLOCKED : task.status,
+          isManualBlocked: blocker ? true : task.isManualBlocked,
+          manualBlockReason: blocker || task.manualBlockReason,
+        },
+      });
+
+      await tx.taskActivity.create({
+        data: {
+          taskId,
+          projectId: task.projectId,
+          userId,
+          actionType: TaskActionType.PROGRESS_UPDATED,
+          description: `Daily update submitted: ${task.progress}% to ${dto.progress}%`,
+          metadataJson: JSON.stringify({
+            progressBefore: existing?.progressBefore ?? task.progress,
+            progressAfter: dto.progress,
+            hasBlocker: Boolean(blocker),
+          }),
+        },
+      });
+
+      return dailyUpdate;
+    });
+
+    await this.updateRollups(task.projectId, task.milestoneId);
+
+    return result;
+  }
+
   /**
    * Dependency Automation:
    * 1. When Task A becomes DONE -> downstream Task B's predecessors are checked.
@@ -915,7 +1152,11 @@ export class TasksService {
     dto: ReviewTaskDto,
   ) {
     if (reviewerRole === UserRole.TEAM_MEMBER) {
-      throw new ForbiddenException('Only Project Managers or Admins can review and approve tasks.');
+      throw new ForbiddenException('Only Admins can review and approve tasks.');
+    }
+
+    if (dto.status === ReviewStatus.REJECTED && !dto.feedback?.trim()) {
+      throw new BadRequestException('Rejection feedback is required when requesting changes.');
     }
 
     const task = await this.prisma.task.findUnique({
@@ -924,19 +1165,6 @@ export class TasksService {
     });
 
     if (!task) throw new NotFoundException('Task not found');
-
-    if (reviewerRole === UserRole.PROJECT_MANAGER) {
-      const isPM =
-        task.project.projectManagerId === reviewerId ||
-        (await this.prisma.projectMember.findFirst({
-          where: { projectId: task.projectId, userId: reviewerId, role: 'MANAGER' },
-        }));
-      if (!isPM) {
-        throw new ForbiddenException(
-          'Project Managers may only review tasks in projects they manage.',
-        );
-      }
-    }
 
     if (task.status !== TaskStatus.IN_REVIEW) {
       throw new BadRequestException('Task is not currently awaiting review');
@@ -1029,23 +1257,11 @@ export class TasksService {
     });
     if (!task) throw new NotFoundException('Task not found');
 
-    if (actorRole === UserRole.PROJECT_MANAGER) {
-      const isPM =
-        task.project.projectManagerId === actorId ||
-        (await this.prisma.projectMember.findFirst({
-          where: { projectId: task.projectId, userId: actorId, role: 'MANAGER' },
-        }));
-      if (!isPM) {
-        throw new ForbiddenException(
-          'Project Managers may only delete tasks in projects they manage.',
-        );
-      }
-    }
-
     await this.prisma.task.update({
       where: { id },
       data: { deletedAt: new Date() },
     });
+
 
     await this.updateRollups(task.projectId, task.milestoneId);
 
@@ -1070,8 +1286,8 @@ export class TasksService {
           );
           progress = Math.round((weightedSum / totalEst) * 100);
         } else {
-          const doneCount = tasks.filter((t) => t.status === TaskStatus.DONE).length;
-          progress = Math.round((doneCount / tasks.length) * 100);
+          const totalProgress = tasks.reduce((sum, t) => sum + (t.progress || 0), 0);
+          progress = Math.round(totalProgress / tasks.length);
         }
 
         await this.prisma.project.update({
@@ -1175,6 +1391,22 @@ export class TasksService {
         dependentTaskId: b.dependentTaskId,
         dependentTask: b.dependentTask,
         createdAt: b.createdAt ? b.createdAt.toISOString() : new Date().toISOString(),
+      })),
+      dailyUpdates: (t.dailyUpdates || []).map((u: any) => ({
+        id: u.id,
+        taskId: u.taskId,
+        projectId: u.projectId,
+        userId: u.userId,
+        user: u.user,
+        progressBefore: u.progressBefore,
+        progressAfter: u.progressAfter,
+        completedToday: u.completedToday,
+        blocker: u.blocker,
+        nextStep: u.nextStep,
+        attachmentId: u.attachmentId,
+        attachment: u.attachment,
+        workDate: u.workDate.toISOString(),
+        createdAt: u.createdAt.toISOString(),
       })),
       commentsCount: t.comments ? t.comments.length : (t._count?.comments || 0),
       attachmentsCount: t.attachments ? t.attachments.length : (t._count?.attachments || 0),

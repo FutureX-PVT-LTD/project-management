@@ -44,7 +44,7 @@ export interface CreateProjectDto {
   health?: ProjectHealth;
   startDate?: string;
   targetDate?: string;
-  projectManagerId: string;
+  projectManagerId?: string;
   memberIds?: { userId: string; role: ProjectMemberRole }[];
 }
 

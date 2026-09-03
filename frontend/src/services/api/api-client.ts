@@ -111,11 +111,15 @@ async function handleResponse<T>(response: Response): Promise<T> {
   const data = isJson ? await response.json() : await response.text();
 
   if (!response.ok) {
-    const errorMessage =
+    const rawMessage =
       (isJson && data?.message) ||
       (isJson && data?.error) ||
       response.statusText ||
       'Request failed';
+    const errorMessage =
+      typeof rawMessage === 'object' && rawMessage !== null
+        ? (rawMessage.message || rawMessage.code || JSON.stringify(rawMessage))
+        : rawMessage;
     throw new ApiError(
       Array.isArray(errorMessage) ? errorMessage.join(', ') : errorMessage,
       response.status,

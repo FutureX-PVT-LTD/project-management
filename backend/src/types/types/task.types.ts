@@ -36,6 +36,7 @@ export interface TaskDto {
   completedSubtasksCount?: number;
   blockedBy?: TaskDependencyDto[];
   blocking?: TaskDependencyDto[];
+  dailyUpdates?: TaskDailyUpdateDto[];
   commentsCount?: number;
   attachmentsCount?: number;
   createdAt: string;
@@ -79,6 +80,37 @@ export interface CreateTaskDto {
   requiresReview?: boolean;
   parentTaskId?: string;
   dependsOnTaskIds?: string[];
+}
+
+export interface TaskDailyUpdateDto {
+  id: string;
+  taskId: string;
+  projectId: string;
+  userId: string;
+  user?: UserDto;
+  progressBefore: number;
+  progressAfter: number;
+  completedToday: string;
+  blocker?: string | null;
+  nextStep: string;
+  attachmentId?: string | null;
+  attachment?: {
+    id: string;
+    fileName: string;
+    fileUrl: string;
+    fileSize: number;
+    mimeType: string;
+  } | null;
+  workDate: string;
+  createdAt: string;
+}
+
+export interface CreateTaskDailyUpdateDto {
+  progress: number;
+  completedToday: string;
+  blocker?: string | null;
+  nextStep: string;
+  attachmentId?: string | null;
 }
 
 export interface UpdateTaskDto {
