@@ -5,37 +5,39 @@
 @layer base {
   :root {
     /* FutureX Deep Forest Green Brand Hierarchy */
-    --fx-green: #0B6B4F;
-    --fx-green-hover: #095A43;
-    --fx-green-dark: #084C39;
-    --fx-green-soft: #EAF3EE;
-    --fx-green-subtle: #F3F8F5;
+    --fx-green: #075E46;
+    --fx-green-hover: #064C39;
+    --fx-green-dark: #043D2E;
+    --fx-green-soft: #EAF3EF;
+    --fx-green-subtle: #F4F8F6;
 
-    /* Apple-Inspired Neutral Surfaces */
-    --bg-app: #F5F6F4;
+    /* FutureX White Workspace Surfaces */
+    --bg-app: #FFFFFF;
+    --bg-canvas: #FFFFFF;
     --bg-surface: #FFFFFF;
-    --bg-surface-secondary: #F9FAF9;
+    --bg-surface-secondary: #F7F8F7;
     --bg-hover: #F3F5F3;
 
     /* Typography Colors */
-    --text-primary: #1D211F;
-    --text-secondary: #666D68;
-    --text-muted: #929993;
+    --text-primary: #181C19;
+    --text-secondary: #626963;
+    --text-muted: #939A95;
+    --text-disabled: #B5BBB7;
 
     /* Subtle Borders & Dividers */
-    --border: #E3E7E4;
-    --border-strong: #D4DAD6;
-    --border-subtle: #ECEFEA;
+    --border: #E7EAE8;
+    --border-strong: #D8DDD9;
+    --border-subtle: #E7EAE8;
 
     /* Semantic Status Accents (Restrained Low-Chroma) */
-    --semantic-danger: #C93C3C;
+    --semantic-danger: #C23D3D;
     --semantic-danger-bg: #FDF2F2;
-    --semantic-warning: #B97800;
+    --semantic-warning: #B87500;
     --semantic-warning-bg: #FEF7EB;
-    --semantic-info: #3978C6;
+    --semantic-info: #3B73B9;
     --semantic-info-bg: #EEF5FC;
-    --semantic-success: #0B6B4F;
-    --semantic-success-bg: #EAF3EE;
+    --semantic-success: #075E46;
+    --semantic-success-bg: #EAF3EF;
   }
 
   * {
@@ -47,7 +49,7 @@
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", var(--font-inter), Inter, system-ui, sans-serif;
+    font-family: var(--font-instrument-sans), var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     background-color: var(--bg-app);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;

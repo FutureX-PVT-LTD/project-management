@@ -214,7 +214,7 @@ export class ReportsService {
                 globalRole: true,
                 assignedTasks: {
                   where: { deletedAt: null, status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELED] } },
-                  select: { id: true, status: true, estimatedHours: true },
+                  select: { id: true, humanId: true, title: true, status: true, progress: true, estimatedHours: true, dueDate: true },
                 },
               },
             },
@@ -306,14 +306,17 @@ export class ReportsService {
           const activeTasks = m.user.assignedTasks.length;
           const blocked = m.user.assignedTasks.filter((t) => t.status === TaskStatus.BLOCKED).length;
           const waiting = m.user.assignedTasks.filter((t) => t.status === TaskStatus.WAITING).length;
+          const inProgress = m.user.assignedTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS).length;
           const hours = m.user.assignedTasks.reduce(
             (sum, t) => sum + (t.estimatedHours || 0),
             0,
           );
 
-          let capacityLevel: 'AVAILABLE' | 'BALANCED' | 'HIGH' = 'BALANCED';
-          if (hours < 15) capacityLevel = 'AVAILABLE';
-          else if (hours > 35) capacityLevel = 'HIGH';
+          const currentTask = m.user.assignedTasks.find((t) => t.status === TaskStatus.IN_PROGRESS)
+            || m.user.assignedTasks.find((t) => t.status === TaskStatus.READY)
+            || m.user.assignedTasks.find((t) => t.status === TaskStatus.WAITING)
+            || m.user.assignedTasks[0]
+            || null;
 
           memberWorkloadMap.set(m.user.id, {
             user: {
@@ -326,11 +329,32 @@ export class ReportsService {
             assignedTasksCount: activeTasks,
             blockedTasksCount: blocked,
             waitingTasksCount: waiting,
+            inProgressTasksCount: inProgress,
             allocatedHours: hours,
-            capacityLevel,
+            currentTask: currentTask ? {
+              id: currentTask.id,
+              humanId: currentTask.humanId,
+              title: currentTask.title,
+              status: currentTask.status,
+              progress: currentTask.progress,
+            } : null,
           });
         }
       });
+    });
+
+    const managedProjectIds = managedProjects.map((p) => p.id);
+    const recentActivities = await this.prisma.taskActivity.findMany({
+      where: {
+        projectId: { in: managedProjectIds },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true } },
+        task: { select: { id: true, humanId: true, title: true } },
+        project: { select: { id: true, key: true, name: true } },
+      },
     });
 
     return {
@@ -354,14 +378,18 @@ export class ReportsService {
         targetDate: p.targetDate ? p.targetDate.toISOString() : null,
         tasksCount: p.tasks.length,
         completedTasksCount: p.tasks.filter((t) => t.status === TaskStatus.DONE).length,
-        blockedTasksCount: p.tasks.filter((t) => t.status === TaskStatus.BLOCKED).length,
+        inProgressTasksCount: p.tasks.filter((t) => t.status === TaskStatus.IN_PROGRESS).length,
+        inReviewTasksCount: p.tasks.filter((t) => t.status === TaskStatus.IN_REVIEW).length,
         waitingTasksCount: p.tasks.filter((t) => t.status === TaskStatus.WAITING).length,
+        blockedTasksCount: p.tasks.filter((t) => t.status === TaskStatus.BLOCKED).length,
+        membersCount: p.members.length,
         overdueTasksCount: p.tasks.filter(
           (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== TaskStatus.DONE,
         ).length,
       })),
       needsAttention,
       teamWorkload: Array.from(memberWorkloadMap.values()),
+      recentActivities,
     };
   }
 

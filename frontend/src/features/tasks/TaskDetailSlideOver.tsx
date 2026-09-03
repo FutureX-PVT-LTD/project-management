@@ -109,6 +109,8 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 
@@ -122,11 +124,13 @@ export function TaskDetailSlideOver({
         assigneeId: task?.assigneeId || undefined,
         priority: task?.priority || TaskPriority.MEDIUM,
         parentTaskId: taskId,
-        status: TaskStatus.TODO,
+        status: task?.assigneeId ? TaskStatus.READY : TaskStatus.PLANNED,
       }),
     onSuccess: () => {
       setNewSubtaskTitle('');
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-work'] });
     },
   });
 
@@ -134,17 +138,22 @@ export function TaskDetailSlideOver({
   const toggleSubtaskMutation = useMutation({
     mutationFn: ({ subtaskId, isCompleted }: { subtaskId: string; isCompleted: boolean }) =>
       api.patch(`/tasks/${subtaskId}`, {
-        status: isCompleted ? TaskStatus.DONE : TaskStatus.TODO,
+        status: isCompleted ? TaskStatus.DONE : TaskStatus.READY,
         progress: isCompleted ? 100 : 0,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-work'] });
     },
   });
 
   if (!open) return null;
 
-  const canStartWork = task?.status === TaskStatus.TODO || task?.status === TaskStatus.READY;
+  const canStartWork =
+    task?.status === TaskStatus.TODO ||
+    task?.status === TaskStatus.READY ||
+    task?.status === TaskStatus.PLANNED;
   const canSubmitDailyUpdate = task?.status === TaskStatus.IN_PROGRESS;
   const mutationError =
     updateStatusMutation.error ||

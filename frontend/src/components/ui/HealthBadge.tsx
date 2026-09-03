@@ -7,6 +7,7 @@ interface HealthBadgeProps {
   reason?: string | null;
   className?: string;
   showLabel?: boolean;
+  showReason?: boolean;
 }
 
 const healthConfig: Record<string, { label: string; dot: string; text: string; bg: string }> = {
@@ -41,6 +42,7 @@ export function HealthBadge({
   reason,
   className,
   showLabel = true,
+  showReason = true,
 }: HealthBadgeProps) {
   const config = healthConfig[health] || {
     label: health,
@@ -49,12 +51,21 @@ export function HealthBadge({
     bg: 'bg-gray-50',
   };
 
+  const isNotOnTrack = health === ProjectHealth.AT_RISK || health === ProjectHealth.OFF_TRACK;
+
   return (
-    <div className={cn('inline-flex items-center gap-1.5', className)} title={reason || undefined}>
-      <span className={cn('w-2 h-2 rounded-full shrink-0', config.dot)} />
-      {showLabel && (
-        <span className={cn('text-xs font-medium tracking-tight', config.text)}>
-          {config.label}
+    <div className={cn('inline-flex flex-col gap-0.5', className)} title={reason || undefined}>
+      <div className="inline-flex items-center gap-1.5">
+        <span className={cn('w-2 h-2 rounded-full shrink-0', config.dot)} />
+        {showLabel && (
+          <span className={cn('text-xs font-medium tracking-tight', config.text)}>
+            {config.label}
+          </span>
+        )}
+      </div>
+      {showReason && isNotOnTrack && reason && (
+        <span className="text-[11px] text-fx-text-muted leading-tight truncate max-w-[200px]">
+          {reason}
         </span>
       )}
     </div>

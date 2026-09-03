@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -22,12 +23,24 @@ import {
   TaskActionType,
   NotificationType,
 } from '@futurex/shared';
+import { normalizeAllTasks } from './normalize-tasks.util';
 
 @Injectable()
-export class TasksService {
+export class TasksService implements OnModuleInit {
   private readonly logger = new Logger(TasksService.name);
 
   constructor(private prisma: PrismaService) {}
+
+  async onModuleInit() {
+    try {
+      const count = await normalizeAllTasks(this.prisma);
+      if (count > 0) {
+        this.logger.log(`Initialized and normalized ${count} task(s) into READY/WAITING states.`);
+      }
+    } catch (err) {
+      this.logger.warn(`Task normalization on startup warning: ${err}`);
+    }
+  }
 
   async findMyWork(
     userId: string,
@@ -40,30 +53,62 @@ export class TasksService {
       sortBy?: string;
     },
   ) {
-    const where: any = {
-      deletedAt: null,
-      OR: [
-        { assigneeId: userId },
-        { collaborators: { some: { userId } } },
-      ],
-    };
+    // 1. Auto-normalize any legacy or ambiguously staged assigned tasks for this user
+    try {
+      const legacyAssigned = await this.prisma.task.findMany({
+        where: {
+          deletedAt: null,
+          OR: [{ assigneeId: userId }, { collaborators: { some: { userId } } }],
+          status: { in: ['TODO', 'BACKLOG', 'PLANNED'] },
+        },
+        include: {
+          blockedBy: {
+            include: { predecessorTask: { select: { id: true, status: true } } },
+          },
+        },
+      });
+
+      for (const t of legacyAssigned) {
+        const hasUnfinished = t.blockedBy.some((b) => b.predecessorTask.status !== TaskStatus.DONE);
+        const resolvedStatus = hasUnfinished ? TaskStatus.WAITING : TaskStatus.READY;
+        await this.prisma.task.update({
+          where: { id: t.id },
+          data: { status: resolvedStatus, progress: 0 },
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Failed inline normalization in findMyWork: ${err}`);
+    }
+
+    const andConditions: any[] = [
+      {
+        OR: [{ assigneeId: userId }, { collaborators: { some: { userId } } }],
+      },
+    ];
 
     if (params?.projectId) {
-      where.projectId = params.projectId;
+      andConditions.push({ projectId: params.projectId });
     }
 
     if (params?.priority) {
-      where.priority = params.priority;
+      andConditions.push({ priority: params.priority });
     }
 
     if (params?.search) {
       const search = params.search.trim();
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { humanId: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { title: { contains: search, mode: 'insensitive' } },
+          { humanId: { contains: search, mode: 'insensitive' } },
+          { description: { contains: search, mode: 'insensitive' } },
+        ],
+      });
     }
+
+    const where: any = {
+      deletedAt: null,
+      AND: andConditions,
+    };
 
     const now = new Date();
     const threeDaysFromNow = new Date();
@@ -127,6 +172,14 @@ export class TasksService {
                 humanId: true,
                 title: true,
                 status: true,
+                assignee: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    avatarUrl: true,
+                  },
+                },
               },
             },
           },
@@ -152,6 +205,7 @@ export class TasksService {
       IN_PROGRESS: 50,
       IN_REVIEW: 40,
       WAITING: 35,
+      PLANNED: 30,
       TODO: 30,
       BLOCKED: 20,
       BACKLOG: 10,
@@ -514,8 +568,24 @@ export class TasksService {
     const humanId = IdGeneratorUtil.generateHumanTaskId(project.key, taskNumber);
 
     // Initial status & progress validation
-    let initialStatus = dto.status || (dto.assigneeId ? TaskStatus.READY : TaskStatus.TODO);
+    let initialStatus = dto.status;
     let initialProgress = dto.progress !== undefined ? dto.progress : 0;
+
+    if (dto.assigneeId) {
+      // Assigned task must resolve to WAITING or READY by default
+      if (
+        !initialStatus ||
+        initialStatus === TaskStatus.TODO ||
+        initialStatus === TaskStatus.BACKLOG ||
+        initialStatus === TaskStatus.PLANNED
+      ) {
+        initialStatus = TaskStatus.READY;
+      }
+    } else {
+      if (!initialStatus || initialStatus === TaskStatus.TODO || initialStatus === TaskStatus.BACKLOG) {
+        initialStatus = TaskStatus.PLANNED;
+      }
+    }
 
     // If initial dependencies are passed, check if any predecessor is not DONE
     if (dto.dependsOnTaskIds && dto.dependsOnTaskIds.length > 0) {
@@ -525,7 +595,7 @@ export class TasksService {
       });
 
       const allDone = predecessors.every((p) => p.status === TaskStatus.DONE);
-      if (!allDone) {
+      if (!allDone && dto.assigneeId && initialStatus !== TaskStatus.BLOCKED && initialStatus !== TaskStatus.DONE) {
         initialStatus = TaskStatus.WAITING;
         initialProgress = 0;
       }
@@ -533,16 +603,11 @@ export class TasksService {
 
     if (initialStatus === TaskStatus.DONE) {
       initialProgress = 100;
-    } else if (
-      initialStatus === TaskStatus.BACKLOG ||
-      initialStatus === TaskStatus.TODO ||
-      initialStatus === TaskStatus.WAITING ||
-      initialStatus === TaskStatus.READY
-    ) {
-      initialProgress = 0;
     } else if (initialStatus === TaskStatus.IN_PROGRESS) {
       if (initialProgress === 0) initialProgress = 10;
       if (initialProgress >= 100) initialProgress = 99;
+    } else {
+      initialProgress = 0;
     }
 
     const task = await this.prisma.task.create({
@@ -682,6 +747,7 @@ export class TasksService {
         }
         if (
           dto.status === TaskStatus.BACKLOG ||
+          dto.status === TaskStatus.PLANNED ||
           dto.status === TaskStatus.TODO ||
           dto.status === TaskStatus.CANCELED
         ) {
@@ -694,9 +760,10 @@ export class TasksService {
           dto.status === TaskStatus.IN_PROGRESS &&
           task.status !== TaskStatus.READY &&
           task.status !== TaskStatus.TODO &&
+          task.status !== TaskStatus.PLANNED &&
           task.status !== TaskStatus.BLOCKED
         ) {
-          throw new BadRequestException('Only assigned To Do or Ready tasks can be started by team members.');
+          throw new BadRequestException('Only assigned Ready tasks can be started by team members.');
         }
 
         if (dto.status === TaskStatus.IN_REVIEW && task.status !== TaskStatus.IN_PROGRESS) {
@@ -720,6 +787,36 @@ export class TasksService {
     let nextStatus = dto.status !== undefined ? dto.status : (task.status as TaskStatus);
     let nextProgress = dto.progress !== undefined ? dto.progress : task.progress;
     let completedDate = task.completedDate;
+
+    // Automatic readiness reconciliation for assigned tasks:
+    const effectiveAssigneeId = dto.assigneeId !== undefined ? dto.assigneeId : task.assigneeId;
+    if (
+      effectiveAssigneeId &&
+      !dto.isManualBlocked &&
+      !task.isManualBlocked &&
+      nextStatus !== TaskStatus.IN_PROGRESS &&
+      nextStatus !== TaskStatus.IN_REVIEW &&
+      nextStatus !== TaskStatus.DONE &&
+      nextStatus !== TaskStatus.CANCELED &&
+      nextStatus !== TaskStatus.BLOCKED
+    ) {
+      const unfinishedPredecessors = task.blockedBy.filter(
+        (b) => b.predecessorTask.status !== TaskStatus.DONE,
+      );
+      if (unfinishedPredecessors.length > 0) {
+        nextStatus = TaskStatus.WAITING;
+        nextProgress = 0;
+      } else {
+        nextStatus = TaskStatus.READY;
+        nextProgress = 0;
+      }
+    } else if (
+      !effectiveAssigneeId &&
+      (nextStatus === TaskStatus.READY || nextStatus === TaskStatus.WAITING)
+    ) {
+      nextStatus = TaskStatus.PLANNED;
+      nextProgress = 0;
+    }
 
     // Strict validation for transitions & blocked rules
     if (dto.status !== undefined && dto.status !== task.status) {
@@ -751,9 +848,10 @@ export class TasksService {
         }
       }
 
-      // Backlog, To Do, Waiting, or Ready resets to 0%
+      // Backlog, Planned, To Do, Waiting, or Ready resets to 0%
       if (
         dto.status === TaskStatus.BACKLOG ||
+        dto.status === TaskStatus.PLANNED ||
         dto.status === TaskStatus.TODO ||
         dto.status === TaskStatus.WAITING ||
         dto.status === TaskStatus.READY
@@ -768,6 +866,7 @@ export class TasksService {
     }
     if (
       (nextStatus === TaskStatus.BACKLOG ||
+        nextStatus === TaskStatus.PLANNED ||
         nextStatus === TaskStatus.TODO ||
         nextStatus === TaskStatus.WAITING ||
         nextStatus === TaskStatus.READY) &&
@@ -1082,12 +1181,14 @@ export class TasksService {
           allPredecessorsDone &&
           (depTask.status === TaskStatus.WAITING ||
             depTask.status === TaskStatus.TODO ||
+            depTask.status === TaskStatus.PLANNED ||
             (depTask.status === TaskStatus.BLOCKED && !depTask.isManualBlocked))
         ) {
-          // Automatically transition to READY
+          // Automatically transition to READY if assigned, or PLANNED if unassigned
+          const targetStatus = depTask.assigneeId ? TaskStatus.READY : TaskStatus.PLANNED;
           await this.prisma.task.update({
             where: { id: depTask.id },
-            data: { status: TaskStatus.READY },
+            data: { status: targetStatus },
           });
 
           await this.recordActivity(

@@ -16,12 +16,12 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false,
+    "rootDir": "src",
     "paths": {
       "@/*": ["src/*"],
       "@futurex/shared": ["src/types"],
       "@futurex/shared/*": ["src/types/*"]
     }
   },
-  "include": ["src/**/*", "prisma/**/*"]
+  "include": ["src/**/*"]
 }

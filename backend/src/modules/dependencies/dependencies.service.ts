@@ -170,9 +170,10 @@ export class DependenciesService {
       (dependency.dependentTask.status === TaskStatus.WAITING || dependency.dependentTask.status === TaskStatus.BLOCKED) &&
       !dependency.dependentTask.isManualBlocked
     ) {
+      const targetStatus = dependency.dependentTask.assigneeId ? TaskStatus.READY : TaskStatus.PLANNED;
       await this.prisma.task.update({
         where: { id: dependency.dependentTaskId },
-        data: { status: TaskStatus.READY },
+        data: { status: targetStatus },
       });
 
       await this.prisma.taskActivity.create({

@@ -19,6 +19,12 @@ const statusConfig: Record<
     text: 'text-fx-text-secondary',
     border: 'border-fx-border',
   },
+  [TaskStatus.PLANNED]: {
+    label: 'Planned',
+    bg: 'bg-fx-bg-subtle',
+    text: 'text-fx-text-muted',
+    border: 'border-fx-border',
+  },
   [TaskStatus.WAITING]: {
     label: 'Waiting',
     bg: 'bg-amber-50/80',

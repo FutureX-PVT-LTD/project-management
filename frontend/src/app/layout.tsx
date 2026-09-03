@@ -1,9 +1,16 @@
 import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Instrument_Sans, Inter, JetBrains_Mono } from 'next/font/google';
 import Script from 'next/script';
 import '@/styles/globals.css';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { AuthProvider } from '@/features/auth/AuthContext';
+
+const instrumentSans = Instrument_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-instrument-sans',
+  weight: ['400', '500', '600', '700'],
+});
 
 const inter = Inter({
   subsets: ['latin'],
@@ -30,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${instrumentSans.variable} ${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body className="font-sans bg-fx-bg text-fx-text-primary antialiased selection:bg-fx-green-soft selection:text-fx-green-dark" suppressHydrationWarning>
         <Script id="remove-extension-hydration-attrs" strategy="beforeInteractive">
           {`
