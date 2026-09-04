@@ -47,7 +47,7 @@ export function LoginForm() {
       <div className="w-full max-w-sm space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-fx-green text-white font-bold text-sm shadow-none">
+          <div className="inline-flex items-center justify-center w-11 h-11 rounded-[8px] bg-[#315F7D] text-white font-bold text-sm shadow-none">
             FX
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-fx-text-primary">
@@ -59,7 +59,7 @@ export function LoginForm() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white border border-fx-border rounded-2xl p-6 sm:p-7 space-y-4 shadow-none">
+        <div className="bg-white border border-fx-border rounded-[12px] p-6 sm:p-7 space-y-4 shadow-none">
 
           {serverError && (
             <div className="p-3 bg-red-50/80 border border-red-200/70 rounded-md flex items-start gap-2 text-xs text-fx-semantic-danger animate-fadeIn">
@@ -80,7 +80,7 @@ export function LoginForm() {
                 error={errors.email?.message}
                 {...register('email')}
                 autoComplete="email"
-                className="bg-fx-bg"
+                className="bg-[#F7F8FA]"
               />
             </div>
 
@@ -91,7 +91,7 @@ export function LoginForm() {
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-[11px] text-fx-green hover:underline font-medium"
+                  className="text-[11px] text-[#315F7D] hover:text-[#274E68] hover:underline font-medium"
                 >
                   Forgot password?
                 </Link>
@@ -103,7 +103,7 @@ export function LoginForm() {
                 error={errors.password?.message}
                 {...register('password')}
                 autoComplete="current-password"
-                className="bg-fx-bg"
+                className="bg-[#F7F8FA]"
               />
             </div>
 

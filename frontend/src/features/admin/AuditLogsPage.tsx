@@ -35,7 +35,7 @@ export function AuditLogsPage() {
         </div>
 
         {/* Search Toolbar */}
-        <div className="bg-white border border-fx-border rounded-xl p-3 flex items-center justify-between shadow-none">
+        <div className="bg-white border border-fx-border rounded-[8px] p-3 flex items-center justify-between shadow-none">
           <div className="w-full sm:w-64">
             <Input
               placeholder="Search audit actions..."
@@ -49,15 +49,15 @@ export function AuditLogsPage() {
 
         {/* Audit Log Table */}
         {isLoading ? (
-          <div className="bg-white border border-fx-border rounded-xl p-10 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-10 text-center text-xs text-fx-text-muted shadow-none">
             Loading security logs...
           </div>
         ) : logs.length === 0 ? (
-          <div className="bg-white border border-fx-border rounded-xl p-8 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-8 text-center text-xs text-fx-text-muted shadow-none">
             No audit records found.
           </div>
         ) : (
-          <div className="bg-white border border-fx-border rounded-xl overflow-hidden shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] overflow-hidden shadow-none">
             <div className="px-4 py-2 border-b border-fx-border bg-fx-bg text-[11px] text-fx-text-muted">
               Showing {logs.length} of {totalLogs} audit records
             </div>

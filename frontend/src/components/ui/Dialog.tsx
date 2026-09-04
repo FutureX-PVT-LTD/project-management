@@ -19,7 +19,7 @@ export function DialogContent({
       <DialogPrimitive.Overlay className="fixed inset-0 z-backdrop bg-black/30 backdrop-blur-[2px] fx-transition animate-fadeIn" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed left-[50%] top-[50%] z-modal w-[calc(100vw-32px)] max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl bg-white shadow-popover border border-fx-border animate-fadeIn focus:outline-none max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden',
+          'fixed left-[50%] top-[50%] z-modal w-[calc(100vw-32px)] max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-[8px] bg-white shadow-popover border border-fx-border animate-fadeIn focus:outline-none max-h-[calc(100dvh-48px)] flex flex-col overflow-hidden',
           className,
         )}
         {...props}

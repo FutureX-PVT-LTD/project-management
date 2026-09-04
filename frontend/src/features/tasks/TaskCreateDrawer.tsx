@@ -185,7 +185,7 @@ export function TaskCreateDrawer({
                 setAssigneeId('');
                 setSelectedPredecessors([]);
               }}
-              className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-fx-green"
+              className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-[#315F7D]"
             >
               {projectList.map((p: any) => (
                 <option key={p.id} value={p.id}>
@@ -202,7 +202,7 @@ export function TaskCreateDrawer({
             <select
               value={milestoneId}
               onChange={(e) => setMilestoneId(e.target.value)}
-              className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-fx-green"
+              className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-[#315F7D]"
             >
               <option value="">No Milestone</option>
               {(currentProject as any)?.milestones?.map((m: any) => (
@@ -223,7 +223,7 @@ export function TaskCreateDrawer({
             <select
               value={assigneeId}
               onChange={(e) => setAssigneeId(e.target.value)}
-              className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-fx-green"
+              className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-[#315F7D]"
             >
               <option value="">Unassigned</option>
               {projectMembers.length === 0 ? (
@@ -247,7 +247,7 @@ export function TaskCreateDrawer({
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
-              className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-fx-green font-medium"
+              className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-[#315F7D] font-medium"
             >
               {Object.values(TaskPriority).map((pr) => (
                 <option key={pr} value={pr}>
@@ -299,7 +299,7 @@ export function TaskCreateDrawer({
                 const values = Array.from(e.target.selectedOptions, (option) => option.value);
                 setSelectedPredecessors(values);
               }}
-              className="w-full bg-white border border-fx-border rounded-md p-2 text-xs text-fx-text-primary focus:outline-none focus:border-fx-green h-24"
+              className="w-full bg-white border border-fx-border rounded-md p-2 text-xs text-fx-text-primary focus:outline-none focus:border-[#315F7D] h-24"
             >
               {(projectTasks as any[]).map((t: any) => (
                 <option key={t.id} value={t.id}>
@@ -323,7 +323,7 @@ export function TaskCreateDrawer({
             placeholder="Acceptance criteria, asset links, or implementation details..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-white border border-fx-border rounded-md p-3 text-xs text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:border-fx-green focus:ring-1 focus:ring-fx-green"
+            className="w-full bg-white border border-fx-border rounded-md p-3 text-xs text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:border-[#315F7D] focus:ring-1 focus:ring-[#315F7D]"
           />
         </div>
 
@@ -334,7 +334,7 @@ export function TaskCreateDrawer({
             id="req-review"
             checked={requiresReview}
             onChange={(e) => setRequiresReview(e.target.checked)}
-            className="rounded text-fx-green focus:ring-fx-green"
+            className="rounded text-[#315F7D] focus:ring-[#315F7D]"
           />
           <label htmlFor="req-review" className="text-xs font-medium text-fx-text-primary select-none cursor-pointer">
             Requires Admin review & approval before marking Done

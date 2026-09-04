@@ -16,7 +16,7 @@ export function Progress({
   className,
   size = 'sm',
   showLabel = false,
-  color = 'bg-fx-green',
+  color = 'bg-[#0088FF]',
 }: ProgressProps) {
   const percentage = Math.min(Math.max(Math.round((value / max) * 100), 0), 100);
 
@@ -31,7 +31,7 @@ export function Progress({
     <div className={cn('w-full flex items-center gap-2', className)}>
       <div
         className={cn(
-          'w-full bg-fx-bg-subtle rounded-full overflow-hidden border border-fx-border/60',
+          'w-full bg-[#EDF0F3] rounded-full overflow-hidden',
           sizeStyles[size],
         )}
       >
@@ -41,7 +41,7 @@ export function Progress({
         />
       </div>
       {showLabel && (
-        <span className="text-[11px] font-mono text-fx-text-secondary w-7 text-right shrink-0">
+        <span className="text-[11px] font-mono text-[#5F6368] w-7 text-right shrink-0">
           {percentage}%
         </span>
       )}

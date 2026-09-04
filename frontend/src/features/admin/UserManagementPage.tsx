@@ -69,7 +69,7 @@ export function UserManagementPage() {
         </div>
 
         {/* Search & Filter Toolbar */}
-        <div className="bg-white border border-fx-border rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-none">
+        <div className="bg-white border border-fx-border rounded-[8px] p-3 flex flex-wrap items-center justify-between gap-3 shadow-none">
           <div className="flex items-center gap-2.5 flex-1 min-w-[260px]">
             <div className="w-full sm:w-64">
               <Input
@@ -84,7 +84,7 @@ export function UserManagementPage() {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="h-8 px-2.5 text-xs bg-fx-bg border border-fx-border rounded-md text-fx-text-secondary focus:outline-none focus:ring-1 focus:ring-fx-green"
+              className="h-8 px-2.5 text-xs bg-fx-bg border border-fx-border rounded-md text-fx-text-secondary focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
             >
               <option value="ALL">All Roles</option>
               <option value={UserRole.ADMIN}>Admin (Manager)</option>
@@ -99,15 +99,15 @@ export function UserManagementPage() {
 
         {/* User Table */}
         {isLoading ? (
-          <div className="bg-white border border-fx-border rounded-xl p-10 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-10 text-center text-xs text-fx-text-muted shadow-none">
             Loading team members...
           </div>
         ) : users.length === 0 ? (
-          <div className="bg-white border border-fx-border rounded-xl p-8 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-8 text-center text-xs text-fx-text-muted shadow-none">
             No users found matching your search.
           </div>
         ) : (
-          <div className="bg-white border border-fx-border rounded-xl overflow-hidden shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] overflow-hidden shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
@@ -158,7 +158,7 @@ export function UserManagementPage() {
                       <tr key={u.id} className="hover:bg-fx-bg-hover fx-transition">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-fx-green-soft text-fx-green-dark font-semibold text-[11px] flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-[#EDF4F8] text-[#274E68] font-semibold text-[11px] flex items-center justify-center shrink-0">
                               {u.firstName?.[0]}
                               {u.lastName?.[0]}
                             </div>
@@ -178,7 +178,7 @@ export function UserManagementPage() {
                             className={cn(
                               'text-[11px] font-semibold uppercase px-2 py-0.5 rounded border',
                               isAdminUser
-                                ? 'bg-fx-green-soft text-fx-green-dark border-fx-green/30'
+                                ? 'bg-[#EDF4F8] text-[#274E68] border-[#315F7D]/30'
                                 : 'bg-fx-bg text-fx-text-secondary border-fx-border',
                             )}
                           >
@@ -194,7 +194,7 @@ export function UserManagementPage() {
                             className={cn(
                               'text-[10px] uppercase font-semibold px-2 py-0.5 rounded border',
                               isActive
-                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                ? 'bg-[#EDF7F2] text-[#287A5A] border-[#C6E7D2]'
                                 : 'bg-red-50 text-red-800 border-red-200',
                             )}
                           >

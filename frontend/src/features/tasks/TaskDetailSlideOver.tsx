@@ -266,7 +266,7 @@ export function TaskDetailSlideOver({
                 className={cn(
                   'py-2.5 border-b-2 -mb-px fx-transition',
                   activeTab === tab.id
-                    ? 'border-fx-green text-fx-green-dark font-semibold'
+                    ? 'border-[#315F7D] text-[#274E68] font-semibold'
                     : 'border-transparent text-fx-text-secondary hover:text-fx-text-primary',
                 )}
               >
@@ -345,7 +345,7 @@ export function TaskDetailSlideOver({
                                   className={cn(
                                     'p-2.5 rounded-md border flex items-center justify-between gap-2 cursor-pointer fx-transition text-xs',
                                     isDone
-                                      ? 'bg-fx-green-soft/40 border-fx-green/20'
+                                      ? 'bg-[#EDF4F8] border-[#315F7D]/30'
                                       : 'bg-amber-50/50 border-amber-200/70 hover:bg-amber-50',
                                   )}
                                 >
@@ -456,7 +456,7 @@ export function TaskDetailSlideOver({
                       <div className="space-y-1">
                         <div className="flex items-center justify-between text-xs">
                           <span className="text-fx-text-secondary font-medium">Completion:</span>
-                          <span className="font-mono font-bold text-fx-green">{updateProgress}%</span>
+                          <span className="font-mono font-bold text-[#315F7D]">{updateProgress}%</span>
                         </div>
                         <input
                           type="range"
@@ -467,7 +467,7 @@ export function TaskDetailSlideOver({
                           onChange={(e) =>
                             setUpdateProgress(Math.min(Math.max(Number(e.target.value), currentProgress), 99))
                           }
-                          className="w-full accent-fx-green cursor-pointer"
+                          className="w-full accent-[#315F7D] cursor-pointer"
                         />
                       </div>
 
@@ -481,7 +481,7 @@ export function TaskDetailSlideOver({
                           placeholder="e.g. Configured vehicle physics handling curve..."
                           value={completedToday}
                           onChange={(e) => setCompletedToday(e.target.value)}
-                          className="w-full rounded-md border border-fx-border bg-fx-bg p-2 text-xs focus:border-fx-green focus:outline-none"
+                          className="w-full rounded-md border border-fx-border bg-fx-bg p-2 text-xs focus:border-[#315F7D] focus:outline-none"
                         />
                       </div>
 
@@ -495,7 +495,7 @@ export function TaskDetailSlideOver({
                           placeholder="e.g. Test wheel slip calculations on steep surfaces..."
                           value={nextStepNote}
                           onChange={(e) => setNextStepNote(e.target.value)}
-                          className="w-full rounded-md border border-fx-border bg-fx-bg px-2.5 py-1.5 text-xs focus:border-fx-green focus:outline-none"
+                          className="w-full rounded-md border border-fx-border bg-fx-bg px-2.5 py-1.5 text-xs focus:border-[#315F7D] focus:outline-none"
                         />
                       </div>
 
@@ -510,7 +510,7 @@ export function TaskDetailSlideOver({
                           placeholder="Leave blank if unblocked..."
                           value={blockerNote}
                           onChange={(e) => setBlockerNote(e.target.value)}
-                          className="w-full rounded-md border border-fx-border bg-fx-bg px-2.5 py-1.5 text-xs focus:border-fx-green focus:outline-none"
+                          className="w-full rounded-md border border-fx-border bg-fx-bg px-2.5 py-1.5 text-xs focus:border-[#315F7D] focus:outline-none"
                         />
                       </div>
 
@@ -547,7 +547,7 @@ export function TaskDetailSlideOver({
                                 <span className="font-semibold text-fx-text-primary">
                                   {upd.user?.firstName} {upd.user?.lastName}
                                 </span>
-                                <span className="font-mono text-fx-green font-bold">
+                                <span className="font-mono text-[#315F7D] font-bold">
                                   {upd.progressAfter ?? upd.progress}%
                                 </span>
                               </div>
@@ -626,7 +626,7 @@ export function TaskDetailSlideOver({
                               type="checkbox"
                               checked={isCompleted}
                               onChange={() => {}}
-                              className="w-4 h-4 rounded text-fx-green accent-fx-green cursor-pointer"
+                              className="w-4 h-4 rounded text-[#315F7D] accent-[#315F7D] cursor-pointer"
                             />
                             <span
                               className={cn(

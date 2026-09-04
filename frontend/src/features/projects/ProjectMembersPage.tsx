@@ -141,7 +141,7 @@ export function ProjectMembersPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search available team members..."
-              className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-fx-green focus:outline-none focus:ring-1 focus:ring-fx-green"
+              className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-[#315F7D] focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
             />
           </div>
           {usersLoading ? (

@@ -13,14 +13,14 @@ export function Card({
   children,
   ...props
 }: CardProps) {
-  const baseStyles = 'rounded-lg fx-transition';
+  const baseStyles = 'rounded-[12px] fx-transition';
 
   const variants = {
-    default: 'bg-white border border-fx-border text-fx-text-primary shadow-none',
-    subtle: 'bg-fx-bg-subtle border border-fx-border text-fx-text-primary shadow-none',
-    outline: 'bg-transparent border border-fx-border text-fx-text-primary shadow-none',
+    default: 'bg-white border border-[#E6E8EB] text-[#17191C] shadow-none',
+    subtle: 'bg-[#F8F9FA] text-[#17191C] shadow-none',
+    outline: 'bg-transparent border border-[#E6E8EB] text-[#17191C] shadow-none',
     interactive:
-      'bg-white border border-fx-border hover:border-fx-border-strong hover:bg-fx-bg-hover cursor-pointer text-fx-text-primary shadow-none',
+      'bg-white border border-[#E6E8EB] hover:border-[#D1D6DC] hover:bg-[#F3F5F7] cursor-pointer text-[#17191C] shadow-none',
   };
 
   const paddings = {

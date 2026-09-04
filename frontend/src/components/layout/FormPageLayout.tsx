@@ -22,7 +22,7 @@ export function FormPageLayout({
         {breadcrumbs.map((crumb, index) => (
           <React.Fragment key={`${crumb.label}-${index}`}>
             {crumb.href ? (
-              <Link href={crumb.href} className="hover:text-fx-green font-medium">
+              <Link href={crumb.href} className="hover:text-[#315F7D] font-medium">
                 {crumb.label}
               </Link>
             ) : (

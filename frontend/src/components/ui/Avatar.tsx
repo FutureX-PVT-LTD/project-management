@@ -23,13 +23,12 @@ export function Avatar({ src, name, firstName, lastName, size = 'sm', className 
     lg: 'h-10 w-10 text-sm font-medium',
   };
 
-  // Consistent pleasant background color based on name string
   const colors = [
-    'bg-emerald-100 text-emerald-800',
-    'bg-blue-100 text-blue-800',
-    'bg-amber-100 text-amber-800',
-    'bg-teal-100 text-teal-800',
-    'bg-slate-200 text-slate-800',
+    'bg-[#EEF4F7] text-[#274E68]',
+    'bg-[#F8F9FA] text-[#62676D]',
+    'bg-[#EDF0F2] text-[#315F7D]',
+    'bg-[#EEF4FD] text-[#3974C6]',
+    'bg-[#F4F0FB] text-[#7359AA]',
   ];
   const charCode = displayName.charCodeAt(0) || 0;
   const colorClass = colors[charCode % colors.length];
@@ -41,7 +40,7 @@ export function Avatar({ src, name, firstName, lastName, size = 'sm', className 
         alt={displayName}
         onError={() => setImageError(true)}
         className={cn(
-          'rounded-full object-cover shrink-0 border border-black/5 select-none',
+          'rounded-full object-cover shrink-0 select-none',
           sizeClasses[size],
           className,
         )}

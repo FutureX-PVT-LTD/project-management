@@ -52,7 +52,7 @@ export function TimelinePage() {
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="h-8 rounded-md border border-fx-border bg-white px-2.5 text-xs text-fx-text-primary focus:border-fx-green focus:outline-none"
+              className="h-8 rounded-md border border-fx-border bg-white px-2.5 text-xs text-fx-text-primary focus:border-[#315F7D] focus:outline-none"
             >
               <option value="">All Projects</option>
               {projects.map((p: any) => (
@@ -66,15 +66,15 @@ export function TimelinePage() {
 
         {/* Timeline Gantt Board */}
         {timelineLoading || projectsLoading ? (
-          <div className="bg-white border border-fx-border rounded-xl p-10 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-10 text-center text-xs text-fx-text-muted shadow-none">
             Loading timeline schedule...
           </div>
         ) : timeline.length === 0 ? (
-          <div className="bg-white border border-fx-border rounded-xl p-8 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-8 text-center text-xs text-fx-text-muted shadow-none">
             No scheduled milestones or deliverables found.
           </div>
         ) : (
-          <div className="bg-white border border-fx-border rounded-xl overflow-hidden shadow-none space-y-0">
+          <div className="bg-white border border-fx-border rounded-[8px] overflow-hidden shadow-none space-y-0">
             <div className="p-3 bg-fx-bg border-b border-fx-border flex items-center justify-between text-xs">
 
               <span className="font-semibold text-fx-text-primary uppercase tracking-wider text-[11px]">

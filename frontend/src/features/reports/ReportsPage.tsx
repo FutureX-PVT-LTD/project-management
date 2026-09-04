@@ -52,7 +52,7 @@ export function ReportsPage() {
         </div>
 
         {/* Milestone Delivery Progress by Project */}
-        <div className="bg-white border border-fx-border rounded-xl p-5 space-y-4 shadow-none">
+        <div className="bg-white border border-fx-border rounded-[8px] p-5 space-y-4 shadow-none">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-primary">
 
             Game Project Delivery Velocity

@@ -95,7 +95,7 @@ export function TasksListPage() {
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-fx-green focus:outline-none"
+            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-[#315F7D] focus:outline-none"
           >
             <option value="">All Projects</option>
             {projects.map((p: any) => (
@@ -109,7 +109,7 @@ export function TasksListPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-fx-green focus:outline-none"
+            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-[#315F7D] focus:outline-none"
           >
             <option value="">All Statuses</option>
             {Object.values(TaskStatus).map((s) => (
@@ -123,7 +123,7 @@ export function TasksListPage() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-fx-green focus:outline-none"
+            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-[#315F7D] focus:outline-none"
           >
             <option value="">All Priorities</option>
             {Object.values(TaskPriority).map((p) => (
@@ -136,17 +136,17 @@ export function TasksListPage() {
 
         {/* Master Tasks Table */}
         {isLoading ? (
-          <div className="bg-white border border-fx-border rounded-xl p-10 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-10 text-center text-xs text-fx-text-muted shadow-none">
             Loading tasks...
           </div>
         ) : tasks.length === 0 ? (
           <EmptyState
-            icon={<Inbox className="w-6 h-6 text-fx-green" />}
+            icon={<Inbox className="w-6 h-6 text-[#315F7D]" />}
             title="No tasks found"
             description="No deliverables match your search and filter criteria."
           />
         ) : (
-          <div className="bg-white border border-fx-border rounded-xl overflow-hidden shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] overflow-hidden shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
 

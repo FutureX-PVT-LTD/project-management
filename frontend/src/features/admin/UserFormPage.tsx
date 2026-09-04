@@ -138,7 +138,7 @@ export function UserFormPage({ mode }: UserFormPageProps) {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
-              className="h-9 w-full rounded-md border border-fx-border bg-white px-3 text-xs focus:border-fx-green focus:outline-none"
+              className="h-9 w-full rounded-md border border-fx-border bg-white px-3 text-xs focus:border-[#315F7D] focus:outline-none"
             >
               <option value={UserRole.TEAM_MEMBER}>Team Member</option>
               <option value={UserRole.ADMIN}>Admin</option>

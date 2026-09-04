@@ -13,27 +13,27 @@ interface HealthBadgeProps {
 const healthConfig: Record<string, { label: string; dot: string; text: string; bg: string }> = {
   [ProjectHealth.ON_TRACK]: {
     label: 'On Track',
-    dot: 'bg-emerald-600',
-    text: 'text-emerald-800',
-    bg: 'bg-emerald-50/70',
+    dot: 'bg-[#248A5B]',
+    text: 'text-[#248A5B]',
+    bg: 'bg-[#EDF8F2]',
   },
   [ProjectHealth.AT_RISK]: {
     label: 'At Risk',
-    dot: 'bg-amber-600',
-    text: 'text-amber-800',
-    bg: 'bg-amber-50/70',
+    dot: 'bg-[#A96F12]',
+    text: 'text-[#A96F12]',
+    bg: 'bg-[#FFF6E5]',
   },
   [ProjectHealth.OFF_TRACK]: {
     label: 'Off Track',
-    dot: 'bg-rose-600',
-    text: 'text-rose-800',
-    bg: 'bg-rose-50/70',
+    dot: 'bg-[#C24141]',
+    text: 'text-[#C24141]',
+    bg: 'bg-[#FDEEEE]',
   },
   [ProjectHealth.COMPLETED]: {
     label: 'Completed',
-    dot: 'bg-fx-green',
-    text: 'text-fx-green-dark',
-    bg: 'bg-fx-green-soft/70',
+    dot: 'bg-[#5F6368]',
+    text: 'text-[#15171A]',
+    bg: 'bg-[#F4F6F8]',
   },
 };
 
@@ -46,28 +46,21 @@ export function HealthBadge({
 }: HealthBadgeProps) {
   const config = healthConfig[health] || {
     label: health,
-    dot: 'bg-gray-400',
-    text: 'text-gray-700',
-    bg: 'bg-gray-50',
+    dot: 'bg-[#92979E]',
+    text: 'text-[#5F6368]',
+    bg: 'bg-[#F4F6F8]',
   };
-
-  const isNotOnTrack = health === ProjectHealth.AT_RISK || health === ProjectHealth.OFF_TRACK;
 
   return (
     <div className={cn('inline-flex flex-col gap-0.5', className)} title={reason || undefined}>
-      <div className="inline-flex items-center gap-1.5">
-        <span className={cn('w-2 h-2 rounded-full shrink-0', config.dot)} />
+      <div className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-xs font-medium', config.bg)}>
+        <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', config.dot)} />
         {showLabel && (
-          <span className={cn('text-xs font-medium tracking-tight', config.text)}>
+          <span className={cn('font-medium select-none', config.text)}>
             {config.label}
           </span>
         )}
       </div>
-      {showReason && isNotOnTrack && reason && (
-        <span className="text-[11px] text-fx-text-muted leading-tight truncate max-w-[200px]">
-          {reason}
-        </span>
-      )}
     </div>
   );
 }

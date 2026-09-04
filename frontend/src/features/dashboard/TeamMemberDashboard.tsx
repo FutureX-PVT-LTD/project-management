@@ -6,16 +6,11 @@ import {
   Play,
   Calendar,
   Lock,
-  AlertCircle,
   Clock,
-  ArrowRight,
   CheckCircle2,
   Check,
-  Layers,
-  ChevronRight,
-  Flame,
-  FileCheck,
   Activity,
+  ArrowRight,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray } from '@/lib/api-data';
@@ -27,7 +22,7 @@ import { Progress } from '@/components/ui/Progress';
 import { Button } from '@/components/ui/Button';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { CalendarWidget } from '@/features/calendar/CalendarWidget';
-import { formatDate, formatTimeAgo, formatProjectKey, formatTaskId, cn } from '@/lib/utils';
+import { formatDate, formatTimeAgo, formatTaskId, cn } from '@/lib/utils';
 import Link from 'next/link';
 
 export function TeamMemberDashboard() {
@@ -146,7 +141,7 @@ export function TeamMemberDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* SlideOver Task Drawer */}
       <TaskDetailSlideOver
         taskId={selectedTaskId}
@@ -155,56 +150,56 @@ export function TeamMemberDashboard() {
         onSelectTask={(id) => setSelectedTaskId(id)}
       />
 
-      {/* 1. Header & Secondary Clickable Badges */}
-      <div className="border-b border-fx-border pb-4 space-y-3">
+      {/* 1. Header & Minimal Status Metrics */}
+      <div className="border-b border-[#E4E7EB] pb-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
           <div>
-            <h1 className="text-2xl sm:text-[28px] font-semibold tracking-tight text-fx-text-primary">
+            <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#15171A]">
               Good morning, {firstName}
             </h1>
-            <p className="text-sm text-fx-text-secondary mt-0.5">
+            <p className="text-sm text-[#5F6368] mt-1">
               {getHeroSubtitle()}
             </p>
           </div>
-          <span className="text-xs text-fx-text-muted font-medium shrink-0">
+          <span className="text-xs text-[#92979E] font-medium shrink-0">
             {now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           </span>
         </div>
 
-        {/* Secondary Clickable Summary Badges */}
+        {/* Minimal Workload Counters (Unboxed inline pill strip) */}
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Link
             href="/my-work?tab=ALL"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-fx-border hover:border-fx-border-strong rounded-lg text-xs text-fx-text-secondary hover:text-fx-text-primary fx-transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F8F9FA] hover:bg-[#F4F5F6] border border-[#E4E7EB] rounded-[6px] text-xs text-[#5F6368] hover:text-[#15171A] fx-transition"
           >
-            <span className="text-fx-text-muted">Assigned:</span>
-            <span className="font-semibold font-mono text-fx-text-primary">{tasks.length}</span>
+            <span className="text-[#92979E]">Assigned:</span>
+            <span className="font-semibold font-mono text-[#15171A]">{tasks.length}</span>
           </Link>
 
           <Link
             href="/my-work?tab=READY"
             className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs fx-transition border',
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] text-xs fx-transition border',
               readyTasks.length > 0
-                ? 'bg-fx-green-soft border-fx-green/30 text-fx-green-dark hover:bg-fx-green-soft/80 font-medium'
-                : 'bg-white border-fx-border text-fx-text-muted hover:border-fx-border-strong',
+                ? 'bg-[#EDF8F2] border-[#D1F0E0] text-[#248A5B] hover:bg-[#DDF4E7] font-medium'
+                : 'bg-[#F8F9FA] border-[#E4E7EB] text-[#92979E] hover:text-[#15171A]',
             )}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-fx-green shrink-0" />
-            <span>Ready to Start:</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#248A5B] shrink-0" />
+            <span>Ready:</span>
             <span className="font-semibold font-mono">{readyTasks.length}</span>
           </Link>
 
           <Link
             href="/my-work?tab=IN_PROGRESS"
             className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs fx-transition border',
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] text-xs fx-transition border',
               inProgressTasks.length > 0
-                ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 font-medium'
-                : 'bg-white border-fx-border text-fx-text-muted hover:border-fx-border-strong',
+                ? 'bg-[#EAF5FF] border-[#CCE7FF] text-[#0077E6] hover:bg-[#D8ECFF] font-medium'
+                : 'bg-[#F8F9FA] border-[#E4E7EB] text-[#92979E] hover:text-[#15171A]',
             )}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0077E6] shrink-0" />
             <span>In Progress:</span>
             <span className="font-semibold font-mono">{inProgressTasks.length}</span>
           </Link>
@@ -212,13 +207,13 @@ export function TeamMemberDashboard() {
           <Link
             href="/my-work?tab=WAITING"
             className={cn(
-              'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs fx-transition border',
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] text-xs fx-transition border',
               waitingTasks.length > 0
-                ? 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100 font-medium'
-                : 'bg-white border-fx-border text-fx-text-muted hover:border-fx-border-strong',
+                ? 'bg-[#FFF6E5] border-[#FCE6BD] text-[#A96F12] hover:bg-[#FDEBC8] font-medium'
+                : 'bg-[#F8F9FA] border-[#E4E7EB] text-[#92979E] hover:text-[#15171A]',
             )}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#A96F12] shrink-0" />
             <span>Waiting:</span>
             <span className="font-semibold font-mono">{waitingTasks.length}</span>
           </Link>
@@ -226,9 +221,9 @@ export function TeamMemberDashboard() {
           {blockedTasks.length > 0 && (
             <Link
               href="/my-work?tab=BLOCKED"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 hover:bg-red-100 font-medium fx-transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FCEEEE] border border-[#FCEEEE] rounded-[6px] text-xs text-[#C24141] hover:bg-[#F9DADA] font-medium fx-transition"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C24141] shrink-0" />
               <span>Blocked:</span>
               <span className="font-semibold font-mono">{blockedTasks.length}</span>
             </Link>
@@ -237,212 +232,449 @@ export function TeamMemberDashboard() {
           {completedTasks.length > 0 && (
             <Link
               href="/my-work?tab=COMPLETED"
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-fx-border hover:border-fx-border-strong rounded-lg text-xs text-fx-text-secondary hover:text-fx-text-primary fx-transition ml-auto"
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F8F9FA] border border-[#E4E7EB] rounded-[6px] text-xs text-[#5F6368] hover:text-[#15171A] fx-transition ml-auto"
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-fx-green" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#248A5B]" />
               <span>{completedTasks.length} Completed</span>
             </Link>
           )}
         </div>
       </div>
 
-      {/* 2. Primary Layout: Asymmetrical Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* 2. Independent Two-Column Layout (Desktop: minmax(0,1fr) 360px, Mobile/Tablet: 1 col) */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_360px] gap-8 items-start">
 
-        {/* HERO REGION: NEXT TO WORK ON (8 cols) */}
-        <section className="lg:col-span-8 space-y-3">
-          <div className="flex items-center justify-between px-0.5">
-            <h2 className="text-xs sm:text-[13px] font-semibold uppercase tracking-wider text-fx-text-primary flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-fx-green" />
-              <span>Next to Work On</span>
-            </h2>
-            {readyTasks.length > 1 && (
-              <span className="text-xs text-fx-text-muted">
-                1 of {readyTasks.length} ready deliverables
-              </span>
-            )}
-          </div>
+        {/* MAIN COLUMN: Open workspace flow */}
+        <div className="flex flex-col gap-8 min-w-0">
 
-          {tasksLoading ? (
-            <div className="bg-white border border-fx-border rounded-xl p-6 text-center text-xs text-fx-text-muted">
-              Analyzing task prerequisites...
+          {/* SECTION 1: NEXT TO WORK ON */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E4E7EB]">
+              <h2 className="text-[14px] font-semibold text-[#15171A] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#0088FF]" />
+                <span>Next to Work On</span>
+              </h2>
+              {readyTasks.length > 1 && (
+                <span className="text-xs text-[#92979E]">
+                  1 of {readyTasks.length} ready deliverables
+                </span>
+              )}
             </div>
-          ) : nextTask ? (
-            /* Hero Ready Work Tile */
-            <div className="bg-white border border-fx-green/50 rounded-xl p-5 sm:p-6 space-y-4 hover:border-fx-green fx-transition">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div
-                  onClick={() => setSelectedTaskId(nextTask.id)}
-                  className="space-y-2 flex-1 cursor-pointer"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-fx-bg-secondary rounded text-fx-text-secondary border border-fx-border">
-                      {formatTaskId(nextTask.humanId, nextTask.project?.key, nextTask.project?.name)}
-                    </span>
-                    <span className="text-xs font-semibold text-fx-text-muted">
-                      {nextTask.project?.name}
-                    </span>
-                    {nextTask.milestone && (
-                      <span className="text-xs text-fx-text-muted">
-                        • {nextTask.milestone.name}
-                      </span>
-                    )}
-                  </div>
 
-                  <h3 className="text-lg sm:text-xl font-semibold text-fx-text-primary hover:text-fx-green leading-snug">
-                    {nextTask.title}
-                  </h3>
-
-                  {nextTask.description && (
-                    <p className="text-xs text-fx-text-secondary line-clamp-2 max-w-xl">
-                      {nextTask.description}
-                    </p>
-                  )}
-
-                  <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-fx-text-secondary">
-                    <PriorityBadge priority={nextTask.priority} />
-                    <StatusPill status={nextTask.status} size="xs" />
-                    {nextTask.dueDate && (
-                      <span
-                        className={cn(
-                          'flex items-center gap-1 font-medium text-xs',
-                          new Date(nextTask.dueDate) < now
-                            ? 'text-red-600 font-semibold'
-                            : 'text-fx-text-muted',
-                        )}
-                      >
-                        <Calendar className="w-3.5 h-3.5" />
-                        {new Date(nextTask.dueDate) < now ? 'Overdue: ' : 'Due '}
-                        {formatDate(nextTask.dueDate)}
-                      </span>
-                    )}
-                    {nextTask.estimatedHours && (
-                      <span className="text-xs text-fx-text-muted font-mono">
-                        {nextTask.estimatedHours}h estimated
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-[11px] text-fx-green font-medium pt-1">
-                    ✓ All prerequisite work is complete. You can start this deliverable now.
-                  </p>
-                </div>
-
-                <div className="shrink-0 flex sm:flex-col justify-end gap-2 pt-2 sm:pt-0">
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    loading={startWorkMutation.isPending}
-                    onClick={() => startWorkMutation.mutate(nextTask.id)}
-                    leftIcon={<Play className="w-3.5 h-3.5 fill-white" />}
-                    className="w-full sm:w-auto"
-                  >
-                    Start Work
-                  </Button>
-                  <Button
-                    size="xs"
-                    variant="secondary"
+            {tasksLoading ? (
+              <div className="py-6 text-center text-xs text-[#92979E]">
+                Analyzing task prerequisites...
+              </div>
+            ) : nextTask ? (
+              /* Hero Ready Work Tile - Open, prominent on canvas */
+              <div className="rounded-[16px] bg-white border border-[#E4E7EB] p-5 sm:p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)] hover:border-[#0088FF]/50 fx-transition space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div
                     onClick={() => setSelectedTaskId(nextTask.id)}
-                    className="w-full sm:w-auto"
+                    className="space-y-2 flex-1 cursor-pointer"
                   >
-                    Details
-                  </Button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[11px] font-semibold px-2 py-0.5 bg-[#F8F9FA] rounded-[6px] text-[#5F6368] border border-[#E4E7EB]">
+                        {formatTaskId(nextTask.humanId, nextTask.project?.key, nextTask.project?.name)}
+                      </span>
+                      <span className="text-xs font-medium text-[#5F6368]">
+                        {nextTask.project?.name}
+                      </span>
+                      {nextTask.milestone && (
+                        <span className="text-xs text-[#7558B8] font-medium">
+                          • {nextTask.milestone.name}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="text-lg sm:text-[22px] font-semibold text-[#15171A] hover:text-[#0088FF] leading-snug tracking-tight fx-transition">
+                      {nextTask.title}
+                    </h3>
+
+                    {nextTask.description && (
+                      <p className="text-[13px] text-[#5F6368] line-clamp-2 max-w-xl leading-relaxed">
+                        {nextTask.description}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-[#5F6368]">
+                      <PriorityBadge priority={nextTask.priority} />
+                      <StatusPill status={nextTask.status} size="xs" />
+                      {nextTask.dueDate && (
+                        <span
+                          className={cn(
+                            'flex items-center gap-1 font-medium text-xs',
+                            new Date(nextTask.dueDate) < now
+                              ? 'text-[#C24141] font-semibold'
+                              : 'text-[#92979E]',
+                          )}
+                        >
+                          <Calendar className="w-3.5 h-3.5" />
+                          {new Date(nextTask.dueDate) < now ? 'Overdue: ' : 'Due '}
+                          {formatDate(nextTask.dueDate)}
+                        </span>
+                      )}
+                      {nextTask.estimatedHours && (
+                        <span className="text-xs text-[#92979E] font-mono">
+                          {nextTask.estimatedHours}h estimated
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs text-[#248A5B] font-medium pt-1 flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-[#248A5B]" />
+                      <span>All prerequisite work is complete. You can start this deliverable now.</span>
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 flex sm:flex-col justify-end gap-2 pt-2 sm:pt-0">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      loading={startWorkMutation.isPending}
+                      onClick={() => startWorkMutation.mutate(nextTask.id)}
+                      leftIcon={<Play className="w-3.5 h-3.5 fill-white" />}
+                      className="w-full sm:w-auto"
+                    >
+                      Start Work
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setSelectedTaskId(nextTask.id)}
+                      className="w-full sm:w-auto"
+                    >
+                      Details
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            /* Minimal-Height Positive State */
-            <div className="bg-white border border-fx-border rounded-xl px-4 py-3.5 flex items-center gap-3">
-              <Check className="w-4 h-4 text-fx-green shrink-0" />
-              <p className="text-xs text-fx-text-secondary">
-                <span className="font-semibold text-fx-text-primary">
-                  {inProgressTasks.length > 0 ? 'All new work started.' : 'No tasks ready to start.'}
-                </span>{' '}
-                {inProgressTasks.length > 0
-                  ? `You have ${inProgressTasks.length} active deliverable${inProgressTasks.length === 1 ? '' : 's'} in progress below.`
-                  : waitingTasks.length > 0
-                    ? `You have ${waitingTasks.length} task${waitingTasks.length === 1 ? '' : 's'} waiting on prerequisite deliverables.`
-                    : 'New task assignments will appear here.'}
-              </p>
-            </div>
-          )}
+            ) : (
+              /* Minimal Positive State */
+              <div className="bg-[#F8F9FA] border border-[#E4E7EB] rounded-[10px] px-4 py-3 flex items-center gap-3">
+                <Check className="w-4 h-4 text-[#0088FF] shrink-0" />
+                <p className="text-xs">
+                  <span className="font-semibold text-[#15171A]">
+                    {inProgressTasks.length > 0 ? 'All new work started.' : 'No tasks ready to start.'}
+                  </span>{' '}
+                  <span className="text-[#5F6368]">
+                    {inProgressTasks.length > 0
+                      ? `You have ${inProgressTasks.length} active deliverable${inProgressTasks.length === 1 ? '' : 's'} in progress below.`
+                      : waitingTasks.length > 0
+                        ? `You have ${waitingTasks.length} task${waitingTasks.length === 1 ? '' : 's'} waiting on prerequisite deliverables.`
+                        : 'New task assignments will appear here.'}
+                  </span>
+                </p>
+              </div>
+            )}
 
-          {/* Other Ready Tasks if > 1 */}
-          {remainingReadyTasks.length > 0 && (
-            <div className="pt-2 space-y-2">
-              <p className="text-xs font-semibold text-fx-text-muted uppercase tracking-wider px-1">
-                Also Ready to Start ({remainingReadyTasks.length}):
-              </p>
-              <div className="bg-white border border-fx-border rounded-xl divide-y divide-fx-border overflow-hidden">
-                {remainingReadyTasks.map((task: any) => {
+            {/* Other Ready Tasks if > 1 (Open list on canvas) */}
+            {remainingReadyTasks.length > 0 && (
+              <div className="pt-2 space-y-2">
+                <p className="text-xs font-semibold text-[#92979E] uppercase tracking-wider">
+                  Also Ready to Start ({remainingReadyTasks.length}):
+                </p>
+                <div className="space-y-2.5">
+                  {remainingReadyTasks.map((task: any) => {
+                    const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
+                    return (
+                      <div
+                        key={task.id}
+                        className="p-3.5 rounded-[12px] bg-white border border-[#E8EBEF] hover:border-[#0088FF] shadow-[0_1px_2px_rgba(15,23,42,0.02)] fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div
+                          onClick={() => setSelectedTaskId(task.id)}
+                          className="space-y-0.5 min-w-0 flex-1 cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-medium text-[#92979E] text-[11px] shrink-0 px-1.5 py-0.5 bg-[#F8F9FA] rounded-[6px] border border-[#E4E7EB]">
+                              {cleanId}
+                            </span>
+                            <span className="font-medium text-[#15171A] hover:text-[#0088FF] truncate">
+                              {task.title}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#5F6368] pt-0.5">
+                            <span>{task.project?.name}</span>
+                            {task.dueDate && (
+                              <span className="text-[#92979E] font-mono">Due {formatDate(task.dueDate)}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <PriorityBadge priority={task.priority} />
+                          <Button
+                            size="xs"
+                            variant="secondary"
+                            loading={startWorkMutation.isPending}
+                            onClick={() => startWorkMutation.mutate(task.id)}
+                            leftIcon={<Play className="w-3 h-3 text-[#0088FF] fill-[#0088FF]" />}
+                          >
+                            Start Work
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* SECTION 2: CURRENT WORK */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E4E7EB]">
+              <h2 className="text-[14px] font-semibold text-[#15171A] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#0077E6]" />
+                <span>Current Work</span>
+                <span className="text-xs font-mono text-[#92979E] font-normal">
+                  ({inProgressTasks.length})
+                </span>
+              </h2>
+            </div>
+
+            {inProgressTasks.length === 0 ? (
+              <div className="py-5 text-center text-xs text-[#92979E]">
+                No deliverables currently in progress. Start work on ready tasks above.
+              </div>
+            ) : (
+              /* Open deliverable list with hairline dividers */
+              <div className="divide-y divide-[#E4E7EB]">
+                {inProgressTasks.map((task: any) => {
+                  const isInReview = task.status === TaskStatus.IN_REVIEW;
                   const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
+
                   return (
                     <div
                       key={task.id}
-                      className="p-3.5 hover:bg-fx-bg-hover fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      className="p-4 rounded-[12px] bg-white border border-[#E8EBEF] hover:border-[#0088FF] shadow-[0_1px_2px_rgba(15,23,42,0.02)] fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                     >
                       <div
                         onClick={() => setSelectedTaskId(task.id)}
-                        className="space-y-0.5 min-w-0 flex-1 cursor-pointer"
+                        className="space-y-1 min-w-0 flex-1 cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-medium text-fx-text-muted text-[11px] shrink-0">
+                          <span className="font-mono font-medium text-[#92979E] text-[11px] shrink-0 px-1.5 py-0.5 bg-[#F8F9FA] rounded-[6px] border border-[#E4E7EB]">
                             {cleanId}
                           </span>
-                          <span className="font-semibold text-fx-text-primary truncate">
+                          <span className="font-medium text-sm text-[#15171A] hover:text-[#0088FF] truncate fx-transition">
                             {task.title}
                           </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-fx-text-secondary">
+                        <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#5F6368] pt-0.5">
                           <span>{task.project?.name}</span>
+                          {task.milestone && <span className="text-[#7558B8]">• {task.milestone.name}</span>}
                           {task.dueDate && (
-                            <span className="text-fx-text-muted">Due {formatDate(task.dueDate)}</span>
+                            <span className="flex items-center gap-1 text-[#92979E] font-mono">
+                              <Calendar className="w-3 h-3" /> Due {formatDate(task.dueDate)}
+                            </span>
+                          )}
+                          {isInReview && (
+                            <span className="px-1.5 py-0.5 rounded-[5px] bg-[#F4F0FB] text-[#7558B8] font-medium text-[10px]">
+                              Awaiting admin review
+                            </span>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-3 shrink-0 justify-between sm:justify-end">
+                        <div className="w-20 hidden sm:block">
+                          <Progress value={task.progress} showLabel={true} size="xs" />
+                        </div>
                         <PriorityBadge priority={task.priority} />
+                        <StatusPill status={task.status} size="xs" />
                         <Button
                           size="xs"
                           variant="secondary"
-                          loading={startWorkMutation.isPending}
-                          onClick={() => startWorkMutation.mutate(task.id)}
-                          leftIcon={<Play className="w-3 h-3 text-fx-green fill-fx-green" />}
+                          onClick={() => setSelectedTaskId(task.id)}
                         >
-                          Start Work
+                          {isInReview ? 'View Submission' : 'Update Progress'}
                         </Button>
                       </div>
                     </div>
                   );
                 })}
               </div>
+            )}
+          </section>
+
+          {/* SECTION 3: WAITING ON OTHER WORK */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E4E7EB]">
+              <h2 className="text-[14px] font-semibold text-[#15171A] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#A96F12]" />
+                <span>Waiting on Other Work</span>
+                <span className="text-xs font-mono text-[#92979E] font-normal">
+                  ({waitingTasks.length})
+                </span>
+              </h2>
             </div>
-          )}
-        </section>
 
-        {/* UTILITY REGION: TODAY & CALENDAR (4 cols) */}
-        <div className="lg:col-span-4 space-y-6">
+            {waitingTasks.length === 0 ? (
+              /* Compact Positive State */
+              <div className="bg-[#F8F9FA] border border-[#E4E7EB] rounded-[10px] px-4 py-3 flex items-center gap-3">
+                <Check className="w-4 h-4 text-[#0088FF] shrink-0" />
+                <p className="text-xs">
+                  <span className="font-semibold text-[#15171A]">No tasks waiting on other work.</span>{' '}
+                  <span className="text-[#5F6368]">All prerequisite deliverables are clear.</span>
+                </p>
+              </div>
+            ) : (
+              /* Open list with hairline dividers */
+              <div className="divide-y divide-[#E4E7EB]">
+                {waitingTasks.map((task: any) => {
+                  const blockers = task.blockedBy || [];
+                  const unfinishedBlockers = blockers.filter(
+                    (b: any) => b.predecessorTask?.status !== TaskStatus.DONE,
+                  );
+                  const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
 
-          {/* Today & Upcoming Deadlines */}
-          <div className="bg-white border border-fx-border rounded-xl p-5 space-y-3">
+                  return (
+                    <div
+                      key={task.id}
+                      className="py-3.5 hover:bg-[#F8F9FA] -mx-2 px-2 rounded-[8px] fx-transition flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs"
+                    >
+                      <div
+                        onClick={() => setSelectedTaskId(task.id)}
+                        className="space-y-1.5 min-w-0 flex-1 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-medium text-[#92979E] text-[11px] shrink-0 px-1.5 py-0.5 bg-[#F8F9FA] rounded-[6px] border border-[#E4E7EB]">
+                            {cleanId}
+                          </span>
+                          <span className="font-medium text-sm text-[#15171A] hover:text-[#0088FF] truncate">
+                            {task.title}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#5F6368]">
+                          <span>{task.project?.name}</span>
+                          {task.dueDate && (
+                            <span className="text-[#92979E] font-mono">Due {formatDate(task.dueDate)}</span>
+                          )}
+                        </div>
+
+                        {/* Natural Language Prerequisite Explainer */}
+                        <div className="p-2.5 rounded-[8px] bg-[#FFF6E5] text-xs text-[#A96F12] flex items-start gap-2">
+                          <Lock className="w-3.5 h-3.5 text-[#A96F12] shrink-0 mt-0.5" />
+                          <div className="space-y-0.5 min-w-0">
+                            <span className="font-semibold text-[10px] uppercase tracking-wider block text-[#A96F12]">
+                              Waiting for prerequisite:
+                            </span>
+                            {unfinishedBlockers.length > 0 ? (
+                              unfinishedBlockers.map((b: any) => (
+                                <div key={b.id || b.predecessorTaskId} className="text-xs text-[#15171A] font-medium">
+                                  <span className="font-mono text-[#5F6368]">{formatTaskId(b.predecessorTask?.humanId)}</span> · {b.predecessorTask?.title}
+                                  {b.predecessorTask?.assignee && (
+                                    <span className="text-[#5F6368] font-normal"> (assigned to {b.predecessorTask.assignee.firstName} {b.predecessorTask.assignee.lastName})</span>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-xs text-[#15171A]">Prerequisites resolving...</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 justify-between pt-1 sm:pt-0">
+                        <StatusPill status={task.status} size="xs" />
+                        <Button
+                          size="xs"
+                          variant="secondary"
+                          onClick={() => setSelectedTaskId(task.id)}
+                        >
+                          View Dependency
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* SECTION 4: RECENT DAILY UPDATES & ACTIVITY */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E4E7EB]">
+              <h2 className="text-[14px] font-semibold text-[#15171A] flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-[#92979E]" />
+                <span>Recent Daily Updates & Activity</span>
+              </h2>
+            </div>
+
+            {recentDailyUpdates.length === 0 ? (
+              <div className="py-5 text-center text-xs text-[#92979E]">
+                No daily updates logged yet. As you log progress notes, daily deliverables will appear here.
+              </div>
+            ) : (
+              <div className="divide-y divide-[#E4E7EB]">
+                {recentDailyUpdates.map((update: any) => {
+                  const task = update.task || {};
+                  const cleanId = formatTaskId(task.humanId);
+
+                  return (
+                    <div
+                      key={update.id}
+                      onClick={() => setSelectedTaskId(task.id)}
+                      className="py-3 hover:bg-[#F8F9FA] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex items-start justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-[#92979E] text-[11px] px-1.5 py-0.5 bg-[#F8F9FA] rounded-[6px] border border-[#E4E7EB]">{cleanId}</span>
+                          <span className="font-medium text-[#15171A] truncate">{task.title}</span>
+                          <span className="text-[#0088FF] font-semibold font-mono">{update.progress}%</span>
+                        </div>
+
+                        {update.completedToday && (
+                          <p className="text-[#5F6368] text-xs line-clamp-1">
+                            <span className="font-medium text-[#15171A]">Completed:</span> {update.completedToday}
+                          </p>
+                        )}
+
+                        {update.blockerNote && (
+                          <p className="text-[#C24141] text-xs line-clamp-1">
+                            <span className="font-medium">Blocker:</span> {update.blockerNote}
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="font-mono text-[11px] text-[#92979E] shrink-0">
+                        {formatTimeAgo(update.createdAt)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+        </div>
+
+        {/* UTILITY COLUMN: Independent vertical stack */}
+        <div className="flex flex-col gap-6 min-w-0">
+
+          {/* Today & Upcoming Deadlines - Open section */}
+          <div className="space-y-3 pb-6 border-b border-[#E4E7EB]">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs sm:text-[13px] font-semibold uppercase tracking-wider text-fx-text-primary flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-fx-text-muted" />
+              <h2 className="text-[14px] font-semibold text-[#15171A] flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-[#92979E]" />
                 <span>Today & Upcoming</span>
               </h2>
               <Link
                 href="/my-work?tab=ALL"
-                className="text-[11px] text-fx-green font-medium hover:underline"
+                className="text-xs text-[#0088FF] font-medium hover:text-[#0068CC] flex items-center gap-0.5"
               >
                 <span>My Work</span>
+                <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
             {todayUpcomingDeadlines.length === 0 ? (
-              <p className="text-xs text-fx-text-muted py-1">No deadlines due in the near term.</p>
+              <p className="text-xs text-[#92979E] py-2">No deadlines due in the near term.</p>
             ) : (
-              <div className="divide-y divide-fx-border">
+              <div className="divide-y divide-[#E4E7EB]">
                 {todayUpcomingDeadlines.map((task: any) => {
                   const isOverdue = new Date(task.dueDate) < now;
                   const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
@@ -450,22 +682,22 @@ export function TeamMemberDashboard() {
                     <div
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="py-2.5 first:pt-1 last:pb-0 cursor-pointer hover:bg-fx-bg-hover rounded px-1 -mx-1 fx-transition text-xs space-y-1"
+                      className="py-2.5 cursor-pointer hover:bg-[#F8F9FA] rounded-[8px] px-1 -mx-1 fx-transition text-xs space-y-1"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-semibold text-fx-text-primary truncate">
+                        <span className="font-medium text-[#15171A] truncate hover:text-[#0088FF] fx-transition">
                           {task.title}
                         </span>
                         <span
                           className={cn(
-                            'font-mono text-[11px] shrink-0',
-                            isOverdue ? 'text-red-600 font-semibold' : 'text-fx-text-secondary',
+                            'font-mono text-[11px] shrink-0 font-medium',
+                            isOverdue ? 'text-[#C24141] font-semibold' : 'text-[#5F6368]',
                           )}
                         >
                           {formatDate(task.dueDate)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-fx-text-muted">
+                      <div className="flex items-center justify-between text-[11px] text-[#92979E]">
                         <span className="font-mono">{cleanId} · {task.project?.name}</span>
                         <StatusPill status={task.status} size="xs" />
                       </div>
@@ -476,251 +708,17 @@ export function TeamMemberDashboard() {
             )}
           </div>
 
-          {/* Mini Calendar Widget */}
-          <div className="bg-white border border-fx-border rounded-xl p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs sm:text-[13px] font-semibold uppercase tracking-wider text-fx-text-primary flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5 text-fx-text-muted" />
-                <span>Delivery Calendar</span>
-              </h2>
-            </div>
-
-            <CalendarWidget
-              tasks={tasks}
-              projects={projects}
-              onSelectTask={(id) => setSelectedTaskId(id)}
-            />
-          </div>
+          {/* Delivery Calendar Widget - Standalone unboxed */}
+          <CalendarWidget
+            tasks={tasks}
+            projects={projects}
+            onSelectTask={(id) => setSelectedTaskId(id)}
+            title="Delivery Calendar"
+          />
 
         </div>
 
       </div>
-
-      {/* 3. Mid Region: Current Work (6 cols) & Waiting on Other Work (6 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-        {/* CURRENT WORK (6 cols) */}
-        <section className="lg:col-span-6 space-y-3">
-          <div className="flex items-center justify-between px-0.5">
-            <h2 className="text-xs sm:text-[13px] font-semibold uppercase tracking-wider text-fx-text-primary flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500" />
-              <span>Current Work</span>
-              <span className="text-xs font-mono text-fx-text-muted font-normal">
-                ({inProgressTasks.length})
-              </span>
-            </h2>
-          </div>
-
-          {inProgressTasks.length === 0 ? (
-            <div className="bg-white border border-fx-border rounded-xl p-5 text-center text-xs text-fx-text-muted">
-              No deliverables currently in progress. Start work on ready tasks above.
-            </div>
-          ) : (
-            <div className="bg-white border border-fx-border rounded-xl divide-y divide-fx-border overflow-hidden">
-              {inProgressTasks.map((task: any) => {
-                const isInReview = task.status === TaskStatus.IN_REVIEW;
-                const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
-
-                return (
-                  <div
-                    key={task.id}
-                    className="p-4 hover:bg-fx-bg-hover fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                  >
-                    <div
-                      onClick={() => setSelectedTaskId(task.id)}
-                      className="space-y-1 min-w-0 flex-1 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-fx-text-muted text-[11px] shrink-0">
-                          {cleanId}
-                        </span>
-                        <span className="font-semibold text-sm text-fx-text-primary truncate">
-                          {task.title}
-                        </span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-fx-text-secondary">
-                        <span>{task.project?.name}</span>
-                        {task.milestone && <span>• {task.milestone.name}</span>}
-                        {task.dueDate && (
-                          <span className="flex items-center gap-1 text-fx-text-muted">
-                            <Calendar className="w-3 h-3" /> Due {formatDate(task.dueDate)}
-                          </span>
-                        )}
-                        {isInReview && (
-                          <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 font-medium">
-                            Awaiting admin review
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 shrink-0 justify-between sm:justify-end">
-                      <div className="w-20 hidden sm:block">
-                        <Progress value={task.progress} showLabel={true} size="xs" />
-                      </div>
-                      <PriorityBadge priority={task.priority} />
-                      <StatusPill status={task.status} size="xs" />
-                      <Button
-                        size="xs"
-                        variant="secondary"
-                        onClick={() => setSelectedTaskId(task.id)}
-                      >
-                        {isInReview ? 'View Submission' : 'Update Progress'}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* WAITING ON OTHER WORK (6 cols) */}
-        <section className="lg:col-span-6 space-y-3">
-          <div className="flex items-center justify-between px-0.5">
-            <h2 className="text-xs sm:text-[13px] font-semibold uppercase tracking-wider text-fx-text-primary flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span>Waiting on Other Work</span>
-              <span className="text-xs font-mono text-fx-text-muted font-normal">
-                ({waitingTasks.length})
-              </span>
-            </h2>
-          </div>
-
-          {waitingTasks.length === 0 ? (
-            <div className="bg-white border border-fx-border rounded-xl p-5 text-center text-xs text-fx-text-muted">
-              No tasks are currently waiting on prerequisite work.
-            </div>
-          ) : (
-            <div className="bg-white border border-fx-border rounded-xl divide-y divide-fx-border overflow-hidden">
-              {waitingTasks.map((task: any) => {
-                const blockers = task.blockedBy || [];
-                const unfinishedBlockers = blockers.filter(
-                  (b: any) => b.predecessorTask?.status !== TaskStatus.DONE,
-                );
-                const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
-
-                return (
-                  <div
-                    key={task.id}
-                    className="p-4 hover:bg-fx-bg-hover fx-transition flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs"
-                  >
-                    <div
-                      onClick={() => setSelectedTaskId(task.id)}
-                      className="space-y-1.5 min-w-0 flex-1 cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-medium text-fx-text-muted text-[11px] shrink-0">
-                          {cleanId}
-                        </span>
-                        <span className="font-semibold text-sm text-fx-text-primary truncate">
-                          {task.title}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-fx-text-secondary">
-                        <span>{task.project?.name}</span>
-                        {task.dueDate && (
-                          <span className="text-fx-text-muted">Due {formatDate(task.dueDate)}</span>
-                        )}
-                      </div>
-
-                      {/* Natural Language Prerequisite Explainer */}
-                      <div className="p-2.5 rounded-lg bg-amber-50/70 border border-amber-200/60 text-xs text-amber-900 flex items-start gap-2">
-                        <Lock className="w-3.5 h-3.5 text-amber-700 shrink-0 mt-0.5" />
-                        <div className="space-y-0.5 min-w-0">
-                          <span className="font-semibold text-[10px] text-amber-800 uppercase tracking-wider block">
-                            Waiting for prerequisite:
-                          </span>
-                          {unfinishedBlockers.length > 0 ? (
-                            unfinishedBlockers.map((b: any) => (
-                              <div key={b.id || b.predecessorTaskId} className="text-xs text-amber-950 font-medium">
-                                <span className="font-mono">{formatTaskId(b.predecessorTask?.humanId)}</span> · {b.predecessorTask?.title}
-                                {b.predecessorTask?.assignee && (
-                                  <span className="text-amber-800 font-normal"> (assigned to {b.predecessorTask.assignee.firstName} {b.predecessorTask.assignee.lastName})</span>
-                                )}
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-xs text-amber-950">Prerequisites resolving...</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 justify-between pt-1 sm:pt-0">
-                      <StatusPill status={task.status} size="xs" />
-                      <Button
-                        size="xs"
-                        variant="secondary"
-                        onClick={() => setSelectedTaskId(task.id)}
-                      >
-                        View Dependency
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-      </div>
-
-      {/* 4. Bottom Region: Recent Updates & Daily Logs (12 cols) */}
-      <section className="space-y-3">
-        <div className="flex items-center justify-between px-0.5">
-          <h2 className="text-xs sm:text-[13px] font-semibold uppercase tracking-wider text-fx-text-primary flex items-center gap-2">
-            <Activity className="w-3.5 h-3.5 text-fx-text-muted" />
-            <span>Recent Daily Updates & Activity</span>
-          </h2>
-        </div>
-
-        {recentDailyUpdates.length === 0 ? (
-          <div className="bg-white border border-fx-border rounded-xl p-5 text-center text-xs text-fx-text-muted">
-            No daily updates logged yet. As you log progress notes, daily deliverables will be summarized here.
-          </div>
-        ) : (
-          <div className="bg-white border border-fx-border rounded-xl divide-y divide-fx-border overflow-hidden">
-            {recentDailyUpdates.map((update: any) => {
-              const task = update.task || {};
-              const cleanId = formatTaskId(task.humanId);
-
-              return (
-                <div
-                  key={update.id}
-                  onClick={() => setSelectedTaskId(task.id)}
-                  className="p-3.5 sm:p-4 hover:bg-fx-bg-hover cursor-pointer fx-transition flex items-start justify-between gap-3 text-xs"
-                >
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-fx-text-muted text-[11px]">{cleanId}</span>
-                      <span className="font-semibold text-fx-text-primary truncate">{task.title}</span>
-                      <span className="text-fx-green font-semibold font-mono">{update.progress}%</span>
-                    </div>
-
-                    {update.completedToday && (
-                      <p className="text-fx-text-secondary text-xs line-clamp-1">
-                        <span className="font-medium text-fx-text-primary">Completed:</span> {update.completedToday}
-                      </p>
-                    )}
-
-                    {update.blockerNote && (
-                      <p className="text-red-700 text-xs line-clamp-1">
-                        <span className="font-medium">Blocker:</span> {update.blockerNote}
-                      </p>
-                    )}
-                  </div>
-
-                  <span className="font-mono text-[11px] text-fx-text-muted shrink-0">
-                    {formatTimeAgo(update.createdAt)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

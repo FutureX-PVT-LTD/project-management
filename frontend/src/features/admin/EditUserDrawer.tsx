@@ -165,14 +165,14 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
               <div
                 onClick={() => setRole(UserRole.TEAM_MEMBER)}
                 className={cn(
-                  'p-3.5 border rounded-xl cursor-pointer fx-transition select-none space-y-1',
+                  'p-3.5 border rounded-[8px] cursor-pointer fx-transition select-none space-y-1',
                   role === UserRole.TEAM_MEMBER
-                    ? 'border-fx-green bg-fx-green-soft/30 ring-1 ring-fx-green'
+                    ? 'border-[#315F7D] bg-[#EDF4F8]/50 ring-1 ring-[#315F7D]'
                     : 'border-fx-border hover:bg-fx-bg-hover bg-white',
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-fx-green" />
+                  <User className="w-4 h-4 text-[#315F7D]" />
                   <span className="font-semibold text-xs text-fx-text-primary">Team Member</span>
                 </div>
                 <p className="text-[11px] text-fx-text-secondary leading-snug">
@@ -183,14 +183,14 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
               <div
                 onClick={() => setRole(UserRole.ADMIN)}
                 className={cn(
-                  'p-3.5 border rounded-xl cursor-pointer fx-transition select-none space-y-1',
+                  'p-3.5 border rounded-[8px] cursor-pointer fx-transition select-none space-y-1',
                   role === UserRole.ADMIN
-                    ? 'border-fx-green bg-fx-green-soft/30 ring-1 ring-fx-green'
+                    ? 'border-[#315F7D] bg-[#EDF4F8]/50 ring-1 ring-[#315F7D]'
                     : 'border-fx-border hover:bg-fx-bg-hover bg-white',
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-fx-green" />
+                  <Shield className="w-4 h-4 text-[#315F7D]" />
                   <span className="font-semibold text-xs text-fx-text-primary">Admin (Manager)</span>
                 </div>
                 <p className="text-[11px] text-fx-text-secondary leading-snug">
@@ -216,7 +216,7 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
               onClick={() => setIsActive(!isActive)}
               className={cn(
                 'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none',
-                isActive ? 'bg-fx-green' : 'bg-gray-200',
+                isActive ? 'bg-[#315F7D]' : 'bg-gray-200',
               )}
             >
               <span

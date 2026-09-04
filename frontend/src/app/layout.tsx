@@ -38,7 +38,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${instrumentSans.variable} ${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
-      <body className="font-sans bg-fx-bg text-fx-text-primary antialiased selection:bg-fx-green-soft selection:text-fx-green-dark" suppressHydrationWarning>
+      <body className="font-sans bg-fx-bg text-fx-text-primary antialiased selection:bg-[#EDF4F8] selection:text-[#274E68]" suppressHydrationWarning>
         <Script id="remove-extension-hydration-attrs" strategy="beforeInteractive">
           {`
             (function () {

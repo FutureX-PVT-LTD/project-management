@@ -181,7 +181,7 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                 rows={4}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded-md border border-fx-border bg-white p-3 text-xs text-fx-text-primary focus:border-fx-green focus:outline-none focus:ring-1 focus:ring-fx-green"
+                className="w-full rounded-md border border-fx-border bg-white p-3 text-xs text-fx-text-primary focus:border-[#315F7D] focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
                 placeholder="Scope, release target, and important production notes."
               />
             </div>
@@ -235,7 +235,7 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                   value={memberSearch}
                   onChange={(e) => setMemberSearch(e.target.value)}
                   placeholder="Search members..."
-                  className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-fx-green focus:outline-none focus:ring-1 focus:ring-fx-green"
+                  className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-[#315F7D] focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
                 />
               </div>
 
@@ -254,7 +254,7 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                         onClick={() => toggleMember(emp.id)}
                         className={cn(
                           'flex w-full items-center justify-between gap-3 p-3 text-left text-xs hover:bg-fx-bg-hover',
-                          selected && 'bg-fx-green-soft/40',
+                          selected && 'bg-[#EDF4F8]/60',
                         )}
                       >
                         <span>
@@ -263,7 +263,7 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                           </span>
                           <span className="block text-[11px] text-fx-text-muted">{emp.jobTitle || 'Team Member'}</span>
                         </span>
-                        {selected && <Check className="h-4 w-4 text-fx-green" />}
+                        {selected && <Check className="h-4 w-4 text-[#315F7D]" />}
                       </button>
                     );
                   })

@@ -133,7 +133,7 @@ export function EditProjectDrawer({ project, open, onOpenChange }: EditProjectDr
           <select
             value={status}
             onChange={(e) => setStatus(e.target.value as ProjectStatus)}
-            className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-fx-green"
+            className="w-full h-9 bg-white border border-fx-border rounded-md px-3 text-xs text-fx-text-primary focus:outline-none focus:border-[#315F7D]"
           >
             <option value={ProjectStatus.ACTIVE}>Active</option>
             <option value={ProjectStatus.PLANNED}>Planned</option>
@@ -175,7 +175,7 @@ export function EditProjectDrawer({ project, open, onOpenChange }: EditProjectDr
             placeholder="Scope, deliverable objectives, and game features..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full bg-white border border-fx-border rounded-md p-3 text-xs text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:border-fx-green focus:ring-1 focus:ring-fx-green"
+            className="w-full bg-white border border-fx-border rounded-md p-3 text-xs text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:border-[#315F7D] focus:ring-1 focus:ring-[#315F7D]"
           />
         </div>
       </form>

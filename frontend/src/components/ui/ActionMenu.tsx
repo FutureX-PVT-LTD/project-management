@@ -45,7 +45,7 @@ export function ActionMenu({
         ) : (
           <button
             type="button"
-            className="p-1.5 rounded-md text-fx-text-muted hover:text-fx-text-primary hover:bg-fx-bg-hover fx-transition focus:outline-none focus:ring-1 focus:ring-fx-green"
+            className="p-1.5 rounded-md text-fx-text-muted hover:text-fx-text-primary hover:bg-fx-bg-hover fx-transition focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
             aria-label="Actions menu"
           >
             <MoreHorizontal className="w-4 h-4" />
@@ -60,7 +60,7 @@ export function ActionMenu({
           sideOffset={sideOffset}
           collisionPadding={collisionPadding}
           className={cn(
-            'min-w-[190px] rounded-xl bg-white border border-fx-border p-1 shadow-popover z-dropdown animate-fadeIn focus:outline-none text-xs select-none',
+            'min-w-[190px] rounded-[8px] bg-white border border-fx-border p-1 shadow-popover z-dropdown animate-fadeIn focus:outline-none text-xs select-none',
             className,
           )}
         >

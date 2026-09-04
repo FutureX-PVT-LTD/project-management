@@ -135,14 +135,14 @@ export function ManageMembersDrawer({
               No team members currently assigned to this project.
             </div>
           ) : (
-            <div className="border border-fx-border rounded-xl divide-y divide-fx-border/60 bg-white overflow-hidden shadow-none">
+            <div className="border border-fx-border rounded-[8px] divide-y divide-fx-border/60 bg-white overflow-hidden shadow-none">
               {currentMembers.map((m: any) => (
                 <div
                   key={m.id || m.userId}
                   className="p-3 flex items-center justify-between gap-3 hover:bg-fx-bg-hover fx-transition"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-fx-green-soft text-fx-green-dark font-semibold text-[11px] flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-[#EDF4F8] text-[#274E68] font-semibold text-[11px] flex items-center justify-center shrink-0">
                       {m.user?.firstName?.[0]}
                       {m.user?.lastName?.[0]}
                     </div>
@@ -186,7 +186,7 @@ export function ManageMembersDrawer({
               placeholder="Search available team members..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-fx-border rounded-md text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:ring-1 focus:ring-fx-green"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-fx-border rounded-md text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
             />
           </div>
 
@@ -199,7 +199,7 @@ export function ManageMembersDrawer({
               All available active team members are already assigned to this project.
             </div>
           ) : (
-            <div className="max-h-56 overflow-y-auto border border-fx-border rounded-xl divide-y divide-fx-border/60 bg-white shadow-none">
+            <div className="max-h-56 overflow-y-auto border border-fx-border rounded-[8px] divide-y divide-fx-border/60 bg-white shadow-none">
               {filteredAvailable.length === 0 ? (
                 <p className="text-[11px] text-fx-text-muted p-3 text-center">
                   No matching available team members.

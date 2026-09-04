@@ -20,7 +20,7 @@ export function SettingsPage() {
         </div>
 
         {/* Studio Organization Info */}
-        <div className="bg-white border border-fx-border rounded-xl p-5 space-y-3 shadow-none">
+        <div className="bg-white border border-fx-border rounded-[8px] p-5 space-y-3 shadow-none">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-primary">
 
             FutureX Organization Details
@@ -36,7 +36,7 @@ export function SettingsPage() {
             </div>
             <div className="flex items-center justify-between py-2">
               <span className="text-fx-text-muted">Core Engine</span>
-              <span className="text-fx-green font-medium flex items-center gap-1">
+              <span className="text-[#315F7D] font-medium flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Online & Operational
               </span>
             </div>

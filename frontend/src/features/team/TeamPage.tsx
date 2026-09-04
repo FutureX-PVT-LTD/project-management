@@ -31,15 +31,15 @@ export function TeamPage() {
 
         {/* Team Table */}
         {isLoading ? (
-          <div className="bg-white border border-fx-border rounded-xl p-10 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-10 text-center text-xs text-fx-text-muted shadow-none">
             Loading team workload...
           </div>
         ) : members.length === 0 ? (
-          <div className="bg-white border border-fx-border rounded-xl p-8 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] p-8 text-center text-xs text-fx-text-muted shadow-none">
             No team members found.
           </div>
         ) : (
-          <div className="bg-white border border-fx-border rounded-xl overflow-hidden shadow-none">
+          <div className="bg-white border border-fx-border rounded-[8px] overflow-hidden shadow-none">
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -69,7 +69,7 @@ export function TeamPage() {
                       <tr key={member.userId || member.id} className="hover:bg-fx-bg-hover fx-transition">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-fx-green-soft text-fx-green-dark font-semibold text-[11px] flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-[#EDF4F8] text-[#274E68] font-semibold text-[11px] flex items-center justify-center shrink-0">
                               {(member.userName || member.firstName || 'T')?.[0]}
                             </div>
                             <div>
@@ -100,7 +100,7 @@ export function TeamPage() {
                                 ? 'bg-amber-50 text-amber-800 border-amber-200'
                                 : activeCount === 0
                                 ? 'bg-gray-100 text-gray-600 border-gray-200'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                                : 'bg-[#EDF7F2] text-[#287A5A] border-[#C6E7D2]',
                             )}
                           >
                             {activeCount >= 5 ? 'High Load' : activeCount === 0 ? 'Available' : 'Balanced'}
