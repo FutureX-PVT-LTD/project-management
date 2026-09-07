@@ -79,13 +79,50 @@ jobs:
             npm -v
 
             corepack enable
-            corepack prepare pnpm@latest --activate
+            corepack prepare pnpm@12.3.4 --activate
             pnpm -v
+
+            echo "Creating pnpm workspace build approvals..."
+            cd /var/www/project-management
+
+            cat > pnpm-workspace.yaml << 'PNPMEOF'
+            packages:
+              - "backend"
+              - "frontend"
+
+            allowBuilds:
+              "@nestjs/core": true
+              "@prisma/client": true
+              "@prisma/engines": true
+              "@scarf/scarf": true
+              argon2: true
+              prisma: true
+              esbuild: true
+            PNPMEOF
+
+            echo "Checking backend env..."
+            if [ ! -f /var/www/project-management/backend/.env ]; then
+              echo "ERROR: backend/.env not found. Create /var/www/project-management/backend/.env first."
+              exit 1
+            fi
+
+            echo "Checking frontend env..."
+            if [ ! -f /var/www/project-management/frontend/.env.production ]; then
+              echo "Creating frontend .env.production..."
+              cat > /var/www/project-management/frontend/.env.production << 'FEOF'
+            API_URL=http://127.0.0.1:5040
+            NEXT_PUBLIC_API_BASE_URL=/api/v1
+            NEXT_PUBLIC_API_URL=/api/v1
+            NEXT_PUBLIC_BACKEND_URL=/api/v1
+            NEXT_PUBLIC_APP_URL=http://159.65.128.70:8094
+            FEOF
+            fi
 
             echo "Backend deploy..."
             cd /var/www/project-management/backend
 
             pnpm install
+            pnpm rebuild || true
 
             echo "Generating Prisma client..."
             pnpm exec prisma generate
@@ -108,12 +145,21 @@ jobs:
             cd /var/www/project-management/frontend
 
             pnpm install
+            pnpm rebuild || true
 
             echo "Cleaning frontend build..."
             rm -rf .next
 
             echo "Building frontend..."
-            NEXT_TELEMETRY_DISABLED=1 pnpm run build
+            export API_URL=http://127.0.0.1:5040
+            export NEXT_PUBLIC_API_BASE_URL=/api/v1
+            export NEXT_PUBLIC_API_URL=/api/v1
+            export NEXT_PUBLIC_BACKEND_URL=/api/v1
+            export NEXT_PUBLIC_APP_URL=http://159.65.128.70:8094
+            export NEXT_TELEMETRY_DISABLED=1
+            export NODE_OPTIONS="--max-old-space-size=1024"
+
+            pnpm run build
 
             if [ ! -f .next/BUILD_ID ]; then
               echo "Next.js build failed: .next/BUILD_ID not found"
@@ -123,7 +169,7 @@ jobs:
             echo "Restarting frontend..."
             pm2 delete project-management-frontend 2>/dev/null || true
 
-            pm2 start /var/www/project-management/frontend/node_modules/next/dist/bin/next \
+            API_URL=http://127.0.0.1:5040 pm2 start /var/www/project-management/frontend/node_modules/next/dist/bin/next \
               --name project-management-frontend \
               --cwd /var/www/project-management/frontend \
               -- start -p 3040 -H 127.0.0.1
