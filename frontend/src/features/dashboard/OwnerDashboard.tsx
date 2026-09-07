@@ -18,24 +18,31 @@ import { Button } from '@/components/ui/Button';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { CalendarWidget } from '@/features/calendar/CalendarWidget';
 import { formatDate, cn } from '@/lib/utils';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import Link from 'next/link';
 
 export function OwnerDashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Fetch Owner Portfolio metrics
-  const { data: ownerData } = useQuery({
+  const { data: ownerData, isLoading } = useQuery({
     queryKey: ['dashboard', 'owner'],
     queryFn: () => api.get('/reports/owner-dashboard'),
+    staleTime: 20000,
   });
 
   const { data: projectsData } = useQuery({
     queryKey: ['projects'],
     queryFn: () => api.get('/projects'),
+    staleTime: 30000,
   });
 
   const projects = asArray<any>(projectsData);
   const urgentTasks = asArray<any>(ownerData, 'needsAttention');
+
+  if (isLoading && !ownerData) {
+    return <DashboardSkeleton />;
+  }
 
   return (
     <div className="space-y-8">

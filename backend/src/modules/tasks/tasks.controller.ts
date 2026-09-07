@@ -56,6 +56,8 @@ export class TasksController {
     @Query('priority') priority?: TaskPriority,
     @Query('search') search?: string,
     @Query('parentTaskId') parentTaskId?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
   ) {
     return this.tasksService.findAll(
       {
@@ -66,6 +68,8 @@ export class TasksController {
         priority,
         search,
         parentTaskId: parentTaskId === 'null' ? null : parentTaskId,
+        startDate,
+        endDate,
       },
       actor.id,
       actor.globalRole,

@@ -61,11 +61,13 @@ export function AppShell({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Unread notifications count
+  // Shared notifications cache (deduplicated with NotificationDropdown)
   const { data: unreadData } = useQuery({
-    queryKey: ['notifications', 'unread-count'],
+    queryKey: ['notifications'],
     queryFn: () => api.get('/notifications'),
+    staleTime: 15000,
     refetchInterval: 30000,
+    enabled: !!user,
   });
   const unreadCount = (unreadData as any)?.unreadCount || 0;
 
@@ -198,7 +200,7 @@ export function AppShell({
                         <span className="truncate">{item.name}</span>
                       </div>
                       {typeof item.badge === 'number' && item.badge > 0 && (
-                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#2563EB] text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#EEF4FF] text-[#2563EB] border border-[#2563EB]/20 text-[10px] font-semibold flex items-center justify-center shrink-0">
                           {item.badge}
                         </span>
                       )}

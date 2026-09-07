@@ -27,6 +27,7 @@ import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { formatDate, cn } from '@/lib/utils';
+import { TaskDetailSkeleton } from '@/components/ui/Skeleton';
 
 interface TaskDetailSlideOverProps {
   taskId: string | null;
@@ -64,6 +65,7 @@ export function TaskDetailSlideOver({
     queryKey: ['tasks', taskId],
     queryFn: () => api.get(`/tasks/${taskId}`),
     enabled: !!taskId && open,
+    staleTime: 15000,
   });
 
   const task = taskData as any;
@@ -193,7 +195,7 @@ export function TaskDetailSlideOver({
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-[540px] bg-white border-l border-fx-border shadow-drawer flex flex-col justify-between animate-fadeIn">
+        <div className="w-screen max-w-[540px] bg-white border-l border-fx-border shadow-drawer flex flex-col justify-between animate-drawerIn">
           {/* Header */}
           <div className="px-5 py-4 border-b border-fx-border/70 flex items-start justify-between gap-3 bg-white">
             <div className="space-y-1 min-w-0 flex-1">
@@ -363,8 +365,8 @@ export function TaskDetailSlideOver({
 
           {/* Drawer Body */}
           <div className="flex-1 overflow-y-auto p-5 space-y-6 text-xs text-fx-text-primary">
-            {isLoading ? (
-              <div className="p-8 text-center text-fx-text-muted">Loading details...</div>
+            {isLoading && !task ? (
+              <TaskDetailSkeleton />
             ) : (
               <>
                 {/* TAB 1: OVERVIEW */}

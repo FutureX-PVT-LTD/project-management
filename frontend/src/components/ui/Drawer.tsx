@@ -35,7 +35,7 @@ export function Drawer({
         {/* Slide-over Drawer Panel */}
         <DialogPrimitive.Content
           className={cn(
-            'fixed inset-y-0 right-0 z-drawer flex h-[100dvh] w-full flex-col bg-white shadow-drawer border-l border-fx-border focus:outline-none overflow-hidden animate-fadeIn',
+            'fixed inset-y-0 right-0 z-drawer flex h-[100dvh] w-full flex-col bg-white shadow-drawer border-l border-fx-border focus:outline-none overflow-hidden animate-drawerIn',
             width,
             className,
           )}

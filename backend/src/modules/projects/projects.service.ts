@@ -74,43 +74,9 @@ export class ProjectsService {
           where: { deletedAt: null },
           select: {
             id: true,
-            humanId: true,
-            title: true,
-            description: true,
             status: true,
-            priority: true,
             dueDate: true,
-            estimatedHours: true,
-            progress: true,
-            assigneeId: true,
-            milestoneId: true,
-            createdAt: true,
-            updatedAt: true,
-            assignee: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                avatarUrl: true,
-                jobTitle: true,
-                globalRole: true,
-              },
-            },
-            blockedBy: {
-              include: {
-                predecessorTask: {
-                  select: {
-                    id: true,
-                    humanId: true,
-                    title: true,
-                    status: true,
-                  },
-                },
-              },
-            },
           },
-          orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],
         },
       },
       orderBy: [{ status: 'asc' }, { updatedAt: 'desc' }],

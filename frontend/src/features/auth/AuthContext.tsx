@@ -35,13 +35,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const isInitialized = React.useRef(false);
+
   useEffect(() => {
     if (pathname === '/login' || pathname === '/forgot-password' || pathname === '/reset-password') {
       setIsLoading(false);
       return;
     }
 
-    refreshUser();
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      refreshUser();
+    }
   }, [pathname, refreshUser]);
 
   const login = async (
@@ -79,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignore network errors on logout
     } finally {
       queryClient.clear();
+      isInitialized.current = false;
       setUser(null);
       router.push('/login');
     }

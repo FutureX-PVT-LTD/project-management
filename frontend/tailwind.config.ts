@@ -154,12 +154,32 @@ const config: Config = {
       },
       keyframes: {
         fxFadeIn: {
-          from: { opacity: '0', transform: 'translateY(1px)' },
+          from: { opacity: '0', transform: 'translateY(2px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        fxDrawerIn: {
+          from: { opacity: '0', transform: 'translateX(12px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        fxDialogIn: {
+          from: { opacity: '0', transform: 'scale(0.98)' },
+          to: { opacity: '1', transform: 'scale(1)' },
+        },
+        fxDropdownIn: {
+          from: { opacity: '0', transform: 'translateY(4px) scale(0.98)' },
+          to: { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        fxPulseSoft: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.45' },
         },
       },
       animation: {
-        fadeIn: 'fxFadeIn 120ms ease-out forwards',
+        fadeIn: 'fxFadeIn 140ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        drawerIn: 'fxDrawerIn 200ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        dialogIn: 'fxDialogIn 180ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        dropdownIn: 'fxDropdownIn 140ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards',
+        pulseSoft: 'fxPulseSoft 1.8s ease-in-out infinite',
       },
       zIndex: {
         base: '0',

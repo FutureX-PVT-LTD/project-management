@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -66,62 +66,100 @@ export function CalendarWidget({
 
   const today = new Date();
 
-  // Find deliverables on dates
+  // Pre-index deliverables by YYYY-MM-DD string into a map: O(N) once rather than O(N * 42 cells)
+  const deliverablesMap = useMemo(() => {
+    const map = new Map<string, { tasks: any[]; milestones: any[]; projects: any[]; totalCount: number }>();
+    const getEntry = (key: string) => {
+      let entry = map.get(key);
+      if (!entry) {
+        entry = { tasks: [], milestones: [], projects: [], totalCount: 0 };
+        map.set(key, entry);
+      }
+      return entry;
+    };
+
+    tasks.forEach((t) => {
+      if (t.dueDate) {
+        const key = t.dueDate.split('T')[0];
+        const e = getEntry(key);
+        e.tasks.push(t);
+        e.totalCount++;
+      }
+    });
+
+    milestones.forEach((m) => {
+      const d = m.targetDate || m.dueDate;
+      if (d) {
+        const key = d.split('T')[0];
+        const e = getEntry(key);
+        e.milestones.push(m);
+        e.totalCount++;
+      }
+    });
+
+    projects.forEach((p) => {
+      if (p.targetDate) {
+        const key = p.targetDate.split('T')[0];
+        const e = getEntry(key);
+        e.projects.push(p);
+        e.totalCount++;
+      }
+    });
+
+    return map;
+  }, [tasks, milestones, projects]);
+
   const getDeliverablesForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
-    const dayTasks = tasks.filter((t) => t.dueDate && t.dueDate.startsWith(dateStr));
-    const dayMilestones = milestones.filter(
-      (m) => (m.targetDate || m.dueDate) && (m.targetDate || m.dueDate).startsWith(dateStr),
-    );
-    const dayProjects = projects.filter((p) => p.targetDate && p.targetDate.startsWith(dateStr));
-
-    return {
-      tasks: dayTasks,
-      milestones: dayMilestones,
-      projects: dayProjects,
-      totalCount: dayTasks.length + dayMilestones.length + dayProjects.length,
-    };
+    return deliverablesMap.get(dateStr) || { tasks: [], milestones: [], projects: [], totalCount: 0 };
   };
 
-  // Days grid construction
-  const calendarDays = [];
+  // Days grid construction memoized to avoid recomputing 42 cells on unrelated renders
+  const calendarDays = useMemo(() => {
+    const days = [];
 
-  // Previous month padding days
-  for (let i = firstDayIndex - 1; i >= 0; i--) {
-    const dayNum = daysInPrevMonth - i;
-    const date = new Date(year, month - 1, dayNum);
-    calendarDays.push({
-      date,
-      dayNum,
-      isCurrentMonth: false,
-      deliverables: getDeliverablesForDate(date),
-    });
-  }
+    // Previous month padding days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const dayNum = daysInPrevMonth - i;
+      const date = new Date(year, month - 1, dayNum);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push({
+        date,
+        dayNum,
+        isCurrentMonth: false,
+        deliverables: deliverablesMap.get(dateStr) || { tasks: [], milestones: [], projects: [], totalCount: 0 },
+      });
+    }
 
-  // Current month days
-  for (let i = 1; i <= daysInMonth; i++) {
-    const dayNum = i;
-    const date = new Date(year, month, dayNum);
-    calendarDays.push({
-      date,
-      dayNum,
-      isCurrentMonth: true,
-      deliverables: getDeliverablesForDate(date),
-    });
-  }
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dayNum = i;
+      const date = new Date(year, month, dayNum);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push({
+        date,
+        dayNum,
+        isCurrentMonth: true,
+        deliverables: deliverablesMap.get(dateStr) || { tasks: [], milestones: [], projects: [], totalCount: 0 },
+      });
+    }
 
-  // Next month padding days to complete 35 or 42 grid
-  const remainingCells = 35 - calendarDays.length > 0 ? 35 - calendarDays.length : 42 - calendarDays.length;
-  for (let i = 1; i <= remainingCells; i++) {
-    const dayNum = i;
-    const date = new Date(year, month + 1, dayNum);
-    calendarDays.push({
-      date,
-      dayNum,
-      isCurrentMonth: false,
-      deliverables: getDeliverablesForDate(date),
-    });
-  }
+    // Next month padding days to complete 35 or 42 grid
+    const remainingCells = 35 - days.length > 0 ? 35 - days.length : 42 - days.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      const dayNum = i;
+      const date = new Date(year, month + 1, dayNum);
+      const dateStr = date.toISOString().split('T')[0];
+      days.push({
+        date,
+        dayNum,
+        isCurrentMonth: false,
+        deliverables: deliverablesMap.get(dateStr) || { tasks: [], milestones: [], projects: [], totalCount: 0 },
+      });
+    }
+
+    return days;
+  }, [year, month, firstDayIndex, daysInMonth, daysInPrevMonth, deliverablesMap]);
 
   const selectedDeliverables = getDeliverablesForDate(selectedDate);
 

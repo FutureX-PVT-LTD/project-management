@@ -6,6 +6,7 @@ import { UserRole } from '@futurex/shared';
 import { TeamMemberDashboard } from './TeamMemberDashboard';
 import { PMDashboard } from './PMDashboard';
 import { OwnerDashboard } from './OwnerDashboard';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { AppShell } from '@/components/layout/AppShell';
 
 export function DashboardRouter() {
@@ -14,10 +15,7 @@ export function DashboardRouter() {
   if (isLoading) {
     return (
       <AppShell>
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-7 w-7 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-fx-text-muted font-medium">Loading your workspace...</p>
-        </div>
+        <DashboardSkeleton />
       </AppShell>
     );
   }

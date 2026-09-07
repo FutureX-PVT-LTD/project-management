@@ -16,7 +16,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "incremental": true,
     "plugins": [
       {
         "name": "next"
@@ -32,7 +31,8 @@
       "@futurex/shared/*": [
         "./src/types/*"
       ]
-    }
+    },
+    "incremental": false
   },
   "include": [
     "**/*.ts",

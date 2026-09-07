@@ -26,7 +26,7 @@ export function SlideOver({
         <DialogPrimitive.Overlay className="fixed inset-0 z-backdrop bg-black/25 backdrop-blur-[2px] fx-transition animate-fadeIn" />
         <DialogPrimitive.Content
           className={cn(
-            'fixed inset-y-0 right-0 z-drawer flex h-[100dvh] w-full flex-col bg-white shadow-drawer border-l border-fx-border focus:outline-none overflow-hidden animate-fadeIn sm:max-w-xl md:max-w-2xl lg:max-w-3xl',
+            'fixed inset-y-0 right-0 z-drawer flex h-[100dvh] w-full flex-col bg-white shadow-drawer border-l border-fx-border focus:outline-none overflow-hidden animate-drawerIn sm:max-w-xl md:max-w-2xl lg:max-w-3xl',
             width,
           )}
         >

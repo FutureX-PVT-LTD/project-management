@@ -23,6 +23,8 @@ import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { formatDate, formatTaskId, cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/AuthContext';
 import { canStartTask, canUpdateTaskProgress } from '@/lib/permissions';
+import { useDebounce } from '@/hooks/useDebounce';
+import { MyWorkSkeleton } from '@/components/ui/Skeleton';
 
 function MyWorkContent() {
   const { user } = useAuth();
@@ -36,27 +38,48 @@ function MyWorkContent() {
   const [projectFilter, setProjectFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [groupBy, setGroupBy] = useState<'workflow' | 'project' | 'priority' | 'none'>('workflow');
+  const debouncedSearch = useDebounce(search, 250);
 
-  // Fetch tasks
+  // Fetch tasks with debounced search
   const { data: tasksData, isLoading } = useQuery({
-    queryKey: ['my-work', selectedTab, search, projectFilter, priorityFilter],
-    queryFn: () =>
+    queryKey: ['my-work', selectedTab, debouncedSearch, projectFilter, priorityFilter],
+    queryFn: ({ signal }) =>
       api.get(
-        `/tasks/my-work?tab=${selectedTab}&search=${encodeURIComponent(search)}&projectId=${projectFilter}&priority=${priorityFilter}`,
+        `/tasks/my-work?tab=${selectedTab}&search=${encodeURIComponent(debouncedSearch)}&projectId=${projectFilter}&priority=${priorityFilter}`,
+        { signal },
       ),
+    staleTime: 15000,
   });
 
   // Fetch projects for filter dropdown
   const { data: projectsData } = useQuery({
     queryKey: ['projects'],
     queryFn: () => api.get('/projects'),
+    staleTime: 45000,
   });
 
-  // Start Work Mutation
+  // Start Work Mutation with Optimistic UI
   const startWorkMutation = useMutation({
     mutationFn: (taskId: string) =>
       api.patch(`/tasks/${taskId}`, { status: TaskStatus.IN_PROGRESS }),
-    onSuccess: () => {
+    onMutate: async (taskId: string) => {
+      const qKey = ['my-work', selectedTab, debouncedSearch, projectFilter, priorityFilter];
+      await queryClient.cancelQueries({ queryKey: qKey });
+      const previousTasks = queryClient.getQueryData(qKey);
+      queryClient.setQueryData(qKey, (old: any) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((t: any) =>
+          t.id === taskId ? { ...t, status: TaskStatus.IN_PROGRESS } : t,
+        );
+      });
+      return { previousTasks, qKey };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.previousTasks && context?.qKey) {
+        queryClient.setQueryData(context.qKey, context.previousTasks);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -65,20 +88,10 @@ function MyWorkContent() {
 
   const allProjects = asArray<any>(projectsData);
   const allTasks = asArray<any>(tasksData);
-  const now = new Date();
-
-  const tabs = [
-    { id: 'ALL', label: 'All' },
-    { id: 'READY', label: 'Ready' },
-    { id: 'IN_PROGRESS', label: 'In Progress' },
-    { id: 'WAITING', label: 'Waiting' },
-    { id: 'BLOCKED', label: 'Blocked' },
-    { id: 'REVIEW', label: 'Review' },
-    { id: 'COMPLETED', label: 'Completed' },
-  ];
 
   // Canonical default grouping: NEEDS ATTENTION -> IN PROGRESS -> READY TO START -> WAITING -> UPCOMING -> COMPLETED
   const groupedTasks = useMemo(() => {
+    const now = new Date();
     if (groupBy === 'none') {
       return [{ groupName: 'Assigned Work', items: allTasks }];
     }
@@ -149,7 +162,27 @@ function MyWorkContent() {
       groupName,
       items,
     }));
-  }, [allTasks, groupBy, now]);
+  }, [allTasks, groupBy]);
+
+  const now = new Date();
+
+  const tabs = [
+    { id: 'ALL', label: 'All' },
+    { id: 'READY', label: 'Ready' },
+    { id: 'IN_PROGRESS', label: 'In Progress' },
+    { id: 'WAITING', label: 'Waiting' },
+    { id: 'BLOCKED', label: 'Blocked' },
+    { id: 'REVIEW', label: 'Review' },
+    { id: 'COMPLETED', label: 'Completed' },
+  ];
+
+  if (isLoading && allTasks.length === 0) {
+    return (
+      <AppShell>
+        <MyWorkSkeleton />
+      </AppShell>
+    );
+  }
 
   // Render single dominant action per task card
   const renderTaskAction = (task: any) => {
@@ -491,9 +524,9 @@ export function MyWorkPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-white">
-          <div className="h-6 w-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
-        </div>
+        <AppShell>
+          <MyWorkSkeleton />
+        </AppShell>
       }
     >
       <MyWorkContent />

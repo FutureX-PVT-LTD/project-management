@@ -18,6 +18,7 @@ import { api } from '@/lib/api-client';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { HealthBadge } from '@/components/ui/HealthBadge';
 import { getInitials, cn } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface GlobalSearchModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debouncedQuery = useDebounce(query, 250);
 
   // Auto-focus when modal opens
   useEffect(() => {
@@ -53,12 +55,13 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Fetch search results from backend
+  // Fetch search results from backend with debouncing and request cancellation
   const { data: searchData, isLoading } = useQuery({
-    queryKey: ['global-search', query],
-    queryFn: () => api.get(`/search?q=${encodeURIComponent(query.trim())}`),
-    enabled: isOpen && query.trim().length > 0,
-    staleTime: 5000,
+    queryKey: ['global-search', debouncedQuery],
+    queryFn: ({ signal }) =>
+      api.get(`/search?q=${encodeURIComponent(debouncedQuery.trim())}`, { signal }),
+    enabled: isOpen && debouncedQuery.trim().length >= 2,
+    staleTime: 30000,
   });
 
   const projects = (searchData as any)?.projects || [];

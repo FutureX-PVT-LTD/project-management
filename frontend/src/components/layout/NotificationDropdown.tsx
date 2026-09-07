@@ -7,27 +7,66 @@ import { Bell, Check, ExternalLink, CheckCheck } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { formatTimeAgo } from '@/lib/utils';
 import * as Popover from '@radix-ui/react-popover';
+import { useAuth } from '@/features/auth/AuthContext';
 
 export function NotificationDropdown() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.get('/notifications'),
-    refetchInterval: 15000,
+    staleTime: 15000,
+    refetchInterval: 30000,
+    enabled: !!user,
   });
 
   const markReadMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/notifications/${id}/read`),
-    onSuccess: () => {
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previousData = queryClient.getQueryData(['notifications']);
+      queryClient.setQueryData(['notifications'], (old: any) => {
+        if (!old) return old;
+        const currentNotifications = old.notifications || [];
+        const updated = currentNotifications.map((n: any) =>
+          n.id === id ? { ...n, isRead: true } : n,
+        );
+        const newUnread = Math.max((old.unreadCount || 0) - 1, 0);
+        return { ...old, notifications: updated, unreadCount: newUnread };
+      });
+      return { previousData };
+    },
+    onError: (_err, _id, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['notifications'], context.previousData);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
 
   const markAllReadMutation = useMutation({
     mutationFn: () => api.patch('/notifications/read-all'),
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previousData = queryClient.getQueryData(['notifications']);
+      queryClient.setQueryData(['notifications'], (old: any) => {
+        if (!old) return old;
+        const currentNotifications = old.notifications || [];
+        const updated = currentNotifications.map((n: any) => ({ ...n, isRead: true }));
+        return { ...old, notifications: updated, unreadCount: 0 };
+      });
+      return { previousData };
+    },
+    onError: (_err, _vars, context: any) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['notifications'], context.previousData);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
@@ -53,7 +92,7 @@ export function NotificationDropdown() {
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white leading-none">
+            <span className="absolute top-1.5 right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#2563EB] px-1 text-[9px] font-semibold text-white leading-none">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}

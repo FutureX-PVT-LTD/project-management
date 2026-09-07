@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 import { AppShell } from '@/components/layout/AppShell';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { canManageProjects } from '@/lib/permissions';
+import { ProjectDetailSkeleton } from '@/components/ui/Skeleton';
 import { formatDate, cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -50,7 +51,18 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
     queryKey: ['project', projectId],
     queryFn: () => api.get(`/projects/${projectId}`),
     enabled: !!projectId,
+    staleTime: 20000,
   });
+
+  const isFullWidth = activeTab === 'board' || activeTab === 'timeline' || activeTab === 'calendar';
+
+  if (isLoading && !projectData) {
+    return (
+      <AppShell fullWidth={isFullWidth}>
+        <ProjectDetailSkeleton />
+      </AppShell>
+    );
+  }
 
   const project = projectData as any;
   const tasks = (project?.tasks || []) as any[];
@@ -67,8 +79,6 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
     { id: TaskStatus.BLOCKED, label: 'Blocked', color: 'bg-[#C24141]' },
     { id: TaskStatus.DONE, label: 'Completed', color: 'bg-[#237A57]' },
   ];
-
-  const isFullWidth = activeTab === 'board' || activeTab === 'timeline' || activeTab === 'calendar';
 
   return (
     <AppShell fullWidth={isFullWidth}>

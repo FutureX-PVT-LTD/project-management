@@ -36,7 +36,7 @@ export function Progress({
         )}
       >
         <div
-          className={cn('h-full fx-transition rounded-full', color)}
+          className={cn('h-full fx-progress-bar rounded-full', color)}
           style={{ width: `${percentage}%` }}
         />
       </div>

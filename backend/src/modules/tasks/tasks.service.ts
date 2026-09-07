@@ -245,6 +245,8 @@ export class TasksService implements OnModuleInit {
       priority?: TaskPriority;
       search?: string;
       parentTaskId?: string | null;
+      startDate?: string;
+      endDate?: string;
     },
     actorId?: string,
     actorRole?: UserRole,
@@ -257,6 +259,12 @@ export class TasksService implements OnModuleInit {
     if (params.status) where.status = params.status;
     if (params.priority) where.priority = params.priority;
     if (params.parentTaskId !== undefined) where.parentTaskId = params.parentTaskId;
+
+    if (params.startDate || params.endDate) {
+      where.dueDate = {};
+      if (params.startDate) where.dueDate.gte = new Date(params.startDate);
+      if (params.endDate) where.dueDate.lte = new Date(params.endDate);
+    }
 
     // Role-based visibility for team members and project managers
     if (actorRole && actorRole !== UserRole.OWNER && actorRole !== UserRole.ADMIN) {

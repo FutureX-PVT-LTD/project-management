@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   Plus,
-  CheckCircle2,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray } from '@/lib/api-data';
@@ -16,6 +15,7 @@ import { Button } from '@/components/ui/Button';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { CalendarWidget } from '@/features/calendar/CalendarWidget';
 import { formatDate, formatTimeAgo, formatProjectKey, formatTaskId, getInitials, cn } from '@/lib/utils';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import Link from 'next/link';
 
 export function PMDashboard() {
@@ -26,28 +26,21 @@ export function PMDashboard() {
   const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
     queryKey: ['dashboard', 'pm'],
     queryFn: () => api.get('/reports/pm-dashboard'),
+    staleTime: 20000,
   });
 
-  const { data: projectsData, isLoading: projectsLoading } = useQuery({
-    queryKey: ['projects'],
-    queryFn: () => api.get('/projects'),
-  });
-
-  const rawProjects = asArray<any>(projectsData);
-  const dashboardProjects = asArray<any>(dashboardData, 'projects');
   const teamMembers = asArray<any>(dashboardData, 'teamWorkload');
   const attentionItems = asArray<any>(dashboardData, 'needsAttention');
   const recentActivities = asArray<any>(dashboardData, 'recentActivities');
 
-  // Merge projects data to ensure complete stats
-  const projects = (dashboardProjects.length > 0 ? dashboardProjects : rawProjects).map((p) => {
-    const raw = rawProjects.find((r) => r.id === p.id) || {};
-    return {
-      ...raw,
-      ...p,
-      cleanKey: formatProjectKey(p.key || raw.key, p.name || raw.name),
-    };
-  });
+  const projects = useMemo(
+    () =>
+      asArray<any>(dashboardData, 'projects').map((p) => ({
+        ...p,
+        cleanKey: formatProjectKey(p.key, p.name),
+      })),
+    [dashboardData],
+  );
 
   // Summary counts
   const activeProjects = projects.filter((p) => p.status !== 'ARCHIVED' && p.status !== 'COMPLETED');
@@ -90,6 +83,10 @@ export function PMDashboard() {
       .slice(0, 5);
   }, [projects]);
 
+  if (dashboardLoading && !dashboardData) {
+    return <DashboardSkeleton />;
+  }
+
   return (
     <div className="space-y-10">
       {/* SlideOver Task Drawer */}
@@ -107,7 +104,7 @@ export function PMDashboard() {
             Project Delivery
           </h1>
           <p className="text-[13px] text-[#626A73]">
-            {dashboardLoading || projectsLoading
+            {dashboardLoading
               ? 'Aggregating project telemetry...'
               : `${activeProjectsCount} active project${activeProjectsCount === 1 ? '' : 's'} · ${
                   attentionCount === 0
@@ -208,7 +205,6 @@ export function PMDashboard() {
                   const doneCount = proj.completedTasksCount || proj.stats?.completedTasks || 0;
                   const inProgressCount = proj.inProgressTasksCount || 0;
                   const waitingCount = proj.waitingTasksCount || 0;
-                  const inReviewCount = proj.inReviewTasksCount || 0;
                   const progressVal = Math.round(proj.progress || 0);
                   const projectMembers = proj.members || [];
                   const currentMilestone = (proj.milestones || []).find((m: any) => m.status !== 'COMPLETED') || proj.milestones?.[0];

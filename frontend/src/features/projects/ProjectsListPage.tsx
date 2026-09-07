@@ -20,6 +20,8 @@ import { Button } from '@/components/ui/Button';
 import { AppShell } from '@/components/layout/AppShell';
 import { ProjectRowActionsMenu } from '@/features/projects/ProjectRowActionsMenu';
 import { formatDate, formatProjectKey, getInitials, cn } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
+import { ProjectsListSkeleton } from '@/components/ui/Skeleton';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -31,11 +33,13 @@ export function ProjectsListPage() {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const debouncedSearch = useDebounce(search, 250);
 
   const { data: projectsData, isLoading } = useQuery({
-    queryKey: ['projects', search, statusFilter],
-    queryFn: () =>
-      api.get(`/projects?search=${encodeURIComponent(search)}&status=${statusFilter === 'ALL' ? '' : statusFilter}`),
+    queryKey: ['projects', debouncedSearch, statusFilter],
+    queryFn: ({ signal }) =>
+      api.get(`/projects?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter === 'ALL' ? '' : statusFilter}`, { signal }),
+    staleTime: 30000,
   });
 
   const projects = ((projectsData as any[]) || []).map((p) => ({
@@ -144,9 +148,7 @@ export function ProjectsListPage() {
 
         {/* Projects Content */}
         {isLoading ? (
-          <div className="py-12 text-center text-xs text-[#929AA3]">
-            Loading game projects...
-          </div>
+          <ProjectsListSkeleton />
         ) : projects.length === 0 ? (
           <div className="py-16 text-center space-y-4 max-w-sm mx-auto">
             <div className="w-12 h-12 rounded-[12px] bg-[#EEF4FF] text-[#2563EB] mx-auto flex items-center justify-center">

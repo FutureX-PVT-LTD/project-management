@@ -21,6 +21,8 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { TaskPriority, TaskStatus } from '@futurex/shared';
+import { CalendarSkeleton } from '@/components/ui/Skeleton';
+import { useDebounce } from '@/hooks/useDebounce';
 
 export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -29,32 +31,47 @@ export function CalendarView() {
   const [projectFilter, setProjectFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 250);
 
-  // Fetch tasks
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  // Range-bound tasks query to current month +/- 1 month padding
+  const startDate = new Date(year, month - 1, 1).toISOString();
+  const endDate = new Date(year, month + 2, 0).toISOString();
+
+  // Fetch range-bounded tasks for calendar
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
-    queryKey: ['tasks', 'calendar'],
-    queryFn: () => api.get('/tasks'),
+    queryKey: ['tasks', 'calendar', year, month],
+    queryFn: () => api.get(`/tasks?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
+    staleTime: 30000,
   });
 
   // Fetch projects
   const { data: projectsData } = useQuery({
     queryKey: ['projects'],
     queryFn: () => api.get('/projects'),
+    staleTime: 60000,
   });
 
   const allTasks = (tasksData as any[]) || [];
   const projects = (projectsData as any[]) || [];
 
+  if (tasksLoading && allTasks.length === 0) {
+    return (
+      <AppShell>
+        <CalendarSkeleton />
+      </AppShell>
+    );
+  }
+
   // Filter tasks
   const tasks = allTasks.filter((t) => {
     if (projectFilter !== 'ALL' && t.projectId !== projectFilter) return false;
     if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
-    if (search && !t.title.toLowerCase().includes(search.toLowerCase()) && !t.humanId?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (debouncedSearch && !t.title.toLowerCase().includes(debouncedSearch.toLowerCase()) && !t.humanId?.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
     return true;
   });
-
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',

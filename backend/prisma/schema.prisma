@@ -191,6 +191,9 @@ model Task {
   @@index([dueDate])
   @@index([milestoneId])
   @@index([parentTaskId])
+  @@index([projectId, status])
+  @@index([assigneeId, status])
+  @@index([dueDate, status])
 }
 
 model TaskCollaborator {
@@ -314,6 +317,8 @@ model TaskActivity {
   @@index([taskId])
   @@index([projectId])
   @@index([userId])
+  @@index([createdAt])
+  @@index([projectId, createdAt])
 }
 
 model ProjectUpdate {

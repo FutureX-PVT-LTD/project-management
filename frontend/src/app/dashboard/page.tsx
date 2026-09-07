@@ -1,15 +1,15 @@
-'use client';
-
 import React, { Suspense } from 'react';
 import { DashboardRouter } from '@/features/dashboard/DashboardRouter';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
+import { AppShell } from '@/components/layout/AppShell';
 
 export default function DashboardPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-fx-bg">
-          <div className="h-7 w-7 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
-        </div>
+        <AppShell>
+          <DashboardSkeleton />
+        </AppShell>
       }
     >
       <DashboardRouter />
