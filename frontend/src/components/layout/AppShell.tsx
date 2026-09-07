@@ -112,6 +112,7 @@ export function AppShell({
     if (pathname === '/timeline') return 'Delivery / Timeline';
     if (pathname === '/reports') return 'Studio / Performance Reports';
     if (pathname === '/notifications') return 'Workspace / Notifications';
+    if (pathname === '/account/security') return 'Account / Security';
     if (pathname === '/admin/users') return 'Administration / User Directory';
     if (pathname === '/admin/audit') return 'Administration / Audit Logs';
     if (pathname === '/admin/settings') return 'Administration / System Settings';

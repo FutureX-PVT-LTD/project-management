@@ -4,28 +4,29 @@ import React, { useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { useAuth } from '@/features/auth/AuthContext';
 import {
-  User as UserIcon,
   Shield,
   Bell,
   LogOut,
   Check,
   ChevronRight,
   Briefcase,
-  Layers,
+  KeyRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { UserRole } from '@futurex/shared';
 
 interface ProfilePopoverProps {
   children: React.ReactNode;
 }
 
 export function ProfilePopover({ children }: ProfilePopoverProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, hasRole } = useAuth();
   const [open, setOpen] = useState(false);
 
   if (!user) return <>{children}</>;
 
+  const canViewAdminSettings = hasRole(UserRole.OWNER, UserRole.ADMIN);
   const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase() || 'FX';
   const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email;
   const roleDisplay = (user.jobTitle || (user as any).role || user.globalRole || 'Team Member').toString().replace(/_/g, ' ');
@@ -99,16 +100,30 @@ export function ProfilePopover({ children }: ProfilePopoverProps) {
             </Link>
 
             <Link
-              href="/admin/settings"
+              href="/account/security"
               onClick={() => setOpen(false)}
               className="w-full flex items-center justify-between px-2.5 py-2 rounded-md hover:bg-fx-bg-hover fx-transition"
             >
               <span className="flex items-center gap-2.5">
-                <Shield className="w-3.5 h-3.5 text-fx-text-muted" />
-                <span>Security & Workspace</span>
+                <KeyRound className="w-3.5 h-3.5 text-fx-text-muted" />
+                <span>Change Password</span>
               </span>
               <ChevronRight className="w-3.5 h-3.5 text-fx-text-muted" />
             </Link>
+
+            {canViewAdminSettings && (
+              <Link
+                href="/admin/settings"
+                onClick={() => setOpen(false)}
+                className="w-full flex items-center justify-between px-2.5 py-2 rounded-md hover:bg-fx-bg-hover fx-transition"
+              >
+                <span className="flex items-center gap-2.5">
+                  <Shield className="w-3.5 h-3.5 text-fx-text-muted" />
+                  <span>Security & Workspace</span>
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 text-fx-text-muted" />
+              </Link>
+            )}
           </div>
 
           <div className="h-px bg-fx-border/70 my-1" />
