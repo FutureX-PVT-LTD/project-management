@@ -23,7 +23,7 @@ function LoginContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12">
-        <div className="h-6 w-6 border-2 border-[#315F7D] border-t-transparent rounded-full animate-spin" />
+        <div className="h-6 w-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -36,7 +36,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-fx-bg">
-          <div className="h-7 w-7 border-2 border-[#315F7D] border-t-transparent rounded-full animate-spin" />
+          <div className="h-7 w-7 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >

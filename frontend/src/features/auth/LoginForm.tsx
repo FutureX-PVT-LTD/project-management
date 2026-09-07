@@ -47,7 +47,7 @@ export function LoginForm() {
       <div className="w-full max-w-sm space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-11 h-11 rounded-[8px] bg-[#315F7D] text-white font-bold text-sm shadow-none">
+          <div className="inline-flex items-center justify-center w-11 h-11 rounded-[8px] bg-[#2563EB] text-white font-bold text-sm shadow-none">
             FX
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-fx-text-primary">
@@ -91,7 +91,7 @@ export function LoginForm() {
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-[11px] text-[#315F7D] hover:text-[#274E68] hover:underline font-medium"
+                  className="text-[11px] text-[#2563EB] hover:text-[#1D4ED8] hover:underline font-medium"
                 >
                   Forgot password?
                 </Link>

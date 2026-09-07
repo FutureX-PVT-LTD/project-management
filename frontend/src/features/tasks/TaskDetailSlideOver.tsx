@@ -8,11 +8,20 @@ import {
   CheckCircle2,
   AlertCircle,
   Send,
+  Lock,
+  RotateCcw,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray } from '@/lib/api-data';
 import { TaskStatus, TaskPriority, UserRole, ReviewStatus } from '@futurex/shared';
 import { useAuth } from '@/features/auth/AuthContext';
+import {
+  canStartTask,
+  canSubmitForReview,
+  canReviewTask,
+  canUpdateTaskProgress,
+  isTaskAssignee,
+} from '@/lib/permissions';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import { Button } from '@/components/ui/Button';
@@ -32,10 +41,8 @@ export function TaskDetailSlideOver({
   onClose,
   onSelectTask,
 }: TaskDetailSlideOverProps) {
-  const { hasRole } = useAuth();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const canManage = hasRole(UserRole.OWNER, UserRole.ADMIN);
-
 
   const [activeTab, setActiveTab] = useState<'overview' | 'subtasks' | 'updates' | 'activity'>('overview');
 
@@ -44,6 +51,10 @@ export function TaskDetailSlideOver({
   const [completedToday, setCompletedToday] = useState('');
   const [blockerNote, setBlockerNote] = useState('');
   const [nextStepNote, setNextStepNote] = useState('');
+
+  // Review reject state
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectFeedback, setRejectFeedback] = useState('');
 
   // Subtask local state
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
@@ -67,6 +78,8 @@ export function TaskDetailSlideOver({
   React.useEffect(() => {
     if (task?.id) {
       setUpdateProgress(currentProgress);
+      setShowRejectForm(false);
+      setRejectFeedback('');
     }
   }, [task?.id, currentProgress]);
 
@@ -79,17 +92,21 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 
   const reviewMutation = useMutation({
-    mutationFn: (status: ReviewStatus) =>
-      api.post(`/tasks/${taskId}/review`, { status }),
+    mutationFn: ({ status, feedback }: { status: ReviewStatus; feedback?: string }) =>
+      api.post(`/tasks/${taskId}/review`, { status, feedback }),
     onSuccess: () => {
+      setShowRejectForm(false);
+      setRejectFeedback('');
       queryClient.invalidateQueries({ queryKey: ['tasks', taskId] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 
@@ -150,11 +167,15 @@ export function TaskDetailSlideOver({
 
   if (!open) return null;
 
-  const canStartWork =
-    task?.status === TaskStatus.TODO ||
-    task?.status === TaskStatus.READY ||
-    task?.status === TaskStatus.PLANNED;
-  const canSubmitDailyUpdate = task?.status === TaskStatus.IN_PROGRESS;
+  const canStart = canStartTask(user, task);
+  const canSubmitReview = canSubmitForReview(user, task);
+  const canReview = canReviewTask(user, task);
+  const canUpdateProgress = canUpdateTaskProgress(user, task);
+  const isAssignee = isTaskAssignee(user, task);
+  const isAdminOrOwner = user?.globalRole === UserRole.ADMIN || user?.globalRole === UserRole.OWNER;
+  const unfinishedDeps = blockedBy.filter((b: any) => b.predecessorTask?.status !== TaskStatus.DONE);
+  const latestUpdate = progressUpdates[0];
+
   const mutationError =
     updateStatusMutation.error ||
     reviewMutation.error ||
@@ -170,7 +191,6 @@ export function TaskDetailSlideOver({
         onClick={onClose}
         className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity duration-200"
       />
-
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-[540px] bg-white border-l border-fx-border shadow-drawer flex flex-col justify-between animate-fadeIn">
@@ -205,11 +225,16 @@ export function TaskDetailSlideOver({
             <div className="flex items-center gap-2">
               <span className="text-fx-text-muted text-[11px]">Status:</span>
               <StatusPill status={task?.status || TaskStatus.TODO} size="sm" />
+              {task?.status === TaskStatus.IN_REVIEW && canReview && (
+                <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-semibold text-[10px] border border-purple-200 uppercase tracking-wider">
+                  Review Required
+                </span>
+              )}
             </div>
 
             {/* Role / State Actions */}
             <div className="flex items-center gap-1.5">
-              {canStartWork && (
+              {canStart && (
                 <Button
                   size="xs"
                   variant="primary"
@@ -221,36 +246,97 @@ export function TaskDetailSlideOver({
                 </Button>
               )}
 
-              {task?.status === TaskStatus.IN_PROGRESS && (
+              {canSubmitReview && (
                 <Button
                   size="xs"
-                  variant="secondary"
+                  variant="primary"
                   loading={updateStatusMutation.isPending}
                   onClick={() => updateStatusMutation.mutate(TaskStatus.IN_REVIEW)}
+                  leftIcon={<Send className="w-3 h-3" />}
                 >
                   Submit for Review
                 </Button>
               )}
 
-              {canManage && task?.status === TaskStatus.IN_REVIEW && (
+              {canReview && (
+                <>
+                  <Button
+                    size="xs"
+                    variant="primary"
+                    loading={reviewMutation.isPending}
+                    onClick={() => reviewMutation.mutate({ status: ReviewStatus.APPROVED })}
+                    leftIcon={<CheckCircle2 className="w-3 h-3" />}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="secondary"
+                    onClick={() => setShowRejectForm((prev) => !prev)}
+                    leftIcon={<RotateCcw className="w-3 h-3" />}
+                  >
+                    Return for Changes
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Inline Review Feedback Form for Return for Changes */}
+          {showRejectForm && canReview && (
+            <div className="mx-5 mt-3 p-3.5 bg-amber-50 border border-amber-200 rounded-lg space-y-2.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-amber-900">Return Work for Changes</span>
+                <button
+                  type="button"
+                  onClick={() => setShowRejectForm(false)}
+                  className="text-fx-text-muted hover:text-fx-text-primary p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-[11px] text-amber-800 leading-relaxed">
+                Provide feedback explaining why changes are requested so the assigned team member can revise their deliverable.
+              </p>
+              <textarea
+                rows={2}
+                placeholder="e.g. Please recheck physics calculations and verify brake torque on slopes..."
+                value={rejectFeedback}
+                onChange={(e) => setRejectFeedback(e.target.value)}
+                className="w-full rounded border border-amber-300 bg-white p-2 text-xs focus:border-[#2563EB] focus:outline-none"
+              />
+              <div className="flex justify-end gap-2 pt-1">
+                <Button
+                  size="xs"
+                  variant="secondary"
+                  onClick={() => setShowRejectForm(false)}
+                >
+                  Cancel
+                </Button>
                 <Button
                   size="xs"
                   variant="primary"
                   loading={reviewMutation.isPending}
-                  onClick={() => reviewMutation.mutate(ReviewStatus.APPROVED)}
-                  leftIcon={<CheckCircle2 className="w-3 h-3" />}
+                  disabled={!rejectFeedback.trim()}
+                  onClick={() =>
+                    reviewMutation.mutate({
+                      status: ReviewStatus.REJECTED,
+                      feedback: rejectFeedback.trim(),
+                    })
+                  }
                 >
-                  Approve Deliverable
+                  Return Task
                 </Button>
-              )}
+              </div>
             </div>
-          </div>
+          )}
 
           {mutationErrorMessage && (
             <div className="mx-5 mt-3 rounded-md border border-fx-danger/30 bg-fx-danger/10 px-3 py-2 text-xs font-medium text-fx-danger">
               {mutationErrorMessage}
             </div>
           )}
+
 
           {/* Tab Navigation */}
           <div className="px-5 border-b border-fx-border flex items-center gap-4 text-xs font-medium bg-white">
@@ -266,7 +352,7 @@ export function TaskDetailSlideOver({
                 className={cn(
                   'py-2.5 border-b-2 -mb-px fx-transition',
                   activeTab === tab.id
-                    ? 'border-[#315F7D] text-[#274E68] font-semibold'
+                    ? 'border-[#2563EB] text-[#2563EB] font-semibold'
                     : 'border-transparent text-fx-text-secondary hover:text-fx-text-primary',
                 )}
               >
@@ -298,12 +384,32 @@ export function TaskDetailSlideOver({
                         <span className="text-fx-text-muted text-[11px] font-medium">Priority</span>
                         <PriorityBadge priority={task?.priority || TaskPriority.MEDIUM} />
                       </div>
-                      <div className="px-3.5 py-2.5 flex items-center justify-between">
-                        <span className="text-fx-text-muted text-[11px] font-medium">Progress</span>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-medium">{task?.progress || 0}%</span>
+
+                      {/* Read-Only Progress Display */}
+                      <div className="px-3.5 py-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-fx-text-muted text-[11px] font-medium">Progress</span>
+                          <span className="font-mono font-bold text-sm text-fx-text-primary">{task?.progress || 0}%</span>
                         </div>
+                        <div className="w-full h-2 bg-fx-bg-hover rounded-full overflow-hidden border border-fx-border/50">
+                          <div
+                            className="h-full bg-[#2563EB] rounded-full transition-all duration-300"
+                            style={{ width: `${task?.progress || 0}%` }}
+                          />
+                        </div>
+                        {latestUpdate && (
+                          <div className="pt-0.5 text-[11px] text-fx-text-muted flex items-center justify-between">
+                            <span>
+                              Last updated by:{' '}
+                              <span className="font-semibold text-fx-text-secondary">
+                                {latestUpdate.user?.firstName} {latestUpdate.user?.lastName}
+                              </span>
+                            </span>
+                            <span className="font-mono text-[10px]">{formatDate(latestUpdate.createdAt)}</span>
+                          </div>
+                        )}
                       </div>
+
                       <div className="px-3.5 py-2.5 flex items-center justify-between">
                         <span className="text-fx-text-muted text-[11px] font-medium">Due Date</span>
                         <span className="font-mono text-fx-text-secondary">
@@ -316,7 +422,67 @@ export function TaskDetailSlideOver({
                           <span className="font-medium text-fx-text-primary">{task.milestone.name}</span>
                         </div>
                       )}
+                      {task?.status === TaskStatus.DONE && (
+                        <div className="px-3.5 py-2.5 flex items-center justify-between bg-emerald-50/50">
+                          <span className="text-emerald-700 text-[11px] font-medium">Completed</span>
+                          <div className="text-right text-[11px]">
+                            <span className="font-semibold text-emerald-800">100% Finalized</span>
+                            {task.completedDate && (
+                              <span className="text-emerald-600 block text-[10px] font-mono">
+                                {formatDate(task.completedDate)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      {task?.reviews && task.reviews.length > 0 && task.reviews[0]?.reviewer && (
+                        <div className="px-3.5 py-2.5 flex items-center justify-between">
+                          <span className="text-fx-text-muted text-[11px] font-medium">Review Status</span>
+                          <div className="text-right text-[11px]">
+                            <span className="font-semibold text-fx-text-primary">
+                              {task.reviews[0].status === 'APPROVED' ? 'Approved' : 'Changes Requested'} by {task.reviews[0].reviewer.firstName} {task.reviews[0].reviewer.lastName}
+                            </span>
+                            {task.reviews[0].feedback && (
+                              <p className="text-fx-text-secondary text-[10px] italic max-w-xs truncate">
+                                &quot;{task.reviews[0].feedback}&quot;
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Waiting Notice if WAITING */}
+                    {task?.status === TaskStatus.WAITING && unfinishedDeps.length > 0 && (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 font-semibold text-amber-800">
+                          <Lock className="w-3.5 h-3.5 text-amber-700" />
+                          <span>This task cannot start yet.</span>
+                        </div>
+                        <p className="text-amber-700 text-[11px]">
+                          Waiting for:{' '}
+                          {unfinishedDeps
+                            .map(
+                              (d: any) =>
+                                `${d.predecessorTask?.humanId} · ${d.predecessorTask?.title}`,
+                            )
+                            .join(', ')}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Blocker Notice if Blocked */}
+                    {(task?.isManualBlocked || task?.status === TaskStatus.BLOCKED) && (
+                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs space-y-1">
+                        <div className="flex items-center gap-1.5 font-semibold text-red-800">
+                          <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                          <span>Task Blocked</span>
+                        </div>
+                        <p className="text-red-700 text-[11px]">
+                          {task.manualBlockReason || 'A blocker has been reported on this deliverable.'}
+                        </p>
+                      </div>
+                    )}
 
                     {/* Dependency Chain Visualization */}
                     <div className="space-y-2.5">
@@ -345,7 +511,7 @@ export function TaskDetailSlideOver({
                                   className={cn(
                                     'p-2.5 rounded-md border flex items-center justify-between gap-2 cursor-pointer fx-transition text-xs',
                                     isDone
-                                      ? 'bg-[#EDF4F8] border-[#315F7D]/30'
+                                      ? 'bg-[#EEF4FF] border-[#2563EB]/30'
                                       : 'bg-amber-50/50 border-amber-200/70 hover:bg-amber-50',
                                   )}
                                 >
@@ -412,161 +578,209 @@ export function TaskDetailSlideOver({
                 {/* TAB 2: DAILY UPDATES */}
                 {activeTab === 'updates' && (
                   <div className="space-y-6">
-                    {/* Submission Form */}
-                    {!canSubmitDailyUpdate ? (
-                      <div className="bg-white border border-fx-border rounded-lg p-4 space-y-3 text-xs">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <StatusPill status={task?.status || TaskStatus.TODO} size="xs" />
-                              <span className="font-semibold text-fx-text-primary">
-                                Start work to submit daily updates.
-                              </span>
-                            </div>
-                            <p className="text-fx-text-secondary">
-                              {canStartWork
-                                ? 'This task is assigned but not active yet. Start work first, then the daily update form will appear here.'
-                                : task?.status === TaskStatus.WAITING
-                                  ? 'This task is waiting for prerequisite work before updates can be submitted.'
-                                  : task?.status === TaskStatus.IN_REVIEW
-                                    ? 'This task is already submitted for Admin review.'
-                                    : 'Daily updates are only available while a task is in progress.'}
-                            </p>
-                          </div>
-                          {canStartWork && (
-                            <Button
-                              size="xs"
-                              variant="primary"
-                              loading={updateStatusMutation.isPending}
-                              onClick={() => updateStatusMutation.mutate(TaskStatus.IN_PROGRESS)}
-                              leftIcon={<Play className="w-3 h-3 fill-white" />}
-                            >
-                              Start Work
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                    <div className="bg-white border border-fx-border rounded-lg p-4 space-y-3.5">
+                    {/* Header Copy */}
+                    <div className="pb-1 border-b border-fx-border/60 flex items-center justify-between">
                       <h4 className="text-xs font-semibold text-fx-text-primary">
-                        Submit Daily Progress Update
+                        Daily Updates
                       </h4>
-
-                      {/* Progress Slider */}
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-fx-text-secondary font-medium">Completion:</span>
-                          <span className="font-mono font-bold text-[#315F7D]">{updateProgress}%</span>
-                        </div>
-                        <input
-                          type="range"
-                          min={currentProgress}
-                          max="99"
-                          step="5"
-                          value={updateProgress}
-                          onChange={(e) =>
-                            setUpdateProgress(Math.min(Math.max(Number(e.target.value), currentProgress), 99))
-                          }
-                          className="w-full accent-[#315F7D] cursor-pointer"
-                        />
-                      </div>
-
-                      {/* Completed Today */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-fx-text-secondary">
-                          What did you complete today?
-                        </label>
-                        <textarea
-                          rows={2}
-                          placeholder="e.g. Configured vehicle physics handling curve..."
-                          value={completedToday}
-                          onChange={(e) => setCompletedToday(e.target.value)}
-                          className="w-full rounded-md border border-fx-border bg-fx-bg p-2 text-xs focus:border-[#315F7D] focus:outline-none"
-                        />
-                      </div>
-
-                      {/* Next Steps */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-fx-text-secondary">
-                          Next Steps:
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Test wheel slip calculations on steep surfaces..."
-                          value={nextStepNote}
-                          onChange={(e) => setNextStepNote(e.target.value)}
-                          className="w-full rounded-md border border-fx-border bg-fx-bg px-2.5 py-1.5 text-xs focus:border-[#315F7D] focus:outline-none"
-                        />
-                      </div>
-
-                      {/* Optional Blocker */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-fx-text-secondary flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3 text-fx-text-muted" />
-                          <span>Any blockers? (Optional)</span>
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Leave blank if unblocked..."
-                          value={blockerNote}
-                          onChange={(e) => setBlockerNote(e.target.value)}
-                          className="w-full rounded-md border border-fx-border bg-fx-bg px-2.5 py-1.5 text-xs focus:border-[#315F7D] focus:outline-none"
-                        />
-                      </div>
-
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        loading={progressUpdateMutation.isPending}
-                        disabled={!completedToday.trim() || !nextStepNote.trim() || updateProgress < currentProgress || updateProgress > 99}
-                        onClick={() => progressUpdateMutation.mutate()}
-                        leftIcon={<Send className="w-3 h-3" />}
-                      >
-                        Submit Update
-                      </Button>
+                      <span className="text-[11px] text-fx-text-muted">
+                        {isAdminOrOwner
+                          ? 'Progress updates from the assigned team member.'
+                          : isAssignee && task?.status === TaskStatus.IN_PROGRESS
+                            ? 'Submit your daily progress and blockers.'
+                            : 'Progress updates from the assigned team member.'}
+                      </span>
                     </div>
+
+                    {/* Submission Form OR Status Notices */}
+                    {isAdminOrOwner ? (
+                      /* Admin: Read-only notice, no input form */
+                      null
+                    ) : isAssignee ? (
+                      /* Assigned Team Member */
+                      task?.status === TaskStatus.IN_PROGRESS ? (
+                        <div className="bg-white border border-fx-border rounded-lg p-4 space-y-3.5">
+                          <h4 className="text-xs font-semibold text-fx-text-primary">
+                            Submit Daily Progress Update
+                          </h4>
+
+                          {/* Progress Slider */}
+                          <div className="space-y-1">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-fx-text-secondary font-medium">Completion:</span>
+                              <span className="font-mono font-bold text-[#2563EB]">{updateProgress}%</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={currentProgress}
+                              max="99"
+                              step="5"
+                              value={updateProgress}
+                              onChange={(e) =>
+                                setUpdateProgress(Math.min(Math.max(Number(e.target.value), currentProgress), 99))
+                              }
+                              className="w-full accent-[#2563EB] cursor-pointer"
+                            />
+                          </div>
+
+                          {/* Completed Today */}
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-medium text-fx-text-secondary">
+                              What did you complete today? *
+                            </label>
+                            <textarea
+                              rows={2}
+                              placeholder="e.g. Implemented bus controls and UI update..."
+                              value={completedToday}
+                              onChange={(e) => setCompletedToday(e.target.value)}
+                              className="w-full rounded-md border border-fx-border bg-fx-bg p-2 text-xs focus:border-[#2563EB] focus:outline-none"
+                            />
+                          </div>
+
+                          {/* Next Steps */}
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-medium text-fx-text-secondary">
+                              Next Steps: *
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Test physics and submit final review..."
+                              value={nextStepNote}
+                              onChange={(e) => setNextStepNote(e.target.value)}
+                              className="w-full rounded-md border border-fx-border bg-fx-bg px-2.5 py-1.5 text-xs focus:border-[#2563EB] focus:outline-none"
+                            />
+                          </div>
+
+                          {/* Optional Blocker */}
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-medium text-fx-text-secondary flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3 text-fx-text-muted" />
+                              <span>Any blockers? (Optional)</span>
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Leave blank if unblocked..."
+                              value={blockerNote}
+                              onChange={(e) => setBlockerNote(e.target.value)}
+                              className="w-full rounded-md border border-fx-border bg-fx-bg px-2.5 py-1.5 text-xs focus:border-[#2563EB] focus:outline-none"
+                            />
+                          </div>
+
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            loading={progressUpdateMutation.isPending}
+                            disabled={!completedToday.trim() || !nextStepNote.trim() || updateProgress < currentProgress || updateProgress > 99}
+                            onClick={() => progressUpdateMutation.mutate()}
+                            leftIcon={<Send className="w-3 h-3" />}
+                          >
+                            Submit Update
+                          </Button>
+                        </div>
+                      ) : task?.status === TaskStatus.READY ? (
+                        <div className="bg-[#EEF4FF] border border-[#2563EB]/30 rounded-lg p-4 space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-fx-text-primary">Start work to submit daily updates.</span>
+                            {canStart && (
+                              <Button
+                                size="xs"
+                                variant="primary"
+                                loading={updateStatusMutation.isPending}
+                                onClick={() => updateStatusMutation.mutate(TaskStatus.IN_PROGRESS)}
+                                leftIcon={<Play className="w-3 h-3 fill-white" />}
+                              >
+                                Start Work
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-fx-text-secondary">
+                            This task is assigned to you and ready to start. Once work is started, you can log daily progress here.
+                          </p>
+                        </div>
+                      ) : task?.status === TaskStatus.WAITING ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-1.5 text-xs text-amber-900">
+                          <div className="flex items-center gap-1.5 font-semibold">
+                            <Lock className="w-3.5 h-3.5 text-amber-700" />
+                            <span>This task cannot start yet.</span>
+                          </div>
+                          <p className="text-amber-700 text-[11px]">
+                            Waiting for: {unfinishedDeps.length > 0 ? unfinishedDeps.map((d: any) => d.predecessorTask?.humanId).join(', ') : 'prerequisite tasks'}
+                          </p>
+                        </div>
+                      ) : task?.status === TaskStatus.IN_REVIEW ? (
+                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-1 text-xs text-purple-900">
+                          <span className="font-semibold">Work Submitted for Review</span>
+                          <p className="text-purple-700 text-[11px]">
+                            Your deliverable has been submitted for Admin review. Progress updates are paused until review is completed.
+                          </p>
+                        </div>
+                      ) : task?.status === TaskStatus.DONE ? (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-1 text-xs text-emerald-900">
+                          <span className="font-semibold">Task Completed</span>
+                          <p className="text-emerald-700 text-[11px]">
+                            This deliverable has been approved and completed (100%).
+                          </p>
+                        </div>
+                      ) : null
+                    ) : (
+                      /* Unassigned Team Member: Read-only notice */
+                      <div className="bg-fx-bg border border-fx-border rounded-lg p-3 text-xs text-fx-text-muted">
+                        Progress updates from the assigned team member.
+                      </div>
                     )}
 
                     {/* Historical Updates List */}
-                    <div className="space-y-2">
+                    <div className="space-y-2.5">
                       <h4 className="text-[11px] font-semibold uppercase tracking-wider text-fx-text-muted">
                         Progress History
                       </h4>
                       {progressUpdates.length === 0 ? (
-                        <p className="text-xs text-fx-text-muted italic bg-fx-bg p-3 rounded-lg border border-fx-border/60">
-                          No updates recorded yet.
-                        </p>
+                        <div className="text-xs text-fx-text-muted italic bg-fx-bg p-4 rounded-lg border border-fx-border/60 text-center">
+                          No progress updates have been submitted yet.
+                        </div>
                       ) : (
-                        <div className="space-y-2.5">
+                        <div className="space-y-3">
                           {progressUpdates.map((upd: any) => (
                             <div
                               key={upd.id}
-                              className="bg-white border border-fx-border rounded-lg p-3 space-y-1.5"
+                              className="bg-white border border-fx-border rounded-lg p-3.5 space-y-2 shadow-sm"
                             >
-                              <div className="flex items-center justify-between text-[11px]">
-                                <span className="font-semibold text-fx-text-primary">
-                                  {upd.user?.firstName} {upd.user?.lastName}
-                                </span>
-                                <span className="font-mono text-[#315F7D] font-bold">
+                              <div className="flex items-center justify-between text-xs pb-1.5 border-b border-fx-border/50">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-fx-text-primary">
+                                    {upd.user?.firstName} {upd.user?.lastName}
+                                  </span>
+                                  <span className="text-[10px] text-fx-text-muted font-mono">
+                                    {formatDate(upd.createdAt)}
+                                  </span>
+                                </div>
+                                <span className="font-mono text-[#2563EB] font-bold bg-[#EEF4FF] px-2 py-0.5 rounded text-xs">
                                   {upd.progressAfter ?? upd.progress}%
                                 </span>
                               </div>
+
                               {upd.completedToday && (
-                                <p className="text-xs text-fx-text-primary">{upd.completedToday}</p>
+                                <div className="text-xs">
+                                  <span className="text-[11px] font-semibold text-fx-text-secondary block">Completed:</span>
+                                  <p className="text-fx-text-primary mt-0.5 leading-relaxed">{upd.completedToday}</p>
+                                </div>
                               )}
+
                               {upd.nextStep && (
-                                <p className="text-[11px] text-fx-text-secondary">
-                                  Next: {upd.nextStep}
-                                </p>
+                                <div className="text-xs">
+                                  <span className="text-[11px] font-semibold text-fx-text-secondary block">Next:</span>
+                                  <p className="text-fx-text-secondary mt-0.5 leading-relaxed">{upd.nextStep}</p>
+                                </div>
                               )}
-                              {upd.blocker && (
-                                <p className="text-[11px] text-fx-semantic-danger font-medium">
-                                  Blocker: {upd.blocker}
-                                </p>
-                              )}
-                              <p className="text-[10px] text-fx-text-muted pt-1">
-                                {formatDate(upd.createdAt)}
-                              </p>
+
+                              <div className="text-xs">
+                                <span className="text-[11px] font-semibold text-fx-text-secondary block">Blocker:</span>
+                                {upd.blocker ? (
+                                  <p className="text-fx-semantic-danger font-medium mt-0.5">{upd.blocker}</p>
+                                ) : (
+                                  <p className="text-fx-text-muted mt-0.5">None</p>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -574,6 +788,7 @@ export function TaskDetailSlideOver({
                     </div>
                   </div>
                 )}
+
 
                 {/* TAB 3: SUBTASKS */}
                 {activeTab === 'subtasks' && (
@@ -602,6 +817,15 @@ export function TaskDetailSlideOver({
                       </Button>
                     </div>
 
+                    {/* Subtasks Notice for Read-only Viewers */}
+                    {!canUpdateProgress && (
+                      <div className="text-[11px] text-fx-text-muted bg-fx-bg p-2.5 rounded border border-fx-border/60">
+                        {isAdminOrOwner
+                          ? 'Subtask checklist execution is managed by the assigned team member.'
+                          : 'Subtask completion can only be updated by the assigned team member.'}
+                      </div>
+                    )}
+
                     {/* Subtasks List */}
                     {subtasks.length === 0 ? (
                       <p className="text-xs text-fx-text-muted italic bg-fx-bg p-4 rounded-lg border border-fx-border/60 text-center">
@@ -612,31 +836,41 @@ export function TaskDetailSlideOver({
                         {subtasks.map((st: any) => {
                           const isCompleted = st.status === TaskStatus.DONE || st.isCompleted;
                           return (
-                          <div
-                            key={st.id}
-                            onClick={() =>
-                              toggleSubtaskMutation.mutate({
-                                subtaskId: st.id,
-                                isCompleted: !isCompleted,
-                              })
-                            }
-                            className="p-3 hover:bg-fx-bg-hover flex items-center gap-2.5 cursor-pointer fx-transition"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isCompleted}
-                              onChange={() => {}}
-                              className="w-4 h-4 rounded text-[#315F7D] accent-[#315F7D] cursor-pointer"
-                            />
-                            <span
+                            <div
+                              key={st.id}
+                              onClick={() => {
+                                if (!canUpdateProgress) return;
+                                toggleSubtaskMutation.mutate({
+                                  subtaskId: st.id,
+                                  isCompleted: !isCompleted,
+                                });
+                              }}
                               className={cn(
-                                'text-xs flex-1 truncate',
-                                isCompleted && 'line-through text-fx-text-muted',
+                                'p-3 flex items-center gap-2.5 fx-transition',
+                                canUpdateProgress
+                                  ? 'hover:bg-fx-bg-hover cursor-pointer'
+                                  : 'cursor-default select-none opacity-90',
                               )}
                             >
-                              {st.title}
-                            </span>
-                          </div>
+                              <input
+                                type="checkbox"
+                                checked={isCompleted}
+                                disabled={!canUpdateProgress}
+                                onChange={() => {}}
+                                className={cn(
+                                  'w-4 h-4 rounded text-[#2563EB] accent-[#2563EB]',
+                                  canUpdateProgress ? 'cursor-pointer' : 'cursor-not-allowed opacity-60',
+                                )}
+                              />
+                              <span
+                                className={cn(
+                                  'text-xs flex-1 truncate',
+                                  isCompleted && 'line-through text-fx-text-muted',
+                                )}
+                              >
+                                {st.title}
+                              </span>
+                            </div>
                           );
                         })}
                       </div>

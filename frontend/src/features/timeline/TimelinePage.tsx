@@ -52,7 +52,7 @@ export function TimelinePage() {
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="h-8 rounded-md border border-fx-border bg-white px-2.5 text-xs text-fx-text-primary focus:border-[#315F7D] focus:outline-none"
+              className="h-8 rounded-md border border-fx-border bg-white px-2.5 text-xs text-fx-text-primary focus:border-[#2563EB] focus:outline-none"
             >
               <option value="">All Projects</option>
               {projects.map((p: any) => (

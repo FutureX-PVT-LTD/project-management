@@ -148,7 +148,7 @@ export function TaskFormPage() {
                 rows={4}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full rounded-md border border-fx-border bg-white p-3 text-xs text-fx-text-primary focus:border-[#315F7D] focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
+                className="w-full rounded-md border border-fx-border bg-white p-3 text-xs text-fx-text-primary focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
                 placeholder="Acceptance criteria, asset references, and implementation notes."
               />
             </div>
@@ -162,7 +162,7 @@ export function TaskFormPage() {
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
                 placeholder="Search project members..."
-                className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-[#315F7D] focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
+                className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
               />
             </div>
             {projectMembers.length === 0 ? (
@@ -177,10 +177,10 @@ export function TaskFormPage() {
                 <button
                   type="button"
                   onClick={() => setAssigneeId('')}
-                  className={cn('flex w-full items-center justify-between p-3 text-left text-xs hover:bg-fx-bg-hover', !assigneeId && 'bg-[#EDF4F8]')}
+                  className={cn('flex w-full items-center justify-between p-3 text-left text-xs hover:bg-fx-bg-hover', !assigneeId && 'bg-[#EEF4FF]')}
                 >
                   <span className="font-medium text-fx-text-primary">Unassigned</span>
-                  {!assigneeId && <Check className="h-4 w-4 text-[#315F7D]" />}
+                  {!assigneeId && <Check className="h-4 w-4 text-[#2563EB]" />}
                 </button>
                 {filteredMembers.map((m) => {
                   const selected = assigneeId === m.userId;
@@ -189,7 +189,7 @@ export function TaskFormPage() {
                       type="button"
                       key={m.userId}
                       onClick={() => setAssigneeId(m.userId)}
-                      className={cn('flex w-full items-center justify-between p-3 text-left text-xs hover:bg-fx-bg-hover', selected && 'bg-[#EDF4F8]')}
+                      className={cn('flex w-full items-center justify-between p-3 text-left text-xs hover:bg-fx-bg-hover', selected && 'bg-[#EEF4FF]')}
                     >
                       <span>
                         <span className="block font-semibold text-fx-text-primary">
@@ -197,7 +197,7 @@ export function TaskFormPage() {
                         </span>
                         <span className="block text-[11px] text-fx-text-muted">{m.user?.jobTitle || 'Team Member'}</span>
                       </span>
-                      {selected && <Check className="h-4 w-4 text-[#315F7D]" />}
+                      {selected && <Check className="h-4 w-4 text-[#2563EB]" />}
                     </button>
                   );
                 })}
@@ -209,7 +209,7 @@ export function TaskFormPage() {
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="h-9 w-full rounded-md border border-fx-border bg-white px-3 text-xs focus:border-[#315F7D] focus:outline-none"
+                className="h-9 w-full rounded-md border border-fx-border bg-white px-3 text-xs focus:border-[#2563EB] focus:outline-none"
               >
                 {Object.values(TaskPriority).map((p) => (
                   <option key={p} value={p}>{p.replace(/_/g, ' ')}</option>
@@ -240,7 +240,7 @@ export function TaskFormPage() {
                 value={taskSearch}
                 onChange={(e) => setTaskSearch(e.target.value)}
                 placeholder="Search prerequisite tasks..."
-                className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-[#315F7D] focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
+                className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
               />
             </div>
 
@@ -272,7 +272,7 @@ export function TaskFormPage() {
                       type="button"
                       key={task.id}
                       onClick={() => togglePrerequisite(task.id)}
-                      className={cn('flex w-full items-center justify-between gap-3 p-3 text-left text-xs hover:bg-fx-bg-hover', selected && 'bg-[#EDF4F8]')}
+                      className={cn('flex w-full items-center justify-between gap-3 p-3 text-left text-xs hover:bg-fx-bg-hover', selected && 'bg-[#EEF4FF]')}
                     >
                       <span className="min-w-0">
                         <span className="block font-mono text-[11px] font-semibold text-fx-text-muted">{task.humanId}</span>
@@ -280,7 +280,7 @@ export function TaskFormPage() {
                       </span>
                       <span className="flex items-center gap-2">
                         <StatusPill status={task.status} size="xs" />
-                        {selected && <Check className="h-4 w-4 text-[#315F7D]" />}
+                        {selected && <Check className="h-4 w-4 text-[#2563EB]" />}
                       </span>
                     </button>
                   );
@@ -293,7 +293,7 @@ export function TaskFormPage() {
                 type="checkbox"
                 checked={requiresReview}
                 onChange={(e) => setRequiresReview(e.target.checked)}
-                className="rounded text-[#315F7D] focus:ring-[#315F7D]"
+                className="rounded text-[#2563EB] focus:ring-[#2563EB]"
               />
               Requires Admin Review
             </label>

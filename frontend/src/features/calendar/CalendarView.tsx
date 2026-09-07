@@ -154,10 +154,10 @@ export function CalendarView() {
         {/* Header & Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#15171A]">
+            <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#181B20]">
               Project Calendar
             </h1>
-            <p className="text-sm text-[#5F6368] mt-1">
+            <p className="text-sm text-[#626A73] mt-1">
               Deliverable milestones, task target deadlines, and project schedules.
             </p>
           </div>
@@ -165,12 +165,12 @@ export function CalendarView() {
           {/* Controls */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* View Toggle */}
-            <div className="flex items-center gap-1 border border-[#E4E7EB] rounded-[8px] p-0.5 bg-[#F8F9FA]">
+            <div className="flex items-center gap-1 border border-[#E3E7EC] rounded-[8px] p-0.5 bg-[#F7F8FA]">
               <button
                 onClick={() => setViewMode('month')}
                 className={cn(
                   'px-3 py-1.5 text-xs font-medium rounded-md fx-transition',
-                  viewMode === 'month' ? 'bg-white text-[#0077E6] font-semibold shadow-xs' : 'text-[#5F6368] hover:text-[#15171A]',
+                  viewMode === 'month' ? 'bg-white text-[#2563EB] font-semibold shadow-xs' : 'text-[#626A73] hover:text-[#181B20]',
                 )}
               >
                 Month
@@ -179,7 +179,7 @@ export function CalendarView() {
                 onClick={() => setViewMode('week')}
                 className={cn(
                   'px-3 py-1.5 text-xs font-medium rounded-md fx-transition',
-                  viewMode === 'week' ? 'bg-white text-[#0077E6] font-semibold shadow-xs' : 'text-[#5F6368] hover:text-[#15171A]',
+                  viewMode === 'week' ? 'bg-white text-[#2563EB] font-semibold shadow-xs' : 'text-[#626A73] hover:text-[#181B20]',
                 )}
               >
                 Week
@@ -187,7 +187,7 @@ export function CalendarView() {
             </div>
 
             {/* Month/Week Navigation */}
-            <div className="flex items-center gap-1.5 bg-[#F8F9FA] border border-[#E4E7EB] rounded-[8px] px-2 py-1">
+            <div className="flex items-center gap-1.5 bg-[#F7F8FA] border border-[#E3E7EC] rounded-[8px] px-2 py-1">
               <button
                 onClick={prevPeriod}
                 className="p-1 rounded text-fx-text-muted hover:text-fx-text-primary hover:bg-fx-bg-hover fx-transition"
@@ -209,7 +209,7 @@ export function CalendarView() {
 
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1.5 bg-[#F8F9FA] border border-[#E4E7EB] rounded-[8px] text-xs font-medium text-[#5F6368] hover:text-[#15171A] hover:bg-[#F4F5F6] fx-transition"
+              className="px-3 py-1.5 bg-[#F7F8FA] border border-[#E3E7EC] rounded-[8px] text-xs font-medium text-[#626A73] hover:text-[#181B20] hover:bg-[#F2F4F7] fx-transition"
             >
               Today
             </button>
@@ -217,7 +217,7 @@ export function CalendarView() {
         </div>
 
         {/* Filter Bar */}
-        <div className="border-y border-[#E4E7EB] py-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="border-y border-[#E3E7EC] py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
             <div className="relative w-full sm:w-64">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-fx-text-muted" />
@@ -226,14 +226,14 @@ export function CalendarView() {
                 placeholder="Search calendar events..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8F9FA] border border-[#E4E7EB] rounded-[10px] text-[#15171A] placeholder:text-[#92979E] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0088FF] focus:border-[#0088FF]"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] placeholder:text-[#929AA3] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
               />
             </div>
 
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="h-8 px-2.5 text-xs bg-[#F8F9FA] border border-[#E4E7EB] rounded-[10px] text-[#15171A] focus:outline-none focus:ring-1 focus:ring-[#0088FF] focus:border-[#0088FF]"
+              className="h-8 px-2.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
             >
               <option value="ALL">All Projects</option>
               {projects.map((p) => (
@@ -246,7 +246,7 @@ export function CalendarView() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-8 px-2.5 text-xs bg-[#F8F9FA] border border-[#E4E7EB] rounded-[10px] text-[#15171A] focus:outline-none focus:ring-1 focus:ring-[#0088FF] focus:border-[#0088FF]"
+              className="h-8 px-2.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
             >
               <option value="ALL">All Statuses</option>
               <option value={TaskStatus.TODO}>To Do</option>
@@ -264,9 +264,9 @@ export function CalendarView() {
         </div>
 
         {/* Calendar Grid */}
-        <div className="bg-white border border-[#E4E7EB] rounded-[12px] overflow-hidden shadow-none">
+        <div className="bg-white border border-[#E3E7EC] rounded-[12px] overflow-hidden shadow-none">
           {/* Day Headers */}
-          <div className="grid grid-cols-7 border-b border-[#E4E7EB] bg-[#F7F8FA] text-center text-xs font-semibold text-fx-text-muted py-2.5 select-none">
+          <div className="grid grid-cols-7 border-b border-[#E3E7EC] bg-[#F7F8FA] text-center text-xs font-semibold text-fx-text-muted py-2.5 select-none">
             {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((d) => (
               <div key={d} className="truncate px-1">
                 <span className="hidden sm:inline">{d}</span>
@@ -300,7 +300,7 @@ export function CalendarView() {
                     <span
                       className={cn(
                         'text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full select-none',
-                        isToday && 'bg-[#0088FF] text-white font-semibold',
+                        isToday && 'bg-[#2563EB] text-white font-semibold',
                         !isToday && cell.isCurrentMonth && 'text-fx-text-primary',
                         !isToday && !cell.isCurrentMonth && 'text-fx-text-muted/40',
                       )}
@@ -309,7 +309,7 @@ export function CalendarView() {
                     </span>
 
                     {dayTasks.length > 0 && (
-                      <span className="text-[10px] font-mono text-fx-text-muted bg-fx-bg px-1.5 py-0.2 rounded border border-[#E4E7EB]/60">
+                      <span className="text-[10px] font-mono text-fx-text-muted bg-fx-bg px-1.5 py-0.2 rounded border border-[#E3E7EC]/60">
                         {dayTasks.length} {dayTasks.length === 1 ? 'item' : 'items'}
                       </span>
                     )}
@@ -324,12 +324,12 @@ export function CalendarView() {
                         className={cn(
                           'p-1.5 rounded-md border text-[11px] cursor-pointer fx-transition select-none truncate',
                           task.status === TaskStatus.DONE
-                            ? 'bg-[#EDF7F2] border-[#C6E7D2] text-[#287A5A]'
+                            ? 'bg-[#EDF8F2] border-[#237A57]/30 text-[#237A57]'
                             : task.status === TaskStatus.WAITING
-                              ? 'bg-[#FFF6E5] border-[#FDE9B8] text-[#A56F18]'
+                              ? 'bg-[#FFF6E5] border-[#A86B12]/30 text-[#A86B12]'
                               : task.status === TaskStatus.BLOCKED
-                                ? 'bg-[#FCEEEE] border-[#F9D1D1] text-[#B94040]'
-                                : 'bg-[#F7F8FA] border-[#E4E7EB] text-fx-text-primary hover:border-[#0088FF]/40 hover:bg-white',
+                                ? 'bg-[#FDEEEE] border-[#C24141]/30 text-[#C24141]'
+                                : 'bg-[#F7F8FA] border-[#E3E7EC] text-fx-text-primary hover:border-[#2563EB]/40 hover:bg-white',
                         )}
                         title={`${task.humanId}: ${task.title}`}
                       >
@@ -343,7 +343,7 @@ export function CalendarView() {
                     ))}
 
                     {dayTasks.length > 3 && (
-                      <p className="text-[10px] font-medium text-[#0088FF] text-center">
+                      <p className="text-[10px] font-medium text-[#2563EB] text-center">
                         +{dayTasks.length - 3} more
                       </p>
                     )}

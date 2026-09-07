@@ -8,7 +8,7 @@ export default function DashboardPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-fx-bg">
-          <div className="h-7 w-7 border-2 border-[#315F7D] border-t-transparent rounded-full animate-spin" />
+          <div className="h-7 w-7 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >

@@ -69,7 +69,7 @@ export function TeamPage() {
                       <tr key={member.userId || member.id} className="hover:bg-fx-bg-hover fx-transition">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-[#EDF4F8] text-[#274E68] font-semibold text-[11px] flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-[#EEF4FF] text-[#2563EB] font-semibold text-[11px] flex items-center justify-center shrink-0">
                               {(member.userName || member.firstName || 'T')?.[0]}
                             </div>
                             <div>
@@ -86,10 +86,10 @@ export function TeamPage() {
                       <td className="py-3 px-3 font-mono text-fx-text-secondary">
                           {member.projectsCount || member.projects?.length || 0}
                         </td>
-                        <td className="py-3 px-3 font-mono font-medium text-blue-700">
+                        <td className="py-3 px-3 font-mono font-medium text-[#2563EB]">
                           {inProgressCount}
                         </td>
-                        <td className="py-3 px-3 font-mono text-amber-700">
+                        <td className="py-3 px-3 font-mono text-fx-text-muted">
                           {waitingCount}
                         </td>
                         <td className="py-3 px-4 text-right">
@@ -97,10 +97,10 @@ export function TeamPage() {
                             className={cn(
                               'text-[10px] uppercase font-semibold px-2 py-0.5 rounded border',
                               activeCount >= 5
-                                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                ? 'bg-[#FFF6E5] text-[#A86B12] border-[#FFF6E5]'
                                 : activeCount === 0
-                                ? 'bg-gray-100 text-gray-600 border-gray-200'
-                                : 'bg-[#EDF7F2] text-[#287A5A] border-[#C6E7D2]',
+                                ? 'bg-[#F7F8FA] text-[#626A73] border-[#E3E7EC]'
+                                : 'bg-[#EDF8F2] text-[#237A57] border-[#EDF8F2]',
                             )}
                           >
                             {activeCount >= 5 ? 'High Load' : activeCount === 0 ? 'Available' : 'Balanced'}

@@ -21,7 +21,7 @@ export default function RootPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-fx-bg">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 rounded bg-[#315F7D] text-white flex items-center justify-center font-bold text-sm animate-pulse">
+        <div className="h-8 w-8 rounded bg-[#2563EB] text-white flex items-center justify-center font-bold text-sm animate-pulse">
           FX
         </div>
         <p className="text-xs text-fx-text-muted">Loading FutureX workspace...</p>

@@ -681,6 +681,7 @@ export class TasksService implements OnModuleInit {
       where: { id, deletedAt: null },
       include: {
         project: true,
+        parentTask: { select: { id: true, assigneeId: true } },
         blockedBy: {
           include: { predecessorTask: { select: { id: true, humanId: true, status: true } } },
         },
@@ -691,20 +692,72 @@ export class TasksService implements OnModuleInit {
       throw new NotFoundException('Task not found');
     }
 
+    // Subtask indicator
+    const isSubtask = !!task.parentTaskId;
+
     // Permission check
     const isOwnerOrAdmin = actorRole === UserRole.OWNER || actorRole === UserRole.ADMIN;
-    const isAssignee = task.assigneeId === actorId;
+    const isAssignee = task.assigneeId === actorId || (isSubtask && task.parentTask?.assigneeId === actorId);
     const isCollaborator = await this.prisma.taskCollaborator.findUnique({
       where: { taskId_userId: { taskId: id, userId: actorId } },
     });
 
     if (!isOwnerOrAdmin && !isAssignee && !isCollaborator) {
-      throw new ForbiddenException('You do not have permission to modify this task');
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: 'TASK_ACCESS_DENIED',
+        message: 'You do not have permission to modify this task.',
+      });
     }
 
+    // Role-based operational boundaries
+    if (isOwnerOrAdmin) {
+      // ADMIN MUST NOT manually update employee task progress
+      if (dto.progress !== undefined) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: 'TASK_PROGRESS_NOT_ALLOWED',
+          message: 'Admins cannot manually update employee task progress.',
+        });
+      }
 
-    // Normal employee restrictions
-    if (actorRole === UserRole.TEAM_MEMBER) {
+      // ADMIN MUST NOT start an employee's assigned task
+      if (dto.status === TaskStatus.IN_PROGRESS && task.status !== TaskStatus.IN_PROGRESS) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: 'TASK_START_NOT_ALLOWED',
+          message: 'Admins cannot start tasks on behalf of assigned employees. The assigned team member must start their work.',
+        });
+      }
+
+      // ADMIN MUST NOT submit the task for review on behalf of the employee
+      if (dto.status === TaskStatus.IN_REVIEW && task.status !== TaskStatus.IN_REVIEW) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: 'TASK_REVIEW_SUBMIT_NOT_ALLOWED',
+          message: 'Admins cannot submit tasks for review on behalf of employees.',
+        });
+      }
+
+      // ADMIN MUST NOT mark tasks directly as DONE - completion happens through review approval
+      if (dto.status === TaskStatus.DONE && task.status !== TaskStatus.DONE) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: 'TASK_DIRECT_COMPLETION_NOT_ALLOWED',
+          message: 'Tasks cannot be marked as DONE directly. Completion happens through Admin review approval.',
+        });
+      }
+    } else {
+      // TEAM_MEMBER operational boundaries:
+      // Only the assigned team member can execute actions on their task
+      if (!isAssignee) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: 'TASK_ACCESS_DENIED',
+          message: 'Team members can only update tasks assigned to them.',
+        });
+      }
+
       const hasPlanningUpdates =
         dto.title !== undefined ||
         dto.description !== undefined ||
@@ -718,10 +771,23 @@ export class TasksService implements OnModuleInit {
         dto.collaboratorIds !== undefined ||
         dto.parentTaskId !== undefined;
 
-      if (hasPlanningUpdates) {
-        throw new ForbiddenException(
-          'Team members cannot modify planning fields or reassign tasks. Contact your Admin.',
-        );
+      if (hasPlanningUpdates && !isSubtask) {
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: 'TASK_PLANNING_IMMUTABLE',
+          message: 'Team members cannot modify planning fields or reassign tasks. Contact your Admin.',
+        });
+      }
+
+      // Progress updates allowed only when task is IN_PROGRESS (subtasks set 0 or 100 on toggle)
+      if (dto.progress !== undefined && !isSubtask) {
+        if (task.status !== TaskStatus.IN_PROGRESS) {
+          throw new ForbiddenException({
+            statusCode: 403,
+            code: 'TASK_PROGRESS_NOT_ALLOWED',
+            message: `Task progress can only be updated while in progress (current status: ${task.status}).`,
+          });
+        }
       }
 
       if (dto.status !== undefined && dto.status !== task.status) {
@@ -740,49 +806,49 @@ export class TasksService implements OnModuleInit {
           }
         }
 
-        if (dto.status === TaskStatus.DONE) {
-          throw new ForbiddenException(
-            'Team members cannot mark tasks as DONE. Please submit your work for review.',
-          );
+        if (dto.status === TaskStatus.DONE && !isSubtask) {
+          throw new ForbiddenException({
+            statusCode: 403,
+            code: 'TASK_DIRECT_COMPLETION_NOT_ALLOWED',
+            message: 'Team members cannot mark tasks as DONE. Please submit your work for review.',
+          });
         }
+
         if (
           dto.status === TaskStatus.BACKLOG ||
           dto.status === TaskStatus.PLANNED ||
           dto.status === TaskStatus.TODO ||
           dto.status === TaskStatus.CANCELED
         ) {
-          throw new ForbiddenException(
-            'Team members cannot change task planning status.',
-          );
+          throw new ForbiddenException({
+            statusCode: 403,
+            code: 'TASK_PLANNING_IMMUTABLE',
+            message: 'Team members cannot change task planning status.',
+          });
         }
 
         if (
           dto.status === TaskStatus.IN_PROGRESS &&
           task.status !== TaskStatus.READY &&
-          task.status !== TaskStatus.TODO &&
-          task.status !== TaskStatus.PLANNED &&
           task.status !== TaskStatus.BLOCKED
         ) {
-          throw new BadRequestException('Only assigned Ready tasks can be started by team members.');
+          throw new BadRequestException({
+            statusCode: 400,
+            code: 'TASK_START_NOT_ALLOWED',
+            message: 'Only assigned Ready tasks can be started by team members.',
+          });
         }
 
         if (dto.status === TaskStatus.IN_REVIEW && task.status !== TaskStatus.IN_PROGRESS) {
-          throw new BadRequestException('Only work in progress can be submitted for review.');
+          throw new BadRequestException({
+            statusCode: 400,
+            code: 'TASK_NOT_IN_PROGRESS',
+            message: 'Only work in progress can be submitted for review.',
+          });
         }
       }
-
-      if (task.status === TaskStatus.WAITING && dto.progress !== undefined) {
-        const unfinishedPredecessors = task.blockedBy.filter(
-          (b) => b.predecessorTask.status !== TaskStatus.DONE,
-        );
-        const names = unfinishedPredecessors.map((b) => b.predecessorTask.humanId).join(', ');
-        throw new BadRequestException({
-          statusCode: 400,
-          code: 'TASK_DEPENDENCY_PENDING',
-          message: `Progress cannot be updated while this task is waiting for prerequisites${names ? ` (${names})` : ''}.`,
-        });
-      }
     }
+
 
     let nextStatus = dto.status !== undefined ? dto.status : (task.status as TaskStatus);
     let nextProgress = dto.progress !== undefined ? dto.progress : task.progress;
@@ -932,13 +998,25 @@ export class TasksService implements OnModuleInit {
     });
 
     // Record activity logs
+    const actorUser = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { firstName: true, lastName: true },
+    });
+    const actorName = actorUser ? `${actorUser.firstName} ${actorUser.lastName}`.trim() : 'User';
+
     if (dto.status && dto.status !== task.status) {
+      let statusDesc = `Changed status from ${task.status} to ${nextStatus}`;
+      if (nextStatus === TaskStatus.IN_PROGRESS) {
+        statusDesc = `${actorName} started work on ${task.humanId}.`;
+      } else if (nextStatus === TaskStatus.IN_REVIEW) {
+        statusDesc = `${actorName} submitted ${task.humanId} for review.`;
+      }
       await this.recordActivity(
         id,
         task.projectId,
         actorId,
         TaskActionType.STATUS_CHANGED,
-        `Changed status from ${task.status} to ${nextStatus}`,
+        statusDesc,
       );
     }
 
@@ -948,9 +1026,10 @@ export class TasksService implements OnModuleInit {
         task.projectId,
         actorId,
         TaskActionType.PROGRESS_UPDATED,
-        `Updated progress from ${task.progress}% to ${nextProgress}%`,
+        `${actorName} updated progress ${task.progress}% → ${nextProgress}%`,
       );
     }
+
 
     if (isReassigned) {
       await this.recordActivity(
@@ -1006,33 +1085,31 @@ export class TasksService implements OnModuleInit {
       throw new NotFoundException('Task not found');
     }
 
-    const isAssignee = task.assigneeId === userId;
-    const isCollaborator = task.collaborators.some((c) => c.userId === userId);
-    if (!isAssignee && !isCollaborator) {
-      throw new ForbiddenException('You can submit daily updates only for work assigned to you.');
-    }
-
-    if (task.status === TaskStatus.WAITING) {
-      const unfinished = task.blockedBy.filter(
-        (b) => b.predecessorTask.status !== TaskStatus.DONE,
-      );
-      throw new BadRequestException({
-        statusCode: 400,
-        code: 'TASK_DEPENDENCY_PENDING',
-        message: `This task is still waiting for ${unfinished.length || 1} prerequisite${unfinished.length === 1 ? '' : 's'}.`,
+    // Role check: Only assigned team members can submit daily updates
+    if (actorRole !== UserRole.TEAM_MEMBER) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: 'TASK_PROGRESS_NOT_ALLOWED',
+        message: 'Admins cannot submit daily progress updates. Daily updates belong only to the assigned team member.',
       });
     }
 
-    if (task.status === TaskStatus.DONE || task.status === TaskStatus.CANCELED) {
-      throw new BadRequestException('Daily updates cannot be submitted for completed or canceled tasks.');
+    if (task.assigneeId !== userId) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: 'TASK_PROGRESS_NOT_ALLOWED',
+        message: 'You can only submit daily updates for tasks assigned to you.',
+      });
     }
 
     if (task.status !== TaskStatus.IN_PROGRESS) {
-      throw new BadRequestException({
-        code: 'TASK_NOT_STARTED',
-        message: 'Start this task before submitting a daily update.',
+      throw new ForbiddenException({
+        statusCode: 403,
+        code: 'TASK_PROGRESS_NOT_ALLOWED',
+        message: `Daily updates are only allowed when the task is IN_PROGRESS (current status: ${task.status}).`,
       });
     }
+
 
     if (dto.progress <= 0 || dto.progress >= 100) {
       throw new BadRequestException('Daily progress for active work must be between 1% and 99%. Submit work for review when it is complete.');
@@ -1117,13 +1194,19 @@ export class TasksService implements OnModuleInit {
         },
       });
 
+      const author = await tx.user.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true },
+      });
+      const authorName = author ? `${author.firstName} ${author.lastName}`.trim() : 'Assignee';
+
       await tx.taskActivity.create({
         data: {
           taskId,
           projectId: task.projectId,
           userId,
           actionType: TaskActionType.PROGRESS_UPDATED,
-          description: `Daily update submitted: ${task.progress}% to ${dto.progress}%`,
+          description: `${authorName} updated progress ${task.progress}% → ${dto.progress}%`,
           metadataJson: JSON.stringify({
             progressBefore: existing?.progressBefore ?? task.progress,
             progressAfter: dto.progress,
@@ -1281,6 +1364,12 @@ export class TasksService implements OnModuleInit {
       },
     });
 
+    const reviewer = await this.prisma.user.findUnique({
+      where: { id: reviewerId },
+      select: { firstName: true, lastName: true },
+    });
+    const reviewerName = reviewer ? `${reviewer.firstName} ${reviewer.lastName}`.trim() : 'Admin';
+
     if (dto.status === ReviewStatus.APPROVED) {
       await this.prisma.task.update({
         where: { id },
@@ -1296,7 +1385,7 @@ export class TasksService implements OnModuleInit {
         task.projectId,
         reviewerId,
         TaskActionType.REVIEW_APPROVED,
-        `Review approved. Task completed (100%).`,
+        `${reviewerName} approved ${task.humanId}.`,
       );
 
       if (task.assigneeId && task.assigneeId !== reviewerId) {
@@ -1326,7 +1415,7 @@ export class TasksService implements OnModuleInit {
         task.projectId,
         reviewerId,
         TaskActionType.REVIEW_REJECTED,
-        `Review rejected: ${dto.feedback || 'Changes requested'}`,
+        `${reviewerName} returned ${task.humanId} for changes: ${dto.feedback || 'Changes requested'}`,
       );
 
       if (task.assigneeId && task.assigneeId !== reviewerId) {

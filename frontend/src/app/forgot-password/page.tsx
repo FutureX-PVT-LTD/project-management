@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-[420px] bg-white rounded-[8px] border border-fx-border p-8 shadow-sm">
           {/* Brand Header */}
           <div className="flex flex-col items-center text-center mb-7">
-            <div className="h-11 w-11 rounded-lg bg-[#315F7D] text-white flex items-center justify-center font-bold text-lg mb-3.5 shadow-sm">
+            <div className="h-11 w-11 rounded-lg bg-[#2563EB] text-white flex items-center justify-center font-bold text-lg mb-3.5 shadow-sm">
               <svg
                 className="w-6 h-6 text-white"
                 viewBox="0 0 24 24"
@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
 
           {isSubmitted ? (
             <div className="text-center py-2 space-y-4">
-              <div className="h-12 w-12 rounded-full bg-emerald-50 text-[#315F7D] flex items-center justify-center mx-auto border border-emerald-200">
+              <div className="h-12 w-12 rounded-full bg-[#EDF8F2] text-[#237A57] flex items-center justify-center mx-auto border border-[#EDF8F2]">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div className="space-y-1">
@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
               <div className="pt-3">
                 <Link
                   href="/login"
-                  className="w-full h-11 bg-[#315F7D] hover:bg-[#274E68] text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center justify-center gap-2 focus:outline-none"
+                  className="w-full h-11 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center justify-center gap-2 focus:outline-none"
                 >
                   Return to sign in
                 </Link>
@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
-                    className="w-full h-11 px-3.5 text-sm text-fx-text-primary bg-white border border-[#D7DED9] rounded-lg placeholder:text-fx-text-muted transition duration-150 focus:outline-none focus:border-[#315F7D] focus:ring-1 focus:ring-[#315F7D] disabled:bg-gray-50 disabled:cursor-not-allowed"
+                    className="w-full h-11 px-3.5 text-sm text-fx-text-primary bg-white border border-[#E3E7EC] rounded-lg placeholder:text-fx-text-muted transition duration-150 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:cursor-not-allowed"
                     required
                   />
                 </div>
@@ -122,7 +122,7 @@ export default function ForgotPasswordPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-11 mt-2 bg-[#315F7D] hover:bg-[#274E68] text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#315F7D] focus:ring-offset-1 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+                  className="w-full h-11 mt-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
                 >
                   {isLoading ? (
                     <>

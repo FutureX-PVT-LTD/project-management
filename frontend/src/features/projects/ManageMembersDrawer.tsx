@@ -142,7 +142,7 @@ export function ManageMembersDrawer({
                   className="p-3 flex items-center justify-between gap-3 hover:bg-fx-bg-hover fx-transition"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-7 h-7 rounded-full bg-[#EDF4F8] text-[#274E68] font-semibold text-[11px] flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-[#EEF4FF] text-[#2563EB] font-semibold text-[11px] flex items-center justify-center shrink-0">
                       {m.user?.firstName?.[0]}
                       {m.user?.lastName?.[0]}
                     </div>
@@ -186,7 +186,7 @@ export function ManageMembersDrawer({
               placeholder="Search available team members..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-fx-border rounded-md text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-fx-border rounded-md text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
             />
           </div>
 

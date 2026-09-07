@@ -48,12 +48,12 @@ export function OwnerDashboard() {
 
       {/* Header & Status Strip */}
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E4E7EB] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E3E7EC] pb-6">
           <div>
-            <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#15171A]">
+            <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#181B20]">
               Executive Studio Overview
             </h1>
-            <p className="text-sm text-[#5F6368] mt-1">
+            <p className="text-sm text-[#626A73] mt-1">
               Portfolio health, key milestones, and critical blocker governance.
             </p>
           </div>
@@ -66,40 +66,40 @@ export function OwnerDashboard() {
         </div>
 
         {/* 6-KPI Summary Strip directly on canvas */}
-        <div className="rounded-[14px] bg-[#F8F9FB] border border-[#E8EBEF] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-[#E8EBEF] text-xs">
+        <div className="rounded-[14px] bg-[#F7F8FA] border border-[#E3E7EC] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-[#E3E7EC] text-xs">
             <div className="px-4 py-1.5 first:pl-0">
-              <span className="text-[#5F6368] text-[11px] font-semibold uppercase tracking-wider block">Active Projects</span>
-              <span className="text-2xl font-semibold text-[#15171A] font-mono mt-1 block">
+              <span className="text-[#626A73] text-[11px] font-semibold uppercase tracking-wider block">Active Projects</span>
+              <span className="text-2xl font-semibold text-[#181B20] font-mono mt-1 block">
                 {projects.length}
               </span>
             </div>
             <div className="px-4 py-1.5">
-              <span className="text-[#5F6368] text-[11px] font-semibold uppercase tracking-wider block">On Track</span>
-              <span className="text-2xl font-semibold text-[#248A5B] font-mono mt-1 block">
+              <span className="text-[#626A73] text-[11px] font-semibold uppercase tracking-wider block">On Track</span>
+              <span className="text-2xl font-semibold text-[#237A57] font-mono mt-1 block">
                 {projects.filter((p: any) => p.health === ProjectHealth.ON_TRACK).length}
               </span>
             </div>
             <div className="px-4 py-1.5">
-              <span className="text-[#5F6368] text-[11px] font-semibold uppercase tracking-wider block">At Risk</span>
-              <span className="text-2xl font-semibold text-[#A96F12] font-mono mt-1 block">
+              <span className="text-[#626A73] text-[11px] font-semibold uppercase tracking-wider block">At Risk</span>
+              <span className="text-2xl font-semibold text-[#A86B12] font-mono mt-1 block">
                 {projects.filter((p: any) => p.health === ProjectHealth.AT_RISK).length}
               </span>
             </div>
             <div className="px-4 py-1.5">
-              <span className="text-[#5F6368] text-[11px] font-semibold uppercase tracking-wider block">Off Track</span>
+              <span className="text-[#626A73] text-[11px] font-semibold uppercase tracking-wider block">Off Track</span>
               <span className="text-2xl font-semibold text-[#C24141] font-mono mt-1 block">
                 {projects.filter((p: any) => p.health === ProjectHealth.OFF_TRACK).length}
               </span>
             </div>
             <div className="px-4 py-1.5">
-              <span className="text-[#5F6368] text-[11px] font-semibold uppercase tracking-wider block">Completed</span>
-              <span className="text-2xl font-semibold text-[#5F6368] font-mono mt-1 block">
+              <span className="text-[#626A73] text-[11px] font-semibold uppercase tracking-wider block">Completed</span>
+              <span className="text-2xl font-semibold text-[#626A73] font-mono mt-1 block">
                 {projects.filter((p: any) => p.status === 'COMPLETED').length}
               </span>
             </div>
             <div className="px-4 py-1.5 last:pr-0">
-              <span className="text-[#5F6368] text-[11px] font-semibold uppercase tracking-wider block">Blocked Items</span>
+              <span className="text-[#626A73] text-[11px] font-semibold uppercase tracking-wider block">Blocked Items</span>
               <span className="text-2xl font-semibold text-[#C24141] font-mono mt-1 block">
                 {urgentTasks.length}
               </span>
@@ -113,23 +113,23 @@ export function OwnerDashboard() {
         {/* Main Column: Studio Portfolio Table */}
         <div className="flex flex-col gap-6 min-w-0">
           <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E4E7EB]">
-              <h2 className="text-[14px] font-semibold text-[#15171A]">
+            <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
+              <h2 className="text-[14px] font-semibold text-[#181B20]">
                 Studio Game Portfolio ({projects.length})
               </h2>
               <Link
                 href="/projects"
-                className="text-xs text-[#0088FF] font-medium hover:text-[#0068CC] flex items-center gap-1"
+                className="text-xs text-[#2563EB] font-medium hover:text-[#1D4ED8] flex items-center gap-1"
               >
                 <span>Full Directory</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
-            <div className="overflow-x-auto rounded-[16px] bg-white border border-[#E4E7EB] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+            <div className="overflow-x-auto rounded-[16px] bg-white border border-[#E3E7EC] shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-[#F8F9FA] text-[#5F6368] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E4E7EB]">
+                  <tr className="bg-[#F7F8FA] text-[#626A73] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E3E7EC]">
                     <th className="py-3 px-4">Game Project</th>
                     <th className="py-3 px-3">Status / Health</th>
                     <th className="py-3 px-3">Progress</th>
@@ -137,10 +137,10 @@ export function OwnerDashboard() {
                     <th className="py-3 px-4 text-right">Target Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E4E7EB] text-[#15171A]">
+                <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                   {projects.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-8 text-center text-[#92979E]">
+                      <td colSpan={5} className="py-8 text-center text-[#929AA3]">
                         No studio projects found. Create your first project using the button above.
                       </td>
                     </tr>
@@ -148,14 +148,14 @@ export function OwnerDashboard() {
                     projects.map((proj: any) => (
                       <tr
                         key={proj.id}
-                        className="hover:bg-[#F8F9FA] cursor-pointer fx-transition"
+                        className="hover:bg-[#F7F8FA] cursor-pointer fx-transition"
                       >
                         <td className="py-3.5 px-4">
                           <Link href={`/projects/${proj.id}`} className="block">
-                            <p className="font-semibold text-[#15171A] hover:text-[#0088FF] text-sm">
+                            <p className="font-semibold text-[#181B20] hover:text-[#2563EB] text-sm">
                               {proj.name}
                             </p>
-                            <p className="text-[11px] text-[#92979E] font-mono mt-0.5">{proj.key || proj.code}</p>
+                            <p className="text-[11px] text-[#929AA3] font-mono mt-0.5">{proj.key || proj.code}</p>
                           </Link>
                         </td>
                         <td className="py-3.5 px-3">
@@ -164,12 +164,12 @@ export function OwnerDashboard() {
                         <td className="py-3.5 px-3 w-36">
                           <Progress value={proj.progress || 0} size="xs" />
                         </td>
-                        <td className="py-3.5 px-3 text-[#5F6368]">
+                        <td className="py-3.5 px-3 text-[#626A73]">
                           {proj.projectManager
                             ? `${proj.projectManager.firstName} ${proj.projectManager.lastName}`
                             : proj.projectManagerName || 'Unassigned Admin'}
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono text-[#5F6368] font-medium">
+                        <td className="py-3.5 px-4 text-right font-mono text-[#626A73] font-medium">
                           {proj.targetDate ? formatDate(proj.targetDate) : '—'}
                         </td>
                       </tr>
@@ -193,17 +193,17 @@ export function OwnerDashboard() {
 
           {/* Needs Attention Feed */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-[#E4E7EB]">
-              <h3 className="text-[14px] font-semibold text-[#15171A] flex items-center gap-2">
-                <AlertCircle className="w-3.5 h-3.5 text-[#A96F12]" />
+            <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
+              <h3 className="text-[14px] font-semibold text-[#181B20] flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 text-[#A86B12]" />
                 <span>Needs Immediate Attention</span>
               </h3>
             </div>
 
             {urgentTasks.length === 0 ? (
-              <div className="bg-[#F8F9FA] border border-[#E4E7EB] rounded-[10px] px-4 py-3 flex items-center gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-[#248A5B] shrink-0" />
-                <p className="text-xs text-[#15171A] font-medium">
+              <div className="bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] px-4 py-3 flex items-center gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-[#237A57] shrink-0" />
+                <p className="text-xs text-[#181B20] font-medium">
                   ✓ All studio deliverables healthy.
                 </p>
               </div>
@@ -214,15 +214,15 @@ export function OwnerDashboard() {
                     key={task.id}
                     onClick={() => task.taskId && setSelectedTaskId(task.taskId)}
                     className={cn(
-                      'py-3 hover:text-[#0088FF] fx-transition text-xs',
+                      'py-3 hover:text-[#2563EB] fx-transition text-xs',
                       task.taskId && 'cursor-pointer',
                     )}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-[#15171A] truncate">{task.title}</span>
+                      <span className="font-semibold text-[#181B20] truncate">{task.title}</span>
                       <PriorityBadge priority={task.priority || TaskPriority.HIGH} compact />
                     </div>
-                    <p className="text-[11px] text-[#92979E] mt-0.5 truncate">
+                    <p className="text-[11px] text-[#929AA3] mt-0.5 truncate">
                       {task.project?.name || task.subtitle || task.reason || task.projectKey}
                     </p>
                   </div>

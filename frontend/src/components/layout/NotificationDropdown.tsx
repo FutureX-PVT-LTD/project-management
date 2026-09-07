@@ -70,7 +70,7 @@ export function NotificationDropdown() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-fx-text-primary">Notifications</span>
               {unreadCount > 0 && (
-                <span className="text-xs bg-[#EDF4F8] text-[#274E68] font-semibold px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-[#EEF4FF] text-[#2563EB] font-semibold px-2 py-0.5 rounded-full">
                   {unreadCount} new
                 </span>
               )}
@@ -78,7 +78,7 @@ export function NotificationDropdown() {
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllReadMutation.mutate()}
-                className="text-xs text-[#315F7D] hover:text-[#274E68] hover:underline flex items-center gap-1 font-medium"
+                className="text-xs text-[#2563EB] hover:text-[#1D4ED8] hover:underline flex items-center gap-1 font-medium"
               >
                 <CheckCheck className="w-3.5 h-3.5" /> Mark all read
               </button>
@@ -102,7 +102,7 @@ export function NotificationDropdown() {
                 key={n.id}
                 onClick={() => handleItemClick(n)}
                 className={`p-3.5 hover:bg-fx-bg/70 cursor-pointer fx-transition text-xs flex gap-3 ${
-                  !n.isRead ? 'bg-[#EDF4F8]/50' : ''
+                  !n.isRead ? 'bg-[#EEF4FF]/50' : ''
                 }`}
               >
                 <div className="flex-1">
@@ -115,7 +115,7 @@ export function NotificationDropdown() {
                   <p className="text-fx-text-secondary mt-1 line-clamp-2">{n.message}</p>
                 </div>
                 {!n.isRead && (
-                  <span className="h-2 w-2 rounded-full bg-[#315F7D] mt-1 shrink-0" />
+                  <span className="h-2 w-2 rounded-full bg-[#2563EB] mt-1 shrink-0" />
                 )}
               </div>
             ))}

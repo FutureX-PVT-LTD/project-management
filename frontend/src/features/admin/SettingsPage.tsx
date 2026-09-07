@@ -36,7 +36,7 @@ export function SettingsPage() {
             </div>
             <div className="flex items-center justify-between py-2">
               <span className="text-fx-text-muted">Core Engine</span>
-              <span className="text-[#315F7D] font-medium flex items-center gap-1">
+              <span className="text-[#237A57] font-medium flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" /> Online & Operational
               </span>
             </div>

@@ -45,7 +45,7 @@ export function ActionMenu({
         ) : (
           <button
             type="button"
-            className="p-1.5 rounded-md text-fx-text-muted hover:text-fx-text-primary hover:bg-fx-bg-hover fx-transition focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
+            className="p-1.5 rounded-md text-fx-text-muted hover:text-fx-text-primary hover:bg-fx-bg-hover fx-transition focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
             aria-label="Actions menu"
           >
             <MoreHorizontal className="w-4 h-4" />

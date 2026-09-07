@@ -84,7 +84,7 @@ export function UserManagementPage() {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="h-8 px-2.5 text-xs bg-fx-bg border border-fx-border rounded-md text-fx-text-secondary focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
+              className="h-8 px-2.5 text-xs bg-fx-bg border border-fx-border rounded-md text-fx-text-secondary focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
             >
               <option value="ALL">All Roles</option>
               <option value={UserRole.ADMIN}>Admin (Manager)</option>
@@ -158,7 +158,7 @@ export function UserManagementPage() {
                       <tr key={u.id} className="hover:bg-fx-bg-hover fx-transition">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-[#EDF4F8] text-[#274E68] font-semibold text-[11px] flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-[#EEF4FF] text-[#2563EB] font-semibold text-[11px] flex items-center justify-center shrink-0">
                               {u.firstName?.[0]}
                               {u.lastName?.[0]}
                             </div>
@@ -178,7 +178,7 @@ export function UserManagementPage() {
                             className={cn(
                               'text-[11px] font-semibold uppercase px-2 py-0.5 rounded border',
                               isAdminUser
-                                ? 'bg-[#EDF4F8] text-[#274E68] border-[#315F7D]/30'
+                                ? 'bg-[#EEF4FF] text-[#2563EB] border-[#2563EB]/30'
                                 : 'bg-fx-bg text-fx-text-secondary border-fx-border',
                             )}
                           >
@@ -194,8 +194,8 @@ export function UserManagementPage() {
                             className={cn(
                               'text-[10px] uppercase font-semibold px-2 py-0.5 rounded border',
                               isActive
-                                ? 'bg-[#EDF7F2] text-[#287A5A] border-[#C6E7D2]'
-                                : 'bg-red-50 text-red-800 border-red-200',
+                                ? 'bg-[#EDF8F2] text-[#237A57] border-[#EDF8F2]'
+                                : 'bg-[#FDEEEE] text-[#C24141] border-[#FDEEEE]',
                             )}
                           >
                             {isActive ? 'Active' : 'Inactive'}

@@ -4,47 +4,85 @@
 
 @layer base {
   :root {
-    /* FutureX True Blue Accent System */
-    --fx-accent: #0088FF;
-    --fx-accent-hover: #0077E6;
-    --fx-accent-pressed: #0068CC;
-    --fx-accent-dark: #005EBA;
-    --fx-accent-soft: #EAF5FF;
-    --fx-accent-very-soft: #F5FAFF;
-    --fx-accent-subtle: #F8F9FB;
+    /* FutureX Centralized Design System Tokens */
 
-    /* Base Surfaces */
-    --bg-app: #FFFFFF;
-    --bg-canvas: #FFFFFF;
-    --bg-surface: #FFFFFF;
-    --bg-surface-secondary: #F8F9FB;
-    --bg-surface-tertiary: #F4F6F8;
-    --bg-hover: #F5F7F9;
+    /* Surfaces */
+    --fx-bg: #FFFFFF;
+    --fx-surface: #FFFFFF;
+    --fx-surface-secondary: #F7F8FA;
+    --fx-surface-soft: #F2F4F7;
+
+    /* Dividers & Borders */
+    --fx-border: #E3E7EC;
+    --fx-border-strong: #D4DAE1;
+    --fx-border-subtle: #E3E7EC;
 
     /* Typography */
-    --text-primary: #15171A;
-    --text-secondary: #5F6368;
-    --text-muted: #92979E;
-    --text-disabled: #B8B2AC;
+    --fx-text: #181B20;
+    --fx-text-primary: #181B20;
+    --fx-text-secondary: #626A73;
+    --fx-text-muted: #929AA3;
+    --fx-text-disabled: #B8B2AC;
 
-    /* Subtle Neutral Dividers */
-    --border: #E4E7EB;
-    --border-strong: #D8DDE3;
-    --border-subtle: #E8EBEF;
+    /* Primary Blue Accent System */
+    --fx-primary: #2563EB;
+    --fx-primary-hover: #1D4ED8;
+    --fx-primary-pressed: #1E40AF;
+    --fx-primary-soft: #EEF4FF;
+    --fx-primary-very-soft: #F6F9FF;
+    --fx-deep-navy: #163A5F;
 
-    /* Strict Semantic Status Accents */
-    --semantic-ready: #248A5B;
-    --semantic-ready-bg: #EDF8F2;
-    --semantic-in-progress: #0077E6;
-    --semantic-in-progress-bg: #EAF5FF;
-    --semantic-waiting: #A96F12;
-    --semantic-waiting-bg: #FFF6E5;
-    --semantic-in-review: #7558B8;
-    --semantic-in-review-bg: #F4F0FC;
-    --semantic-blocked: #C24141;
-    --semantic-blocked-bg: #FDEEEE;
-    --semantic-done: #248A5B;
-    --semantic-done-bg: #EDF8F2;
+    /* Semantic Status System */
+    --fx-status-ready-text: #237A57;
+    --fx-status-ready-bg: #EDF8F2;
+    --fx-status-inprogress-text: #2563EB;
+    --fx-status-inprogress-bg: #EEF4FF;
+    --fx-status-waiting-text: #A86B12;
+    --fx-status-waiting-bg: #FFF6E5;
+    --fx-status-inreview-text: #7557B5;
+    --fx-status-inreview-bg: #F4F0FC;
+    --fx-status-blocked-text: #C24141;
+    --fx-status-blocked-bg: #FDEEEE;
+    --fx-status-done-text: #237A57;
+    --fx-status-done-bg: #EDF8F2;
+
+    /* Backward Compatible Aliases */
+    --fx-accent: var(--fx-primary);
+    --fx-accent-hover: var(--fx-primary-hover);
+    --fx-accent-pressed: var(--fx-primary-pressed);
+    --fx-accent-dark: var(--fx-primary-pressed);
+    --fx-accent-soft: var(--fx-primary-soft);
+    --fx-accent-very-soft: var(--fx-primary-very-soft);
+    --fx-accent-subtle: var(--fx-surface-secondary);
+
+    --bg-app: var(--fx-bg);
+    --bg-canvas: var(--fx-bg);
+    --bg-surface: var(--fx-surface);
+    --bg-surface-secondary: var(--fx-surface-secondary);
+    --bg-surface-tertiary: var(--fx-surface-soft);
+    --bg-hover: var(--fx-surface-secondary);
+
+    --text-primary: var(--fx-text-primary);
+    --text-secondary: var(--fx-text-secondary);
+    --text-muted: var(--fx-text-muted);
+    --text-disabled: var(--fx-text-disabled);
+
+    --border: var(--fx-border);
+    --border-strong: var(--fx-border-strong);
+    --border-subtle: var(--fx-border);
+
+    --semantic-ready: var(--fx-status-ready-text);
+    --semantic-ready-bg: var(--fx-status-ready-bg);
+    --semantic-in-progress: var(--fx-status-inprogress-text);
+    --semantic-in-progress-bg: var(--fx-status-inprogress-bg);
+    --semantic-waiting: var(--fx-status-waiting-text);
+    --semantic-waiting-bg: var(--fx-status-waiting-bg);
+    --semantic-in-review: var(--fx-status-inreview-text);
+    --semantic-in-review-bg: var(--fx-status-inreview-bg);
+    --semantic-blocked: var(--fx-status-blocked-text);
+    --semantic-blocked-bg: var(--fx-status-blocked-bg);
+    --semantic-done: var(--fx-status-done-text);
+    --semantic-done-bg: var(--fx-status-done-bg);
   }
 
   * {
@@ -57,8 +95,8 @@
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
-    background-color: var(--bg-app);
-    color: var(--text-primary);
+    background-color: var(--fx-bg);
+    color: var(--fx-text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.45;
@@ -82,23 +120,23 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #D8DDE3;
+    background: var(--fx-border-strong);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #92979E;
+    background: var(--fx-text-muted);
   }
 
   /* Accessible Subtle Focus Outline */
   :focus-visible {
-    outline: 2px solid var(--fx-accent);
+    outline: 2px solid var(--fx-primary);
     outline-offset: 1px;
   }
 
   ::selection {
-    background-color: #EAF5FF;
-    color: #005EBA;
+    background-color: var(--fx-primary-soft);
+    color: var(--fx-primary-pressed);
   }
 }
 
@@ -111,20 +149,20 @@
   /* Surface System Helper Classes */
   .fx-surface-primary {
     background-color: #FFFFFF;
-    border: 1px solid #E4E7EB;
+    border: 1px solid var(--fx-border);
     border-radius: 16px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
   }
 
   .fx-surface-utility {
     background-color: #FFFFFF;
-    border: 1px solid #E8EBEF;
+    border: 1px solid var(--fx-border);
     border-radius: 14px;
   }
 
   .fx-surface-row {
     background-color: #FFFFFF;
-    border: 1px solid #E8EBEF;
+    border: 1px solid var(--fx-border);
     border-radius: 12px;
   }
 }

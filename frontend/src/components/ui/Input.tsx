@@ -13,7 +13,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className="w-full relative">
         <div className="relative flex items-center">
           {leftIcon && (
-            <div className="absolute left-3 text-[#92979E] pointer-events-none flex items-center justify-center">
+            <div className="absolute left-3 text-[#929AA3] pointer-events-none flex items-center justify-center">
               {leftIcon}
             </div>
           )}
@@ -22,9 +22,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             disabled={disabled}
             className={cn(
-              'w-full h-10 px-3.5 py-2 bg-[#F8F9FB] text-[13px] text-[#15171A] rounded-[10px] border border-[#E4E7EB] placeholder:text-[#92979E] fx-transition',
-              'focus:outline-none focus:bg-white focus:border-[#0088FF] focus:ring-1 focus:ring-[#0088FF]',
-              'disabled:bg-[#F4F6F8] disabled:text-[#92979E] disabled:cursor-not-allowed',
+              'w-full h-10 px-3.5 py-2 bg-[#F7F8FA] text-[13px] text-[#181B20] rounded-[10px] border border-[#E3E7EC] placeholder:text-[#929AA3] fx-transition',
+              'focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]',
+              'disabled:bg-[#F2F4F7] disabled:text-[#929AA3] disabled:cursor-not-allowed',
               leftIcon && 'pl-9',
               rightIcon && 'pr-9',
               error && 'border-[#C24141] focus:border-[#C24141] focus:ring-[#C24141]',
@@ -33,7 +33,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3 text-[#92979E] flex items-center justify-center">
+            <div className="absolute right-3 text-[#929AA3] flex items-center justify-center">
               {rightIcon}
             </div>
           )}

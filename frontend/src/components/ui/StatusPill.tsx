@@ -16,37 +16,37 @@ const statusConfig: Record<
 > = {
   [TaskStatus.TODO]: {
     label: 'To Do',
-    bg: 'bg-[#F4F6F8]',
-    text: 'text-[#5F6368]',
+    bg: 'bg-[#F2F4F7]',
+    text: 'text-[#626A73]',
   },
   [TaskStatus.PLANNED]: {
     label: 'Planned',
-    bg: 'bg-[#F4F6F8]',
-    text: 'text-[#92979E]',
+    bg: 'bg-[#F2F4F7]',
+    text: 'text-[#929AA3]',
   },
   [TaskStatus.WAITING]: {
     label: 'Waiting',
     bg: 'bg-[#FFF6E5]',
-    text: 'text-[#A96F12]',
-    icon: <Lock className="w-2.5 h-2.5 text-[#A96F12] shrink-0" />,
+    text: 'text-[#A86B12]',
+    icon: <Lock className="w-2.5 h-2.5 text-[#A86B12] shrink-0" />,
   },
   [TaskStatus.READY]: {
     label: 'Ready',
     bg: 'bg-[#EDF8F2]',
-    text: 'text-[#248A5B]',
-    dot: 'bg-[#248A5B]',
+    text: 'text-[#237A57]',
+    dot: 'bg-[#237A57]',
   },
   [TaskStatus.IN_PROGRESS]: {
     label: 'In Progress',
-    bg: 'bg-[#EAF5FF]',
-    text: 'text-[#0077E6]',
-    dot: 'bg-[#0077E6]',
+    bg: 'bg-[#EEF4FF]',
+    text: 'text-[#2563EB]',
+    dot: 'bg-[#2563EB]',
   },
   [TaskStatus.IN_REVIEW]: {
     label: 'In Review',
     bg: 'bg-[#F4F0FC]',
-    text: 'text-[#7558B8]',
-    dot: 'bg-[#7558B8]',
+    text: 'text-[#7557B5]',
+    dot: 'bg-[#7557B5]',
   },
   [TaskStatus.BLOCKED]: {
     label: 'Blocked',
@@ -56,19 +56,19 @@ const statusConfig: Record<
   },
   [TaskStatus.BACKLOG]: {
     label: 'Backlog',
-    bg: 'bg-[#F4F6F8]',
-    text: 'text-[#92979E]',
+    bg: 'bg-[#F2F4F7]',
+    text: 'text-[#929AA3]',
   },
   [TaskStatus.DONE]: {
     label: 'Completed',
     bg: 'bg-[#EDF8F2]',
-    text: 'text-[#248A5B]',
-    dot: 'bg-[#248A5B]',
+    text: 'text-[#237A57]',
+    dot: 'bg-[#237A57]',
   },
   [TaskStatus.CANCELED]: {
     label: 'Cancelled',
-    bg: 'bg-[#F4F6F8]',
-    text: 'text-[#92979E]',
+    bg: 'bg-[#F2F4F7]',
+    text: 'text-[#929AA3]',
   },
 };
 
@@ -76,8 +76,8 @@ export function StatusPill({ status, size = 'sm', className, showDot = true }: S
   const safeStatus = status || 'UNKNOWN';
   const config = statusConfig[safeStatus] || {
     label: safeStatus.replace(/_/g, ' '),
-    bg: 'bg-[#F4F6F8]',
-    text: 'text-[#5F6368]',
+    bg: 'bg-[#F2F4F7]',
+    text: 'text-[#626A73]',
   };
 
   const sizeStyles = {

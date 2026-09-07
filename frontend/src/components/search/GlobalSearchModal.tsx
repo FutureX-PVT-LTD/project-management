@@ -133,11 +133,11 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
       <div className="min-h-full flex items-start justify-center pt-16 sm:pt-24 px-4 pb-8">
         <div
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-2xl bg-white rounded-[18px] border border-[#E4E7EB] shadow-[0_10px_30px_rgba(15,23,42,0.08)] overflow-hidden flex flex-col fx-transition animate-fadeIn"
+          className="relative w-full max-w-2xl bg-white rounded-[18px] border border-[#E3E7EC] shadow-[0_10px_30px_rgba(15,23,42,0.08)] overflow-hidden flex flex-col fx-transition animate-fadeIn"
         >
           {/* Search Header Bar */}
-          <div className="relative border-b border-[#E4E7EB] flex items-center px-4">
-            <Search className="w-4 h-4 text-[#92979E] shrink-0" />
+          <div className="relative border-b border-[#E3E7EC] flex items-center px-4">
+            <Search className="w-4 h-4 text-[#929AA3] shrink-0" />
             <input
               ref={inputRef}
               type="text"
@@ -145,7 +145,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Search projects, tasks, or team members..."
-              className="w-full h-13 pl-3 pr-20 text-[14px] text-[#15171A] placeholder:text-[#92979E] bg-transparent outline-none font-medium"
+              className="w-full h-13 pl-3 pr-20 text-[14px] text-[#181B20] placeholder:text-[#929AA3] bg-transparent outline-none font-medium"
             />
 
             <div className="absolute right-4 flex items-center gap-1.5">
@@ -153,12 +153,12 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  className="p-1 text-[#92979E] hover:text-[#15171A] rounded-[5px] fx-transition"
+                  className="p-1 text-[#929AA3] hover:text-[#181B20] rounded-[5px] fx-transition"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               )}
-              <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded-[5px] bg-[#F4F6F8] text-[#5F6368] border border-[#E4E7EB]">
+              <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded-[5px] bg-[#F2F4F7] text-[#626A73] border border-[#E3E7EC]">
                 ESC
               </kbd>
             </div>
@@ -167,13 +167,13 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
           {/* Results Area */}
           <div className="max-h-[380px] overflow-y-auto p-2 divide-y-0">
             {isLoading ? (
-              <div className="py-10 text-center text-xs text-[#92979E]">
+              <div className="py-10 text-center text-xs text-[#929AA3]">
                 Searching workspace...
               </div>
             ) : !query.trim() ? (
               /* Quick Navigation Suggestions */
               <div className="space-y-1">
-                <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#92979E]">
+                <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#929AA3]">
                   Quick Navigation
                 </p>
                 {flatItems.map((item: any, idx: number) => {
@@ -186,22 +186,22 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                       onMouseEnter={() => setSelectedIndex(idx)}
                       className={cn(
                         'px-3 py-2.5 rounded-[10px] flex items-center justify-between cursor-pointer fx-transition text-xs',
-                        isSelected ? 'bg-[#EAF5FF] text-[#005EBA]' : 'hover:bg-[#F8F9FB] text-[#15171A]',
+                        isSelected ? 'bg-[#EEF4FF] text-[#2563EB]' : 'hover:bg-[#F7F8FA] text-[#181B20]',
                       )}
                     >
                       <div className="flex items-center gap-2.5">
-                        <Icon className={cn('w-4 h-4', isSelected ? 'text-[#0088FF]' : 'text-[#92979E]')} />
+                        <Icon className={cn('w-4 h-4', isSelected ? 'text-[#2563EB]' : 'text-[#929AA3]')} />
                         <span className="font-medium text-[13px]">{item.title}</span>
                       </div>
-                      <ArrowRight className={cn('w-3.5 h-3.5', isSelected ? 'text-[#0088FF]' : 'text-[#92979E]')} />
+                      <ArrowRight className={cn('w-3.5 h-3.5', isSelected ? 'text-[#2563EB]' : 'text-[#929AA3]')} />
                     </div>
                   );
                 })}
               </div>
             ) : flatItems.length === 0 ? (
               <div className="py-12 text-center space-y-1">
-                <p className="text-sm font-semibold text-[#15171A]">No results found</p>
-                <p className="text-xs text-[#5F6368]">
+                <p className="text-sm font-semibold text-[#181B20]">No results found</p>
+                <p className="text-xs text-[#626A73]">
                   No projects, tasks, or people matched "{query}".
                 </p>
               </div>
@@ -211,7 +211,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                 {/* Projects Section */}
                 {projects.length > 0 && (
                   <div>
-                    <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#92979E]">
+                    <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#929AA3]">
                       Projects ({projects.length})
                     </p>
                     <div className="space-y-0.5">
@@ -226,14 +226,14 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                             onMouseEnter={() => setSelectedIndex(itemIdx)}
                             className={cn(
                               'px-3 py-2 rounded-[10px] flex items-center justify-between cursor-pointer fx-transition text-xs',
-                              isSelected ? 'bg-[#EAF5FF] text-[#005EBA]' : 'hover:bg-[#F8F9FB] text-[#15171A]',
+                              isSelected ? 'bg-[#EEF4FF] text-[#2563EB]' : 'hover:bg-[#F7F8FA] text-[#181B20]',
                             )}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <FolderKanban className={cn('w-4 h-4 shrink-0', isSelected ? 'text-[#0088FF]' : 'text-[#92979E]')} />
+                              <FolderKanban className={cn('w-4 h-4 shrink-0', isSelected ? 'text-[#2563EB]' : 'text-[#929AA3]')} />
                               <div className="truncate">
                                 <span className="font-semibold text-[13px]">{p.name}</span>
-                                <span className="ml-2 font-mono text-[11px] text-[#92979E]">{p.key}</span>
+                                <span className="ml-2 font-mono text-[11px] text-[#929AA3]">{p.key}</span>
                               </div>
                             </div>
                             <HealthBadge health={p.health} />
@@ -247,7 +247,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                 {/* Tasks Section */}
                 {tasks.length > 0 && (
                   <div>
-                    <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#92979E]">
+                    <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#929AA3]">
                       Tasks ({tasks.length})
                     </p>
                     <div className="space-y-0.5">
@@ -262,17 +262,17 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                             onMouseEnter={() => setSelectedIndex(itemIdx)}
                             className={cn(
                               'px-3 py-2 rounded-[10px] flex items-center justify-between cursor-pointer fx-transition text-xs',
-                              isSelected ? 'bg-[#EAF5FF] text-[#005EBA]' : 'hover:bg-[#F8F9FB] text-[#15171A]',
+                              isSelected ? 'bg-[#EEF4FF] text-[#2563EB]' : 'hover:bg-[#F7F8FA] text-[#181B20]',
                             )}
                           >
                             <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                              <CheckSquare className={cn('w-4 h-4 shrink-0', isSelected ? 'text-[#0088FF]' : 'text-[#92979E]')} />
+                              <CheckSquare className={cn('w-4 h-4 shrink-0', isSelected ? 'text-[#2563EB]' : 'text-[#929AA3]')} />
                               <div className="truncate min-w-0">
                                 <div className="flex items-center gap-1.5 truncate">
-                                  <span className="font-mono text-[11px] font-semibold text-[#5F6368]">{t.humanId}</span>
+                                  <span className="font-mono text-[11px] font-semibold text-[#626A73]">{t.humanId}</span>
                                   <span className="font-semibold text-[13px] truncate">{t.title}</span>
                                 </div>
-                                <p className="text-[11px] text-[#92979E] truncate">{t.projectName}</p>
+                                <p className="text-[11px] text-[#929AA3] truncate">{t.projectName}</p>
                               </div>
                             </div>
                             <div className="shrink-0 ml-2">
@@ -288,7 +288,7 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                 {/* Users Section */}
                 {users.length > 0 && (
                   <div>
-                    <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#92979E]">
+                    <p className="px-3 pt-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[#929AA3]">
                       Team Members ({users.length})
                     </p>
                     <div className="space-y-0.5">
@@ -303,19 +303,19 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
                             onMouseEnter={() => setSelectedIndex(itemIdx)}
                             className={cn(
                               'px-3 py-2 rounded-[10px] flex items-center justify-between cursor-pointer fx-transition text-xs',
-                              isSelected ? 'bg-[#EAF5FF] text-[#005EBA]' : 'hover:bg-[#F8F9FB] text-[#15171A]',
+                              isSelected ? 'bg-[#EEF4FF] text-[#2563EB]' : 'hover:bg-[#F7F8FA] text-[#181B20]',
                             )}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className="w-6 h-6 rounded-full bg-[#EAF5FF] text-[#0077E6] text-[10px] font-semibold flex items-center justify-center shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-[#EEF4FF] text-[#2563EB] text-[10px] font-semibold flex items-center justify-center shrink-0">
                                 {getInitials(u.firstName, u.lastName)}
                               </div>
                               <div className="truncate">
                                 <span className="font-semibold text-[13px]">{u.firstName} {u.lastName}</span>
-                                <span className="ml-2 text-[11px] text-[#92979E]">{u.jobTitle || 'Team Member'}</span>
+                                <span className="ml-2 text-[11px] text-[#929AA3]">{u.jobTitle || 'Team Member'}</span>
                               </div>
                             </div>
-                            <span className="text-[11px] text-[#0077E6] font-medium">Profile →</span>
+                            <span className="text-[11px] text-[#2563EB] font-medium">Profile →</span>
                           </div>
                         );
                       })}
@@ -327,23 +327,23 @@ export function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModalProps) {
           </div>
 
           {/* Footer Keyboard Hints */}
-          <div className="px-4 py-2.5 bg-[#F8F9FB] border-t border-[#E4E7EB] flex items-center justify-between text-[11px] text-[#92979E]">
+          <div className="px-4 py-2.5 bg-[#F7F8FA] border-t border-[#E3E7EC] flex items-center justify-between text-[11px] text-[#929AA3]">
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1">
-                <kbd className="font-mono px-1 py-0.2 rounded bg-white border border-[#E4E7EB] text-[10px]">↑</kbd>
-                <kbd className="font-mono px-1 py-0.2 rounded bg-white border border-[#E4E7EB] text-[10px]">↓</kbd>
+                <kbd className="font-mono px-1 py-0.2 rounded bg-white border border-[#E3E7EC] text-[10px]">↑</kbd>
+                <kbd className="font-mono px-1 py-0.2 rounded bg-white border border-[#E3E7EC] text-[10px]">↓</kbd>
                 <span>navigate</span>
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="font-mono px-1 py-0.2 rounded bg-white border border-[#E4E7EB] text-[10px]">↵</kbd>
+                <kbd className="font-mono px-1 py-0.2 rounded bg-white border border-[#E3E7EC] text-[10px]">↵</kbd>
                 <span>select</span>
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="font-mono px-1 py-0.2 rounded bg-white border border-[#E4E7EB] text-[10px]">esc</kbd>
+                <kbd className="font-mono px-1 py-0.2 rounded bg-white border border-[#E3E7EC] text-[10px]">esc</kbd>
                 <span>close</span>
               </span>
             </div>
-            <span className="text-[10px] font-medium text-[#5F6368]">
+            <span className="text-[10px] font-medium text-[#626A73]">
               FutureX Global Command
             </span>
           </div>

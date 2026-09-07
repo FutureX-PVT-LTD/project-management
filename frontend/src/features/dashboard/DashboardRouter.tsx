@@ -14,8 +14,9 @@ export function DashboardRouter() {
   if (isLoading) {
     return (
       <AppShell>
-        <div className="flex items-center justify-center p-24">
-          <div className="h-7 w-7 border-2 border-[#315F7D] border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-7 w-7 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
+          <p className="text-xs text-fx-text-muted font-medium">Loading your workspace...</p>
         </div>
       </AppShell>
     );

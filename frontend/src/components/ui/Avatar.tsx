@@ -24,11 +24,11 @@ export function Avatar({ src, name, firstName, lastName, size = 'sm', className 
   };
 
   const colors = [
-    'bg-[#EEF4F7] text-[#274E68]',
-    'bg-[#F8F9FA] text-[#62676D]',
-    'bg-[#EDF0F2] text-[#315F7D]',
-    'bg-[#EEF4FD] text-[#3974C6]',
-    'bg-[#F4F0FB] text-[#7359AA]',
+    'bg-[#EEF4FF] text-[#2563EB]',
+    'bg-[#F7F8FA] text-[#626A73]',
+    'bg-[#EEF4FF] text-[#163A5F]',
+    'bg-[#F4F0FC] text-[#7557B5]',
+    'bg-[#EDF8F2] text-[#237A57]',
   ];
   const charCode = displayName.charCodeAt(0) || 0;
   const colorClass = colors[charCode % colors.length];

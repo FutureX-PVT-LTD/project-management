@@ -21,8 +21,11 @@ import { Button } from '@/components/ui/Button';
 import { AppShell } from '@/components/layout/AppShell';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { formatDate, formatTaskId, cn } from '@/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
+import { canStartTask, canUpdateTaskProgress } from '@/lib/permissions';
 
 function MyWorkContent() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'ALL';
   const queryClient = useQueryClient();
@@ -114,15 +117,15 @@ function MyWorkContent() {
       if (needsAttention.length > 0)
         groups.push({ groupName: 'Needs Attention', items: needsAttention, dotColor: 'bg-[#C24141]' });
       if (inProgress.length > 0)
-        groups.push({ groupName: 'In Progress', items: inProgress, dotColor: 'bg-[#0077E6]' });
+        groups.push({ groupName: 'In Progress', items: inProgress, dotColor: 'bg-[#2563EB]' });
       if (ready.length > 0)
-        groups.push({ groupName: 'Ready to Start', items: ready, dotColor: 'bg-[#248A5B]' });
+        groups.push({ groupName: 'Ready to Start', items: ready, dotColor: 'bg-[#237A57]' });
       if (waiting.length > 0)
-        groups.push({ groupName: 'Waiting on Prerequisites', items: waiting, dotColor: 'bg-[#A96F12]' });
+        groups.push({ groupName: 'Waiting on Prerequisites', items: waiting, dotColor: 'bg-[#A86B12]' });
       if (upcoming.length > 0)
-        groups.push({ groupName: 'Upcoming', items: upcoming, dotColor: 'bg-[#92979E]' });
+        groups.push({ groupName: 'Upcoming', items: upcoming, dotColor: 'bg-[#929AA3]' });
       if (done.length > 0)
-        groups.push({ groupName: 'Completed', items: done, dotColor: 'bg-[#248A5B]' });
+        groups.push({ groupName: 'Completed', items: done, dotColor: 'bg-[#237A57]' });
 
       return groups.length > 0 ? groups : [{ groupName: 'Assigned Work', items: [] }];
     }
@@ -152,18 +155,32 @@ function MyWorkContent() {
   const renderTaskAction = (task: any) => {
     switch (task.status) {
       case TaskStatus.READY:
+        if (canStartTask(user, task)) {
+          return (
+            <Button
+              size="xs"
+              variant="primary"
+              loading={startWorkMutation.isPending}
+              onClick={(e) => {
+                e.stopPropagation();
+                startWorkMutation.mutate(task.id);
+              }}
+              leftIcon={<Play className="w-3 h-3 fill-white" />}
+            >
+              Start Work
+            </Button>
+          );
+        }
         return (
           <Button
             size="xs"
-            variant="primary"
-            loading={startWorkMutation.isPending}
+            variant="secondary"
             onClick={(e) => {
               e.stopPropagation();
-              startWorkMutation.mutate(task.id);
+              setSelectedTaskId(task.id);
             }}
-            leftIcon={<Play className="w-3 h-3 fill-white" />}
           >
-            Start Work
+            View Details
           </Button>
         );
       case TaskStatus.IN_PROGRESS:
@@ -176,7 +193,7 @@ function MyWorkContent() {
               setSelectedTaskId(task.id);
             }}
           >
-            Update Progress
+            {canUpdateTaskProgress(user, task) ? 'Update Progress' : 'View Progress'}
           </Button>
         );
       case TaskStatus.IN_REVIEW:
@@ -276,17 +293,17 @@ function MyWorkContent() {
 
       <div className="space-y-8 w-full">
         {/* Header */}
-        <div className="border-b border-[#E4E7EB] pb-6">
-          <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#15171A]">
+        <div className="border-b border-[#E3E7EC] pb-6">
+          <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#181B20]">
             My Work
           </h1>
-          <p className="text-sm text-[#5F6368] mt-1">
+          <p className="text-sm text-[#626A73] mt-1">
             {subtitle}
           </p>
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="border-b border-[#E4E7EB] pb-3 flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="border-b border-[#E3E7EC] pb-3 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.id;
             return (
@@ -297,8 +314,8 @@ function MyWorkContent() {
                 className={cn(
                   'px-3.5 py-2 text-xs font-medium whitespace-nowrap rounded-[6px] fx-transition',
                   isActive
-                    ? 'bg-[#EEF4F7] text-[#0068CC] font-semibold'
-                    : 'text-[#5F6368] hover:text-[#15171A] hover:bg-[#F8F9FA]',
+                    ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold'
+                    : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
                 )}
               >
                 {tab.label}
@@ -311,13 +328,13 @@ function MyWorkContent() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
           <div className="flex flex-1 items-center gap-2 max-w-md">
             <div className="relative w-full">
-              <Search className="w-3.5 h-3.5 text-[#92979E] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-[#929AA3] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search tasks by title, ID, or description..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8F9FA] border border-[#E4E7EB] rounded-[10px] text-[#15171A] placeholder:text-[#92979E] focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#0088FF] focus:border-[#0088FF] fx-transition"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] placeholder:text-[#929AA3] focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] fx-transition"
               />
             </div>
           </div>
@@ -327,7 +344,7 @@ function MyWorkContent() {
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="h-8 rounded-[8px] border border-[#E4E7EB] bg-[#F8F9FA] px-2.5 text-xs text-[#15171A] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0088FF] focus:border-[#0088FF]"
+              className="h-8 rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] px-2.5 text-xs text-[#181B20] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
             >
               <option value="">All Projects</option>
               {allProjects.map((p: any) => (
@@ -341,7 +358,7 @@ function MyWorkContent() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="h-8 rounded-[8px] border border-[#E4E7EB] bg-[#F8F9FA] px-2.5 text-xs text-[#15171A] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0088FF] focus:border-[#0088FF]"
+              className="h-8 rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] px-2.5 text-xs text-[#181B20] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
             >
               <option value="">All Priorities</option>
               <option value={TaskPriority.URGENT}>Urgent</option>
@@ -354,7 +371,7 @@ function MyWorkContent() {
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as any)}
-              className="h-8 rounded-[8px] border border-[#E4E7EB] bg-[#F8F9FA] px-2.5 text-xs text-[#15171A] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#0088FF] focus:border-[#0088FF]"
+              className="h-8 rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] px-2.5 text-xs text-[#181B20] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
             >
               <option value="workflow">Group: Workflow</option>
               <option value="project">Group: Project</option>
@@ -366,14 +383,14 @@ function MyWorkContent() {
 
         {/* Task Groups / List - De-boxed open rows */}
         {isLoading ? (
-          <div className="py-12 text-center text-xs text-[#92979E]">
+          <div className="py-12 text-center text-xs text-[#929AA3]">
             Loading assigned tasks...
           </div>
         ) : allTasks.length === 0 ? (
           <div className="py-16 text-center space-y-2 max-w-sm mx-auto">
-            <CheckCircle2 className="w-6 h-6 text-[#248A5B] mx-auto" />
-            <h3 className="text-sm font-semibold text-[#15171A]">No tasks in this view</h3>
-            <p className="text-xs text-[#5F6368]">
+            <CheckCircle2 className="w-6 h-6 text-[#237A57] mx-auto" />
+            <h3 className="text-sm font-semibold text-[#181B20]">No tasks in this view</h3>
+            <p className="text-xs text-[#626A73]">
               {selectedTab === 'ALL'
                 ? 'No tasks are currently assigned to you.'
                 : `No tasks found under the ${tabs.find((t) => t.id === selectedTab)?.label} tab.`}
@@ -386,19 +403,19 @@ function MyWorkContent() {
 
               return (
                 <div key={group.groupName} className="space-y-3">
-                  <div className="flex items-center gap-2 pb-2 border-b border-[#E4E7EB]">
+                  <div className="flex items-center gap-2 pb-2 border-b border-[#E3E7EC]">
                     {group.dotColor && (
                       <span className={cn('w-2 h-2 rounded-full', group.dotColor)} />
                     )}
-                    <h2 className="text-[14px] font-semibold text-[#15171A]">
+                    <h2 className="text-[14px] font-semibold text-[#181B20]">
                       {group.groupName}
                     </h2>
-                    <span className="text-xs font-mono text-[#92979E]">
+                    <span className="text-xs font-mono text-[#929AA3]">
                       ({group.items.length})
                     </span>
                   </div>
 
-                  <div className="divide-y divide-[#E4E7EB]">
+                  <div className="divide-y divide-[#E3E7EC]">
                     {group.items.map((task: any) => {
                       const isOverdue =
                         task.dueDate && new Date(task.dueDate) < now && task.status !== TaskStatus.DONE;
@@ -411,26 +428,26 @@ function MyWorkContent() {
                         <div
                           key={task.id}
                           onClick={() => setSelectedTaskId(task.id)}
-                          className="py-3.5 hover:bg-[#F8F9FA] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                          className="py-3.5 hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                         >
                           <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-medium text-[#92979E] text-[11px] shrink-0 px-1.5 py-0.5 bg-[#F8F9FA] rounded-[6px] border border-[#E4E7EB]">
+                              <span className="font-mono font-medium text-[#929AA3] text-[11px] shrink-0 px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
                                 {cleanId}
                               </span>
-                              <span className="font-medium text-sm text-[#15171A] hover:text-[#0088FF] truncate fx-transition">
+                              <span className="font-medium text-sm text-[#181B20] hover:text-[#2563EB] truncate fx-transition">
                                 {task.title}
                               </span>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#5F6368]">
+                            <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#626A73]">
                               <span>{task.project?.name}</span>
                               {task.milestone && <span>• {task.milestone.name}</span>}
                               {task.dueDate && (
                                 <span
                                   className={cn(
                                     'flex items-center gap-1 font-medium',
-                                    isOverdue ? 'text-[#C24141] font-semibold' : 'text-[#92979E]',
+                                    isOverdue ? 'text-[#C24141] font-semibold' : 'text-[#929AA3]',
                                   )}
                                 >
                                   <Calendar className="w-3 h-3" />
@@ -439,7 +456,7 @@ function MyWorkContent() {
                                 </span>
                               )}
                               {task.status === TaskStatus.WAITING && unfinishedDeps.length > 0 && (
-                                <span className="text-[#A96F12] font-medium">
+                                <span className="text-[#A86B12] font-medium">
                                   Waiting for: {unfinishedDeps.map((b: any) => formatTaskId(b.predecessorTask?.humanId)).join(', ')}
                                 </span>
                               )}
@@ -475,7 +492,7 @@ export function MyWorkPage() {
     <Suspense
       fallback={
         <div className="min-h-screen flex items-center justify-center bg-white">
-          <div className="h-6 w-6 border-2 border-[#0088FF] border-t-transparent rounded-full animate-spin" />
+          <div className="h-6 w-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >

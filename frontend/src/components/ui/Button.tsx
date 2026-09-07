@@ -29,19 +29,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const isSpinnerActive = loading || isLoading;
     const baseStyles =
-      'inline-flex items-center justify-center font-semibold rounded-[10px] fx-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0088FF]/30 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none active:scale-[0.99]';
+      'inline-flex items-center justify-center font-semibold rounded-[10px] fx-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/25 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none active:scale-[0.99]';
 
     const variants = {
       primary:
-        'bg-[#0088FF] text-white hover:bg-[#0077E6] active:bg-[#0068CC] shadow-none border border-transparent font-semibold',
+        'bg-[#2563EB] text-white hover:bg-[#1D4ED8] active:bg-[#1E40AF] shadow-none border border-transparent font-semibold',
       secondary:
-        'bg-white text-[#15171A] border border-[#E4E7EB] hover:bg-[#F8F9FB] hover:border-[#D8DDE3] active:bg-[#F4F6F8]',
+        'bg-white text-[#181B20] border border-[#E3E7EC] hover:bg-[#F7F8FA] hover:border-[#D4DAE1] active:bg-[#F2F4F7]',
       soft:
-        'bg-[#EAF5FF] text-[#005EBA] hover:bg-[#DBEEFF] active:bg-[#C9E4FF] border border-transparent font-semibold',
+        'bg-[#EEF4FF] text-[#2563EB] hover:bg-[#DBEAFE] active:bg-[#BFDBFE] border border-transparent font-semibold',
       outline:
-        'bg-transparent text-[#15171A] border border-[#E4E7EB] hover:bg-[#F8F9FB] hover:border-[#D8DDE3]',
+        'bg-transparent text-[#181B20] border border-[#E3E7EC] hover:bg-[#F7F8FA] hover:border-[#D4DAE1]',
       ghost:
-        'bg-transparent text-[#5F6368] hover:text-[#15171A] hover:bg-[#F5F7F9]',
+        'bg-transparent text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
       danger:
         'bg-[#C24141] text-white hover:bg-[#AD3636] active:bg-[#992C2C] border border-transparent font-semibold',
     };

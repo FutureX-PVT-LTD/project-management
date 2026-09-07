@@ -79,7 +79,7 @@ export function NotificationsPage() {
           </div>
         ) : notifications.length === 0 ? (
           <EmptyState
-            icon={<Bell className="w-6 h-6 text-[#315F7D]" />}
+            icon={<Bell className="w-6 h-6 text-[#2563EB]" />}
             title="All caught up"
             description="You have no new alerts or notifications."
           />
@@ -92,12 +92,12 @@ export function NotificationsPage() {
                 onClick={() => !n.isRead && markAsReadMutation.mutate(n.id)}
                 className={cn(
                   'p-4 hover:bg-fx-bg-hover fx-transition flex items-start gap-3 text-xs cursor-pointer',
-                  !n.isRead && 'bg-[#EDF4F8]/40',
+                  !n.isRead && 'bg-[#EEF4FF]/50',
                 )}
               >
                 <div className="mt-0.5 shrink-0">
                   {!n.isRead ? (
-                    <span className="w-2 h-2 rounded-full bg-[#315F7D] block" />
+                    <span className="w-2 h-2 rounded-full bg-[#2563EB] block" />
                   ) : (
                     <span className="w-2 h-2 rounded-full bg-transparent block" />
                   )}

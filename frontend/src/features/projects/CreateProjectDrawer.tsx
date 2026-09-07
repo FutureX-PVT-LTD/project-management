@@ -182,7 +182,7 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
               placeholder="Outline key game features, technical milestones, and scope specifications..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-white border border-fx-border rounded-md p-3 text-xs text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:border-[#315F7D] focus:ring-1 focus:ring-[#315F7D]"
+              className="w-full bg-white border border-fx-border rounded-md p-3 text-xs text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
             />
           </div>
         </div>
@@ -265,7 +265,7 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
                 placeholder="Search active team members..."
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-fx-border rounded-md text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:ring-1 focus:ring-[#315F7D]"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-fx-border rounded-md text-fx-text-primary placeholder:text-fx-text-muted focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
               />
             </div>
 
@@ -299,7 +299,7 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
                         onClick={() => toggleMember(emp.id)}
                         className={cn(
                           'p-2.5 flex items-center justify-between cursor-pointer fx-transition select-none',
-                          isSelected ? 'bg-[#EDF4F8]/60' : 'hover:bg-fx-bg-hover',
+                          isSelected ? 'bg-[#EEF4FF]/60' : 'hover:bg-fx-bg-hover',
                         )}
                       >
                         <div className="flex items-center gap-2.5">
@@ -307,7 +307,7 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
                             className={cn(
                               'w-4 h-4 rounded border flex items-center justify-center shrink-0',
                               isSelected
-                                ? 'bg-[#315F7D] border-[#315F7D] text-white'
+                                ? 'bg-[#2563EB] border-[#2563EB] text-white'
                                 : 'border-fx-border bg-white',
                             )}
                           >

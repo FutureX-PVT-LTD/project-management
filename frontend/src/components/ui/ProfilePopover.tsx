@@ -46,7 +46,7 @@ export function ProfilePopover({ children }: ProfilePopoverProps) {
         >
           {/* User Header */}
           <div className="p-3 border-b border-fx-border/70 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#EDF4F8] text-[#274E68] border border-[#315F7D]/20 font-semibold text-xs flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-full bg-[#EEF4FF] text-[#2563EB] border border-[#2563EB]/20 font-semibold text-xs flex items-center justify-center shrink-0">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
@@ -61,7 +61,7 @@ export function ProfilePopover({ children }: ProfilePopoverProps) {
           {/* Active Workspace */}
           <div className="px-3 py-2.5 my-1.5 bg-fx-bg-subtle rounded-lg border border-fx-border/60 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded bg-[#315F7D] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+              <div className="w-6 h-6 rounded bg-[#2563EB] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
                 FX
               </div>
               <div className="min-w-0">
@@ -69,7 +69,7 @@ export function ProfilePopover({ children }: ProfilePopoverProps) {
                 <p className="text-[11px] text-fx-text-muted truncate">Production Workspace</p>
               </div>
             </div>
-            <Check className="w-3.5 h-3.5 text-[#315F7D] shrink-0" />
+            <Check className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
           </div>
 
           {/* Navigation Links */}
