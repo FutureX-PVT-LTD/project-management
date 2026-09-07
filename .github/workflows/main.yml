@@ -1,0 +1,144 @@
+name: Deploy Project Management
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Debug repository structure
+        run: |
+          echo "Current directory:"
+          pwd
+          echo "Repo root:"
+          ls -la
+          echo "Backend:"
+          ls -la backend
+          echo "Frontend:"
+          ls -la frontend
+
+      - name: Setup SSH
+        run: |
+          SSH_PORT="${{ secrets.VPS_PORT }}"
+          if [ -z "$SSH_PORT" ]; then SSH_PORT=22; fi
+
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$SSH_PORT" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: |
+          SSH_PORT="${{ secrets.VPS_PORT }}"
+          if [ -z "$SSH_PORT" ]; then SSH_PORT=22; fi
+
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            "echo SSH connected && ls -la /var/www/project-management"
+
+      - name: Upload files to VPS
+        run: |
+          SSH_PORT="${{ secrets.VPS_PORT }}"
+          if [ -z "$SSH_PORT" ]; then SSH_PORT=22; fi
+
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude="node_modules" \
+            --exclude="backend/node_modules" \
+            --exclude="frontend/node_modules" \
+            --exclude="frontend/.next" \
+            --exclude=".env" \
+            --exclude="backend/.env" \
+            --exclude="frontend/.env" \
+            --exclude="frontend/.env.local" \
+            --exclude="frontend/.env.production" \
+            --exclude="*.log" \
+            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/project-management/
+
+      - name: Install, build, restart
+        run: |
+          SSH_PORT="${{ secrets.VPS_PORT }}"
+          if [ -z "$SSH_PORT" ]; then SSH_PORT=22; fi
+
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            set -e
+
+            echo "Checking Node and pnpm..."
+            node -v
+            npm -v
+
+            corepack enable
+            corepack prepare pnpm@latest --activate
+            pnpm -v
+
+            echo "Backend deploy..."
+            cd /var/www/project-management/backend
+
+            pnpm install
+
+            echo "Generating Prisma client..."
+            pnpm exec prisma generate
+
+            echo "Syncing database schema..."
+            pnpm exec prisma db push
+
+            echo "Building backend..."
+            pnpm run build
+
+            echo "Restarting backend..."
+            pm2 delete project-management-api 2>/dev/null || true
+
+            pm2 start pnpm \
+              --name project-management-api \
+              --cwd /var/www/project-management/backend \
+              -- run start:prod
+
+            echo "Frontend deploy..."
+            cd /var/www/project-management/frontend
+
+            pnpm install
+
+            echo "Cleaning frontend build..."
+            rm -rf .next
+
+            echo "Building frontend..."
+            NEXT_TELEMETRY_DISABLED=1 pnpm run build
+
+            if [ ! -f .next/BUILD_ID ]; then
+              echo "Next.js build failed: .next/BUILD_ID not found"
+              exit 1
+            fi
+
+            echo "Restarting frontend..."
+            pm2 delete project-management-frontend 2>/dev/null || true
+
+            pm2 start /var/www/project-management/frontend/node_modules/next/dist/bin/next \
+              --name project-management-frontend \
+              --cwd /var/www/project-management/frontend \
+              -- start -p 3040 -H 127.0.0.1
+
+            pm2 save
+
+            echo "Reloading nginx..."
+            nginx -t
+            systemctl reload nginx
+
+            echo "Checking deployment..."
+            pm2 list
+            curl -i http://127.0.0.1:5040/api/v1/health || true
+            curl -I http://127.0.0.1:3040 || true
+            curl -I http://127.0.0.1:8094 || true
+
+            echo "Project Management deployment completed."
+          EOF
