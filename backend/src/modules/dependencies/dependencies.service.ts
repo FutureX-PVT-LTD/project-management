@@ -98,8 +98,14 @@ export class DependenciesService {
       },
     });
 
-    // If predecessor is not DONE, mark dependent task as WAITING (if not manually blocked or already completed)
-    if (predTask.status !== TaskStatus.DONE && depTask.status !== TaskStatus.DONE && depTask.status !== TaskStatus.CANCELED) {
+    // If predecessor is not satisfied, mark dependent task as WAITING (if not manually blocked or already completed)
+    const predecessorSatisfied = predTask.status === TaskStatus.DONE || predTask.status === TaskStatus.N_A;
+    if (
+      !predecessorSatisfied &&
+      depTask.status !== TaskStatus.DONE &&
+      depTask.status !== TaskStatus.N_A &&
+      depTask.status !== TaskStatus.CANCELED
+    ) {
       if (!depTask.isManualBlocked) {
         await this.prisma.task.update({
           where: { id: depTask.id },
@@ -162,7 +168,10 @@ export class DependenciesService {
 
     // Check if dependent task has any remaining incomplete predecessors
     const remainingDeps = dependency.dependentTask.blockedBy.filter(
-      (b) => b.id !== id && b.predecessorTask.status !== TaskStatus.DONE,
+      (b) =>
+        b.id !== id &&
+        b.predecessorTask.status !== TaskStatus.DONE &&
+        b.predecessorTask.status !== TaskStatus.N_A,
     );
 
     if (
@@ -170,7 +179,7 @@ export class DependenciesService {
       (dependency.dependentTask.status === TaskStatus.WAITING || dependency.dependentTask.status === TaskStatus.BLOCKED) &&
       !dependency.dependentTask.isManualBlocked
     ) {
-      const targetStatus = dependency.dependentTask.assigneeId ? TaskStatus.READY : TaskStatus.PLANNED;
+      const targetStatus = dependency.dependentTask.assigneeId ? TaskStatus.READY : TaskStatus.UNASSIGNED;
       await this.prisma.task.update({
         where: { id: dependency.dependentTaskId },
         data: { status: targetStatus },

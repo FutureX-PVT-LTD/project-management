@@ -18,6 +18,7 @@ export async function normalizeAllTasks(prisma: PrismaClient): Promise<number> {
     // Leave active or closed tasks alone
     if (
       task.status === TaskStatus.DONE ||
+      task.status === TaskStatus.N_A ||
       task.status === TaskStatus.CANCELED ||
       task.status === TaskStatus.IN_PROGRESS ||
       task.status === TaskStatus.IN_REVIEW ||
@@ -27,7 +28,7 @@ export async function normalizeAllTasks(prisma: PrismaClient): Promise<number> {
     }
 
     const unfinishedPredecessors = task.blockedBy.filter(
-      (b) => b.predecessorTask.status !== TaskStatus.DONE,
+      (b) => b.predecessorTask.status !== TaskStatus.DONE && b.predecessorTask.status !== TaskStatus.N_A,
     );
 
     if (task.assigneeId) {
@@ -50,11 +51,11 @@ export async function normalizeAllTasks(prisma: PrismaClient): Promise<number> {
         }
       }
     } else {
-      // Unassigned task without active work defaults to PLANNED
+      // Unassigned work should stay visible to admins but hidden from employee queues.
       if (task.status === TaskStatus.TODO || task.status === TaskStatus.BACKLOG) {
         await prisma.task.update({
           where: { id: task.id },
-          data: { status: TaskStatus.PLANNED, progress: 0 },
+          data: { status: TaskStatus.UNASSIGNED, progress: 0 },
         });
         normalizedCount++;
       }

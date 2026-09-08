@@ -9,6 +9,7 @@ import { Drawer } from '@/components/ui/Drawer';
 import { UserRole } from '@futurex/shared';
 import { AlertCircle, Shield, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
 
 interface EditUserDrawerProps {
   user: any;
@@ -17,6 +18,7 @@ interface EditUserDrawerProps {
 }
 
 export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps) {
+  const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
 
   const [firstName, setFirstName] = useState('');
@@ -51,6 +53,7 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
   });
 
   if (!open || !user) return null;
+  const canAssignSuperAdmin = currentUser?.globalRole === UserRole.OWNER;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,12 +159,12 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
         </div>
 
         {/* System Role Selection */}
-        {user.globalRole !== UserRole.OWNER && (
+        {(user.globalRole !== UserRole.OWNER || canAssignSuperAdmin) && (
           <div>
             <label className="block text-xs font-medium text-fx-text-primary mb-2">
               System Role & Permissions <span className="text-fx-semantic-danger">*</span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={cn('grid gap-3', canAssignSuperAdmin ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2')}>
               <div
                 onClick={() => setRole(UserRole.TEAM_MEMBER)}
                 className={cn(
@@ -197,6 +200,26 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
                   Manages projects, assigns work, reviews deliverables, and provisions users.
                 </p>
               </div>
+
+              {canAssignSuperAdmin && (
+                <div
+                  onClick={() => setRole(UserRole.OWNER)}
+                  className={cn(
+                    'p-3.5 border rounded-[8px] cursor-pointer fx-transition select-none space-y-1',
+                    role === UserRole.OWNER
+                      ? 'border-[#2563EB] bg-[#EEF4FF]/50 ring-1 ring-[#2563EB]'
+                      : 'border-fx-border hover:bg-fx-bg-hover bg-white',
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-[#7557B5]" />
+                    <span className="font-semibold text-xs text-fx-text-primary">Super Admin</span>
+                  </div>
+                  <p className="text-[11px] text-fx-text-secondary leading-snug">
+                    Full workspace control, including project deletion and Super Admin creation.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}

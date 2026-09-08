@@ -1,34 +1,12 @@
 import type { Metadata } from 'next';
-import { Instrument_Sans, Inter, JetBrains_Mono } from 'next/font/google';
 import Script from 'next/script';
 import '@/styles/globals.css';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { AuthProvider } from '@/features/auth/AuthContext';
 
-const instrumentSans = Instrument_Sans({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-instrument-sans',
-  weight: ['400', '500', '600', '700'],
-});
-
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-  weight: ['400', '500', '600', '700'],
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-jetbrains-mono',
-  weight: ['400', '500', '600'],
-});
-
 export const metadata: Metadata = {
-  title: 'FutureX | Project Management Workspace',
-  description: 'Enterprise project planning, task tracking, and game delivery workspace for FutureX.',
+  title: 'FutureX | Product Development Management System',
+  description: 'Internal product development, deliverable tracking, and release management workspace for FutureX.',
 };
 
 export default function RootLayout({
@@ -37,7 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${instrumentSans.variable} ${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -126,7 +104,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans bg-fx-bg text-fx-text-primary antialiased selection:bg-[#EEF4FF] selection:text-[#2563EB]" suppressHydrationWarning>
+      <body className="bg-[#FFFFFF] text-[#17191C] antialiased selection:bg-[#EEF4FF] selection:text-[#1D4ED8]" suppressHydrationWarning>
         <Script id="remove-extension-hydration-attrs" strategy="beforeInteractive">
           {`
             (function () {

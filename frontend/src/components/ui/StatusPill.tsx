@@ -14,61 +14,71 @@ const statusConfig: Record<
   string,
   { label: string; bg: string; text: string; dot?: string; icon?: React.ReactNode }
 > = {
+  [TaskStatus.UNASSIGNED]: {
+    label: 'Unassigned',
+    bg: 'bg-[#F1F3F5]',
+    text: 'text-[#626A73]',
+  },
   [TaskStatus.TODO]: {
     label: 'To Do',
-    bg: 'bg-[#F2F4F7]',
+    bg: 'bg-[#F1F3F5]',
     text: 'text-[#626A73]',
   },
   [TaskStatus.PLANNED]: {
     label: 'Planned',
-    bg: 'bg-[#F2F4F7]',
-    text: 'text-[#929AA3]',
+    bg: 'bg-[#F1F3F5]',
+    text: 'text-[#8B929B]',
   },
   [TaskStatus.WAITING]: {
     label: 'Waiting',
-    bg: 'bg-[#FFF6E5]',
-    text: 'text-[#A86B12]',
-    icon: <Lock className="w-2.5 h-2.5 text-[#A86B12] shrink-0" />,
+    bg: 'bg-[#FFF7E8]',
+    text: 'text-[#9A6515]',
+    icon: <Lock className="w-2.5 h-2.5 text-[#9A6515] shrink-0" />,
   },
   [TaskStatus.READY]: {
     label: 'Ready',
-    bg: 'bg-[#EDF8F2]',
+    bg: 'bg-[#EFF8F3]',
     text: 'text-[#237A57]',
     dot: 'bg-[#237A57]',
   },
   [TaskStatus.IN_PROGRESS]: {
     label: 'In Progress',
     bg: 'bg-[#EEF4FF]',
-    text: 'text-[#2563EB]',
-    dot: 'bg-[#2563EB]',
+    text: 'text-[#245EC7]',
+    dot: 'bg-[#245EC7]',
   },
   [TaskStatus.IN_REVIEW]: {
     label: 'In Review',
-    bg: 'bg-[#F4F0FC]',
-    text: 'text-[#7557B5]',
-    dot: 'bg-[#7557B5]',
+    bg: 'bg-[#F5F1FB]',
+    text: 'text-[#6D52A3]',
+    dot: 'bg-[#6D52A3]',
   },
   [TaskStatus.BLOCKED]: {
     label: 'Blocked',
-    bg: 'bg-[#FDEEEE]',
-    text: 'text-[#C24141]',
-    dot: 'bg-[#C24141]',
+    bg: 'bg-[#FCEEEE]',
+    text: 'text-[#B54747]',
+    dot: 'bg-[#B54747]',
   },
   [TaskStatus.BACKLOG]: {
     label: 'Backlog',
-    bg: 'bg-[#F2F4F7]',
-    text: 'text-[#929AA3]',
+    bg: 'bg-[#F1F3F5]',
+    text: 'text-[#8B929B]',
   },
   [TaskStatus.DONE]: {
     label: 'Completed',
-    bg: 'bg-[#EDF8F2]',
-    text: 'text-[#237A57]',
-    dot: 'bg-[#237A57]',
+    bg: 'bg-[#EDF7F2]',
+    text: 'text-[#26715A]',
+    dot: 'bg-[#26715A]',
+  },
+  [TaskStatus.N_A]: {
+    label: 'N/A',
+    bg: 'bg-[#F1F3F5]',
+    text: 'text-[#8B929B]',
   },
   [TaskStatus.CANCELED]: {
     label: 'Cancelled',
-    bg: 'bg-[#F2F4F7]',
-    text: 'text-[#929AA3]',
+    bg: 'bg-[#F1F3F5]',
+    text: 'text-[#8B929B]',
   },
 };
 
@@ -76,7 +86,7 @@ export function StatusPill({ status, size = 'sm', className, showDot = true }: S
   const safeStatus = status || 'UNKNOWN';
   const config = statusConfig[safeStatus] || {
     label: safeStatus.replace(/_/g, ' '),
-    bg: 'bg-[#F2F4F7]',
+    bg: 'bg-[#F1F3F5]',
     text: 'text-[#626A73]',
   };
 

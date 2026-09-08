@@ -1,4 +1,5 @@
 export enum TaskStatus {
+  UNASSIGNED = 'UNASSIGNED',
   BACKLOG = 'BACKLOG',
   TODO = 'TODO',
   PLANNED = 'PLANNED',
@@ -8,6 +9,7 @@ export enum TaskStatus {
   IN_REVIEW = 'IN_REVIEW',
   BLOCKED = 'BLOCKED',
   DONE = 'DONE',
+  N_A = 'N_A',
   CANCELED = 'CANCELED',
 }
 

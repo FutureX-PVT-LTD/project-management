@@ -13,6 +13,12 @@ export enum ProjectHealth {
   COMPLETED = 'COMPLETED',
 }
 
+export enum ProductType {
+  APP = 'APP',
+  GAME = 'GAME',
+  WEBSITE_TOOL = 'WEBSITE_TOOL',
+}
+
 export enum ProjectMemberRole {
   MANAGER = 'MANAGER',
   LEAD = 'LEAD',

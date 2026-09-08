@@ -45,9 +45,9 @@ export class UsersController {
   @HttpCode(HttpStatus.CREATED)
   async create(
     @Body() dto: CreateUserDto,
-    @CurrentUser('id') actorId: string,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.usersService.create(dto, actorId);
+    return this.usersService.create(dto, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.ADMIN, UserRole.OWNER)

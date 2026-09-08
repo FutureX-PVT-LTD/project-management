@@ -61,7 +61,7 @@ export function AppShell({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Shared notifications cache (deduplicated with NotificationDropdown)
+  // Shared notifications cache
   const { data: unreadData } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.get('/notifications'),
@@ -96,27 +96,27 @@ export function AppShell({
       ];
 
   const adminNav = [
-    { name: 'User Management', href: '/admin/users', icon: Users },
+    { name: 'User Directory', href: '/admin/users', icon: Users },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
 
   // Breadcrumbs derivation
   const getBreadcrumbs = () => {
-    if (pathname === '/dashboard' || pathname === '/') return 'Workspace / Overview';
-    if (pathname === '/my-work') return 'Workspace / My Work';
-    if (pathname === '/projects') return 'Workspace / Projects';
-    if (pathname.startsWith('/projects/')) return 'Projects / Project Details';
-    if (pathname === '/tasks') return 'Workspace / Task Registry';
-    if (pathname === '/calendar') return 'Workspace / Project Calendar';
-    if (pathname === '/team') return 'Studio / Team Capacity';
-    if (pathname === '/timeline') return 'Delivery / Timeline';
-    if (pathname === '/reports') return 'Studio / Performance Reports';
-    if (pathname === '/notifications') return 'Workspace / Notifications';
+    if (pathname === '/dashboard' || pathname === '/') return 'Overview';
+    if (pathname === '/my-work') return 'My Work';
+    if (pathname === '/projects') return 'Projects';
+    if (pathname.startsWith('/projects/')) return 'Projects / Details';
+    if (pathname === '/tasks') return 'Tasks';
+    if (pathname === '/calendar') return 'Calendar';
+    if (pathname === '/team') return 'Team';
+    if (pathname === '/timeline') return 'Timeline';
+    if (pathname === '/reports') return 'Reports';
+    if (pathname === '/notifications') return 'Notifications';
     if (pathname === '/account/security') return 'Account / Security';
-    if (pathname === '/admin/users') return 'Administration / User Directory';
-    if (pathname === '/admin/audit') return 'Administration / Audit Logs';
-    if (pathname === '/admin/settings') return 'Administration / System Settings';
-    return 'FutureX Workspace';
+    if (pathname === '/admin/users') return 'Administration / Users';
+    if (pathname === '/admin/audit') return 'Administration / Audit';
+    if (pathname === '/admin/settings') return 'Administration / Settings';
+    return 'Workspace';
   };
 
   const initials = `${user?.firstName?.[0] || ''}${user?.lastName?.[0] || ''}`.toUpperCase() || 'FX';
@@ -124,9 +124,6 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-white flex">
-      {/* Global Command Palette / Search Modal */}
-      <GlobalSearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
-
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
@@ -135,42 +132,42 @@ export function AppShell({
         />
       )}
 
-      {/* Sidebar (Desktop 216px / Mobile Drawer) */}
+      {/* Sidebar: 224px desktop, white bg, #ECEEF1 right border */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-[216px] bg-white border-r border-[#E3E7EC] flex flex-col justify-between transition-transform duration-200 ease-in-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-[224px] bg-white border-r border-[#ECEEF1] flex flex-col justify-between transition-transform duration-180 ease-in-out lg:translate-x-0',
           mobileOpen ? 'translate-x-0 shadow-drawer' : '-translate-x-full',
         )}
       >
         <div className="flex flex-col h-full">
-          {/* Workspace Brand / Header */}
-          <div className="h-[56px] px-4 border-b border-[#E3E7EC] flex items-center justify-between">
+          {/* Brand Header */}
+          <div className="h-[56px] px-4 border-b border-[#ECEEF1] flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center gap-2.5 group">
-              <div className="w-6 h-6 rounded-[7px] bg-[#2563EB] text-white flex items-center justify-center font-semibold text-[11px] shadow-none">
+              <div className="w-5 h-5 rounded-[6px] bg-[#2463EB] text-white flex items-center justify-center font-semibold text-[10px] tracking-tight">
                 FX
               </div>
-              <div className="flex flex-col">
-                <span className="font-semibold text-xs tracking-tight text-[#181B20] group-hover:text-[#2563EB] fx-transition">
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-semibold text-[13px] tracking-tight text-[#17191C] group-hover:text-[#2463EB] fx-transition">
                   FutureX
                 </span>
-                <span className="text-[10px] text-[#929AA3] leading-tight font-medium">
-                  Game Operations
+                <span className="text-[11px] text-[#8B929B] font-normal">
+                  Studio
                 </span>
               </div>
             </Link>
 
             <button
               onClick={() => setMobileOpen(false)}
-              className="lg:hidden text-[#929AA3] hover:text-[#181B20] p-1 rounded-lg hover:bg-[#F7F8FA]"
+              className="lg:hidden text-[#8B929B] hover:text-[#17191C] p-1 rounded-md hover:bg-[#F8F9FB]"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Navigation Items */}
-          <div className="flex-1 overflow-y-auto px-2.5 py-3.5 space-y-4">
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
             <div>
-              <p className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#929AA3] select-none">
+              <p className="px-2 pb-1 text-[11px] font-medium text-[#8B929B] select-none">
                 Workspace
               </p>
               <nav className="space-y-0.5">
@@ -185,23 +182,23 @@ export function AppShell({
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        'h-9 flex items-center justify-between px-2.5 rounded-[10px] text-[13px] fx-transition group relative',
+                        'h-[36px] flex items-center justify-between px-2.5 rounded-[8px] text-[13px] fx-transition group relative',
                         isActive
-                          ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold border-r-[2px] border-[#2563EB]'
-                          : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
+                          ? 'bg-[#F2F6FF] text-[#245EC7] font-medium border-l-[2px] border-[#2463EB]'
+                          : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <Icon
                           className={cn(
                             'w-4 h-4 shrink-0 fx-transition',
-                            isActive ? 'text-[#2563EB]' : 'text-[#929AA3] group-hover:text-[#626A73]',
+                            isActive ? 'text-[#245EC7]' : 'text-[#8B929B] group-hover:text-[#60666F]',
                           )}
                         />
                         <span className="truncate">{item.name}</span>
                       </div>
                       {typeof item.badge === 'number' && item.badge > 0 && (
-                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#EEF4FF] text-[#2563EB] border border-[#2563EB]/20 text-[10px] font-semibold flex items-center justify-center shrink-0">
+                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#EEF4FF] text-[#245EC7] text-[10px] font-medium flex items-center justify-center shrink-0">
                           {item.badge}
                         </span>
                       )}
@@ -213,7 +210,7 @@ export function AppShell({
 
             {(isAdmin || isOwner) && (
               <div>
-                <p className="px-2.5 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-[#929AA3] select-none">
+                <p className="px-2 pb-1 text-[11px] font-medium text-[#8B929B] select-none">
                   Administration
                 </p>
                 <nav className="space-y-0.5">
@@ -226,16 +223,16 @@ export function AppShell({
                         href={item.href}
                         onClick={() => setMobileOpen(false)}
                         className={cn(
-                          'h-9 flex items-center gap-2.5 px-2.5 rounded-[10px] text-[13px] fx-transition group relative',
+                          'h-[36px] flex items-center gap-2.5 px-2.5 rounded-[8px] text-[13px] fx-transition group relative',
                           isActive
-                            ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold border-r-[2px] border-[#2563EB]'
-                            : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
+                            ? 'bg-[#F2F6FF] text-[#245EC7] font-medium border-l-[2px] border-[#2463EB]'
+                            : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
                         )}
                       >
                         <Icon
                           className={cn(
                             'w-4 h-4 shrink-0 fx-transition',
-                            isActive ? 'text-[#2563EB]' : 'text-[#929AA3] group-hover:text-[#626A73]',
+                            isActive ? 'text-[#245EC7]' : 'text-[#8B929B] group-hover:text-[#60666F]',
                           )}
                         />
                         <span className="truncate">{item.name}</span>
@@ -248,72 +245,70 @@ export function AppShell({
           </div>
 
           {/* User Profile Footer Trigger */}
-          <div className="p-2.5 border-t border-[#E3E7EC] bg-white">
+          <div className="p-2.5 border-t border-[#ECEEF1] bg-white">
             <ProfilePopover>
               <button
                 type="button"
-                className="w-full flex items-center justify-between p-2 rounded-[10px] hover:bg-[#F7F8FA] fx-transition text-left group border border-transparent hover:border-[#E3E7EC]"
+                className="w-full flex items-center justify-between p-1.5 rounded-[8px] hover:bg-[#F8F9FB] fx-transition text-left group"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-[#EEF4FF] text-[#2563EB] border border-[#BDE0FF] font-semibold text-[11px] flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-full bg-[#EEF4FF] text-[#245EC7] font-medium text-[11px] flex items-center justify-center shrink-0">
                     {initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-[#181B20] truncate">{fullName}</p>
-                    <p className="text-[10px] text-[#929AA3] truncate capitalize">
+                    <p className="text-[12px] font-medium text-[#17191C] truncate">{fullName}</p>
+                    <p className="text-[10px] text-[#8B929B] truncate capitalize">
                       {(user?.jobTitle || (user as any)?.role || user?.globalRole || 'Team Member').toString().toLowerCase().replace(/_/g, ' ')}
                     </p>
                   </div>
                 </div>
 
-                <MoreVertical className="w-3.5 h-3.5 text-[#929AA3] group-hover:text-[#181B20] shrink-0" />
+                <MoreVertical className="w-3.5 h-3.5 text-[#8B929B] group-hover:text-[#17191C] shrink-0" />
               </button>
             </ProfilePopover>
           </div>
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-[216px]">
+      {/* Main Content Canvas */}
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-[224px]">
         {/* Top Bar (56px) */}
-        <header className="h-[56px] bg-white border-b border-[#E3E7EC] px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-[56px] bg-white border-b border-[#ECEEF1] px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden text-[#626A73] hover:text-[#181B20] p-1.5 rounded-lg hover:bg-[#F7F8FA]"
+              className="lg:hidden text-[#60666F] hover:text-[#17191C] p-1.5 rounded-md hover:bg-[#F8F9FB]"
               aria-label="Toggle navigation menu"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4" />
             </button>
-            <span className="text-xs font-medium text-[#626A73] truncate hidden sm:inline">
+            <span className="text-[13px] text-[#60666F] truncate hidden sm:inline">
               {getBreadcrumbs()}
             </span>
           </div>
 
-          {/* Quick Search & Actions */}
-          <div className="flex items-center gap-3">
-            {/* Desktop Global Search trigger button (never routes on click) */}
-            <div className="relative hidden md:block">
-              <button
-                type="button"
-                onClick={() => setSearchOpen(true)}
-                className="w-72 h-9 px-3.5 bg-[#F7F8FA] text-[13px] text-[#929AA3] rounded-[11px] border border-[#E3E7EC] hover:border-[#D4DAE1] hover:bg-white flex items-center justify-between fx-transition focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/20"
-              >
-                <span className="flex items-center gap-2 truncate">
-                  <Search className="w-3.5 h-3.5 text-[#929AA3]" />
-                  <span>Search tasks or projects...</span>
-                </span>
-                <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded-[5px] bg-white text-[#626A73] border border-[#E3E7EC] shadow-none">
-                  ⌘K
-                </kbd>
-              </button>
-            </div>
-
-            {/* Mobile Search Icon Button */}
+          {/* Search & Actions */}
+          <div className="flex items-center gap-2.5">
+            {/* Desktop Search Button */}
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="md:hidden p-2 text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA] rounded-[8px] fx-transition"
+              className="hidden md:flex w-64 h-[34px] px-3 bg-[#F8F9FB] text-[12px] text-[#8B929B] rounded-[9px] border border-[#E8EBEF] hover:border-[#DCE1E7] hover:bg-white items-center justify-between fx-transition focus:outline-none focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]"
+            >
+              <span className="flex items-center gap-2 truncate">
+                <Search className="w-3.5 h-3.5 text-[#8B929B]" />
+                <span>Search tasks, projects...</span>
+              </span>
+              <kbd className="text-[10px] font-mono px-1 py-0.5 rounded-[4px] bg-white text-[#60666F] border border-[#E8EBEF]">
+                ⌘K
+              </kbd>
+            </button>
+
+            {/* Mobile Search Button */}
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="md:hidden p-1.5 text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] rounded-[7px] fx-transition"
               aria-label="Search"
             >
               <Search className="w-4 h-4" />
@@ -322,16 +317,16 @@ export function AppShell({
             {/* Notification Bell */}
             <Link
               href="/notifications"
-              className="relative p-2 text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA] rounded-[8px] fx-transition"
+              className="relative p-1.5 text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] rounded-[7px] fx-transition"
               aria-label="View notifications"
             >
               <Bell className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#2563EB] rounded-full ring-2 ring-white" />
+                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-[#2463EB] rounded-full" />
               )}
             </Link>
 
-            {/* Role-gated Quick Action: + New dropdown */}
+            {/* Quick Action: New Dropdown */}
             {canManage && (onOpenCreateTask || onOpenCreateProject) && (
               <ActionMenu
                 align="end"
@@ -352,7 +347,7 @@ export function AppShell({
                     ? [
                         {
                           label: 'New Task',
-                          icon: <CheckSquare className="w-3.5 h-3.5 text-[#2563EB]" />,
+                          icon: <CheckSquare className="w-3.5 h-3.5 text-[#2463EB]" />,
                           onClick: () => onOpenCreateTask(),
                         },
                       ]
@@ -361,7 +356,7 @@ export function AppShell({
                     ? [
                         {
                           label: 'New Project',
-                          icon: <FolderKanban className="w-3.5 h-3.5 text-[#2563EB]" />,
+                          icon: <FolderKanban className="w-3.5 h-3.5 text-[#2463EB]" />,
                           onClick: () => onOpenCreateProject(),
                         },
                       ]
@@ -373,14 +368,14 @@ export function AppShell({
         </header>
 
         {/* Dynamic Main Content Canvas */}
-        <main className="flex-1 bg-white p-4 sm:p-6 lg:p-8">
-          <div className={cn('mx-auto', fullWidth ? 'w-full' : 'max-w-[1400px]')}>
+        <main className="flex-1 bg-white p-6 sm:p-8">
+          <div className={cn('mx-auto', fullWidth ? 'w-full' : 'max-w-[1480px]')}>
             {children}
           </div>
         </main>
       </div>
 
-      {/* Global Command Palette Search Modal */}
+      {/* Global Command Palette / Search Modal (Rendered once) */}
       <GlobalSearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );

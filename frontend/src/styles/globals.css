@@ -6,106 +6,169 @@
   :root {
     /* FutureX Centralized Design System Tokens */
 
-    /* Surfaces */
+    /* 6. Background System (Predominantly White) */
+    --bg-app: #FFFFFF;
+    --bg-subtle: #F8F9FB;
+    --bg-muted: #F3F5F7;
+    --bg-canvas: #FFFFFF;
+    --bg-surface: #FFFFFF;
+    --bg-hover: #F8F9FB;
+
+    /* Backward compatibility aliases */
     --fx-bg: #FFFFFF;
     --fx-surface: #FFFFFF;
-    --fx-surface-secondary: #F7F8FA;
-    --fx-surface-soft: #F2F4F7;
+    --fx-surface-secondary: #F8F9FB;
+    --fx-surface-soft: #F4F6F8;
 
-    /* Dividers & Borders */
-    --fx-border: #E3E7EC;
-    --fx-border-strong: #D4DAE1;
-    --fx-border-subtle: #E3E7EC;
+    /* 7. Text & Typography Tokens */
+    --text-primary: #17191C;
+    --text-secondary: #60666F;
+    --text-tertiary: #8B929B;
+    --text-muted: #8B929B;
+    --text-disabled: #A8AFB9;
 
-    /* Typography */
-    --fx-text: #181B20;
-    --fx-text-primary: #181B20;
-    --fx-text-secondary: #626A73;
-    --fx-text-muted: #929AA3;
-    --fx-text-disabled: #B8B2AC;
+    --fx-text: #17191C;
+    --fx-text-primary: #17191C;
+    --fx-text-secondary: #60666F;
+    --fx-text-muted: #8B929B;
+    --fx-text-disabled: #A8AFB9;
+
+    /* Borders & Dividers */
+    --border-subtle: #E8EBEF;
+    --border-medium: #DCE1E7;
+    --border: #E8EBEF;
+    --border-strong: #DCE1E7;
+
+    --fx-border: #E8EBEF;
+    --fx-border-strong: #DCE1E7;
+    --fx-border-subtle: #E8EBEF;
 
     /* Primary Blue Accent System */
-    --fx-primary: #2563EB;
+    --blue-600: #2463EB;
+    --blue-700: #1D4ED8;
+    --blue-100: #EEF4FF;
+    --blue-50: #F6F9FF;
+
+    --fx-primary: #2463EB;
     --fx-primary-hover: #1D4ED8;
-    --fx-primary-pressed: #1E40AF;
+    --fx-primary-pressed: #1B44B8;
     --fx-primary-soft: #EEF4FF;
     --fx-primary-very-soft: #F6F9FF;
     --fx-deep-navy: #163A5F;
 
-    /* Semantic Status System */
-    --fx-status-ready-text: #237A57;
-    --fx-status-ready-bg: #EDF8F2;
-    --fx-status-inprogress-text: #2563EB;
-    --fx-status-inprogress-bg: #EEF4FF;
-    --fx-status-waiting-text: #A86B12;
-    --fx-status-waiting-bg: #FFF6E5;
-    --fx-status-inreview-text: #7557B5;
-    --fx-status-inreview-bg: #F4F0FC;
-    --fx-status-blocked-text: #C24141;
-    --fx-status-blocked-bg: #FDEEEE;
-    --fx-status-done-text: #237A57;
-    --fx-status-done-bg: #EDF8F2;
-
-    /* Backward Compatible Aliases */
     --fx-accent: var(--fx-primary);
     --fx-accent-hover: var(--fx-primary-hover);
     --fx-accent-pressed: var(--fx-primary-pressed);
-    --fx-accent-dark: var(--fx-primary-pressed);
     --fx-accent-soft: var(--fx-primary-soft);
     --fx-accent-very-soft: var(--fx-primary-very-soft);
-    --fx-accent-subtle: var(--fx-surface-secondary);
+    --fx-accent-subtle: var(--bg-subtle);
 
-    --bg-app: var(--fx-bg);
-    --bg-canvas: var(--fx-bg);
-    --bg-surface: var(--fx-surface);
-    --bg-surface-secondary: var(--fx-surface-secondary);
-    --bg-surface-tertiary: var(--fx-surface-soft);
-    --bg-hover: var(--fx-surface-secondary);
+    /* 8. Semantic Status System */
+    --status-completed-text: #26715A;
+    --status-completed-bg: #EDF7F2;
+    --status-ready-text: #237A57;
+    --status-ready-bg: #EFF8F3;
+    --status-inprogress-text: #245EC7;
+    --status-inprogress-bg: #EEF4FF;
+    --status-waiting-text: #9A6515;
+    --status-waiting-bg: #FFF7E8;
+    --status-inreview-text: #6D52A3;
+    --status-inreview-bg: #F5F1FB;
+    --status-blocked-text: #B54747;
+    --status-blocked-bg: #FCEEEE;
+    --status-unassigned-text: #626A73;
+    --status-unassigned-bg: #F1F3F5;
 
-    --text-primary: var(--fx-text-primary);
-    --text-secondary: var(--fx-text-secondary);
-    --text-muted: var(--fx-text-muted);
-    --text-disabled: var(--fx-text-disabled);
+    --fx-status-ready-text: var(--status-ready-text);
+    --fx-status-ready-bg: var(--status-ready-bg);
+    --fx-status-inprogress-text: var(--status-inprogress-text);
+    --fx-status-inprogress-bg: var(--status-inprogress-bg);
+    --fx-status-waiting-text: var(--status-waiting-text);
+    --fx-status-waiting-bg: var(--status-waiting-bg);
+    --fx-status-inreview-text: var(--status-inreview-text);
+    --fx-status-inreview-bg: var(--status-inreview-bg);
+    --fx-status-blocked-text: var(--status-blocked-text);
+    --fx-status-blocked-bg: var(--status-blocked-bg);
+    --fx-status-done-text: var(--status-completed-text);
+    --fx-status-done-bg: var(--status-completed-bg);
 
-    --border: var(--fx-border);
-    --border-strong: var(--fx-border-strong);
-    --border-subtle: var(--fx-border);
+    --semantic-ready: var(--status-ready-text);
+    --semantic-ready-bg: var(--status-ready-bg);
+    --semantic-in-progress: var(--status-inprogress-text);
+    --semantic-in-progress-bg: var(--status-inprogress-bg);
+    --semantic-waiting: var(--status-waiting-text);
+    --semantic-waiting-bg: var(--status-waiting-bg);
+    --semantic-in-review: var(--status-inreview-text);
+    --semantic-in-review-bg: var(--status-inreview-bg);
+    --semantic-blocked: var(--status-blocked-text);
+    --semantic-blocked-bg: var(--status-blocked-bg);
+    --semantic-done: var(--status-completed-text);
+    --semantic-done-bg: var(--status-completed-bg);
 
-    --semantic-ready: var(--fx-status-ready-text);
-    --semantic-ready-bg: var(--fx-status-ready-bg);
-    --semantic-in-progress: var(--fx-status-inprogress-text);
-    --semantic-in-progress-bg: var(--fx-status-inprogress-bg);
-    --semantic-waiting: var(--fx-status-waiting-text);
-    --semantic-waiting-bg: var(--fx-status-waiting-bg);
-    --semantic-in-review: var(--fx-status-inreview-text);
-    --semantic-in-review-bg: var(--fx-status-inreview-bg);
-    --semantic-blocked: var(--fx-status-blocked-text);
-    --semantic-blocked-bg: var(--fx-status-blocked-bg);
-    --semantic-done: var(--fx-status-done-text);
-    --semantic-done-bg: var(--fx-status-done-bg);
-    /* Centralized UX Motion System Tokens */
-    --motion-fast: 120ms;
-    --motion-standard: 160ms;
+    /* Motion Tokens */
+    --motion-fast: 130ms;
+    --motion-standard: 170ms;
     --motion-panel: 200ms;
-    --motion-progress: 350ms;
-    --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+    --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   * {
     box-sizing: border-box;
   }
 
-  html {
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-  }
-
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
-    background-color: var(--fx-bg);
-    color: var(--fx-text-primary);
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    line-height: 1.45;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* 10. Typography Scale Classes */
+  .fx-page-title {
+    font-size: 30px;
+    font-weight: 650;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+  }
+
+  .fx-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
+  .fx-entity-title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text-primary);
+  }
+
+  .fx-body {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--text-primary);
+  }
+
+  .fx-metadata {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--text-secondary);
+  }
+
+  .fx-small-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-tertiary);
   }
 
   /* Monospace font strictly for task codes (e.g. BG-101) */
@@ -115,10 +178,10 @@
     letter-spacing: -0.01em;
   }
 
-  /* Restrained Enterprise Scrollbar (5px) */
+  /* Restrained Enterprise Scrollbar (4px) */
   ::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
+    width: 4px;
+    height: 4px;
   }
 
   ::-webkit-scrollbar-track {
@@ -126,23 +189,23 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--fx-border-strong);
+    background: var(--border-medium);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--fx-text-muted);
+    background: var(--text-tertiary);
   }
 
   /* Accessible Subtle Focus Outline */
   :focus-visible {
-    outline: 2px solid var(--fx-primary);
+    outline: 2px solid var(--blue-600);
     outline-offset: 1px;
   }
 
   ::selection {
-    background-color: var(--fx-primary-soft);
-    color: var(--fx-primary-pressed);
+    background-color: var(--blue-100);
+    color: var(--blue-700);
   }
 }
 
@@ -153,7 +216,7 @@
   }
 
   .fx-transition-colors {
-    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-property: color, background-color, border-color;
     transition-timing-function: var(--ease-standard);
     transition-duration: var(--motion-fast);
   }
@@ -162,28 +225,21 @@
     transition: transform var(--motion-panel) var(--ease-standard), opacity var(--motion-panel) var(--ease-standard);
   }
 
-  .fx-progress-bar {
-    transition: width var(--motion-progress) var(--ease-standard);
+  /* Surface System Helper Classes (Open surfaces, not heavy cards) */
+  .fx-surface-subtle {
+    background-color: var(--bg-subtle);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
   }
 
-  /* Surface System Helper Classes */
-  .fx-surface-primary {
+  .fx-surface-panel {
     background-color: #FFFFFF;
-    border: 1px solid var(--fx-border);
-    border-radius: 16px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
-  }
-
-  .fx-surface-utility {
-    background-color: #FFFFFF;
-    border: 1px solid var(--fx-border);
+    border: 1px solid var(--border-subtle);
     border-radius: 14px;
   }
 
-  .fx-surface-row {
-    background-color: #FFFFFF;
-    border: 1px solid var(--fx-border);
-    border-radius: 12px;
+  .fx-row-divider {
+    border-bottom: 1px solid var(--border-subtle);
   }
 }
 
@@ -196,4 +252,3 @@
     scroll-behavior: auto !important;
   }
 }
-

@@ -171,10 +171,10 @@ export function CalendarView() {
         {/* Header & Controls */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#181B20]">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#17191C]">
               Project Calendar
             </h1>
-            <p className="text-sm text-[#626A73] mt-1">
+            <p className="text-xs text-[#60666F] mt-1">
               Deliverable milestones, task target deadlines, and project schedules.
             </p>
           </div>
@@ -182,12 +182,12 @@ export function CalendarView() {
           {/* Controls */}
           <div className="flex flex-wrap items-center gap-2.5">
             {/* View Toggle */}
-            <div className="flex items-center gap-1 border border-[#E3E7EC] rounded-[8px] p-0.5 bg-[#F7F8FA]">
+            <div className="flex items-center gap-1 border border-[#E8EBEF] rounded-[9px] p-0.5 bg-[#F8F9FB]">
               <button
                 onClick={() => setViewMode('month')}
                 className={cn(
-                  'px-3 py-1.5 text-xs font-medium rounded-md fx-transition',
-                  viewMode === 'month' ? 'bg-white text-[#2563EB] font-semibold shadow-xs' : 'text-[#626A73] hover:text-[#181B20]',
+                  'px-3 py-1.5 text-xs font-medium rounded-[7px] transition-colors',
+                  viewMode === 'month' ? 'bg-white text-[#2463EB] font-semibold shadow-xs' : 'text-[#60666F] hover:text-[#17191C]',
                 )}
               >
                 Month
@@ -195,8 +195,8 @@ export function CalendarView() {
               <button
                 onClick={() => setViewMode('week')}
                 className={cn(
-                  'px-3 py-1.5 text-xs font-medium rounded-md fx-transition',
-                  viewMode === 'week' ? 'bg-white text-[#2563EB] font-semibold shadow-xs' : 'text-[#626A73] hover:text-[#181B20]',
+                  'px-3 py-1.5 text-xs font-medium rounded-[7px] transition-colors',
+                  viewMode === 'week' ? 'bg-white text-[#2463EB] font-semibold shadow-xs' : 'text-[#60666F] hover:text-[#17191C]',
                 )}
               >
                 Week
@@ -204,20 +204,20 @@ export function CalendarView() {
             </div>
 
             {/* Month/Week Navigation */}
-            <div className="flex items-center gap-1.5 bg-[#F7F8FA] border border-[#E3E7EC] rounded-[8px] px-2 py-1">
+            <div className="flex items-center gap-1.5 bg-[#F8F9FB] border border-[#E8EBEF] rounded-[9px] px-2 py-1">
               <button
                 onClick={prevPeriod}
-                className="p-1 rounded text-fx-text-muted hover:text-fx-text-primary hover:bg-fx-bg-hover fx-transition"
+                className="p-1 rounded text-[#8C939E] hover:text-[#17191C] hover:bg-white transition-colors"
                 title="Previous"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-xs font-semibold text-fx-text-primary min-w-[120px] text-center">
+              <span className="text-xs font-medium text-[#17191C] min-w-[120px] text-center">
                 {monthNames[month]} {year}
               </span>
               <button
                 onClick={nextPeriod}
-                className="p-1 rounded text-fx-text-muted hover:text-fx-text-primary hover:bg-fx-bg-hover fx-transition"
+                className="p-1 rounded text-[#8C939E] hover:text-[#17191C] hover:bg-white transition-colors"
                 title="Next"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -226,7 +226,7 @@ export function CalendarView() {
 
             <button
               onClick={() => setCurrentDate(new Date())}
-              className="px-3 py-1.5 bg-[#F7F8FA] border border-[#E3E7EC] rounded-[8px] text-xs font-medium text-[#626A73] hover:text-[#181B20] hover:bg-[#F2F4F7] fx-transition"
+              className="px-3 py-1.5 bg-[#F8F9FB] border border-[#E8EBEF] rounded-[9px] text-xs font-medium text-[#60666F] hover:text-[#17191C] hover:bg-[#F2F4F7] transition-colors"
             >
               Today
             </button>
@@ -234,23 +234,23 @@ export function CalendarView() {
         </div>
 
         {/* Filter Bar */}
-        <div className="border-y border-[#E3E7EC] py-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="border-y border-[#E8EBEF] py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[260px]">
             <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-fx-text-muted" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8C939E]" />
               <input
                 type="text"
                 placeholder="Search calendar events..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] placeholder:text-[#929AA3] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8F9FB] border border-[#E8EBEF] rounded-[9px] text-[#17191C] placeholder:text-[#8C939E] focus:bg-white focus:outline-none focus:border-[#2463EB]"
               />
             </div>
 
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="h-8 px-2.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
+              className="h-8 px-2.5 text-xs bg-[#F8F9FB] border border-[#E8EBEF] rounded-[9px] text-[#17191C] focus:bg-white focus:outline-none focus:border-[#2463EB]"
             >
               <option value="ALL">All Projects</option>
               {projects.map((p) => (
@@ -263,7 +263,7 @@ export function CalendarView() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-8 px-2.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
+              className="h-8 px-2.5 text-xs bg-[#F8F9FB] border border-[#E8EBEF] rounded-[9px] text-[#17191C] focus:bg-white focus:outline-none focus:border-[#2463EB]"
             >
               <option value="ALL">All Statuses</option>
               <option value={TaskStatus.TODO}>To Do</option>
@@ -275,15 +275,15 @@ export function CalendarView() {
             </select>
           </div>
 
-          <div className="text-xs text-fx-text-muted">
-            Showing <span className="font-semibold text-fx-text-primary">{tasks.length}</span> scheduled deliverables
+          <div className="text-xs text-[#8C939E]">
+            Showing <span className="font-semibold text-[#17191C]">{tasks.length}</span> scheduled deliverables
           </div>
         </div>
 
         {/* Calendar Grid */}
-        <div className="bg-white border border-[#E3E7EC] rounded-[12px] overflow-hidden shadow-none">
+        <div className="bg-white border border-[#E8EBEF] rounded-[10px] overflow-hidden shadow-none">
           {/* Day Headers */}
-          <div className="grid grid-cols-7 border-b border-[#E3E7EC] bg-[#F7F8FA] text-center text-xs font-semibold text-fx-text-muted py-2.5 select-none">
+          <div className="grid grid-cols-7 border-b border-[#E8EBEF] bg-[#F8F9FB] text-center text-xs font-medium text-[#8C939E] py-2.5 select-none">
             {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map((d) => (
               <div key={d} className="truncate px-1">
                 <span className="hidden sm:inline">{d}</span>
@@ -295,7 +295,7 @@ export function CalendarView() {
           {/* Grid Cells */}
           <div
             className={cn(
-              'grid grid-cols-7 divide-x divide-y divide-fx-border/70',
+              'grid grid-cols-7 divide-x divide-y divide-[#E8EBEF]',
               viewMode === 'week' ? 'min-h-[500px]' : 'min-h-[700px]',
             )}
           >
@@ -307,9 +307,9 @@ export function CalendarView() {
                 <div
                   key={idx}
                   className={cn(
-                    'p-1.5 sm:p-2 flex flex-col justify-between fx-transition min-h-[110px] sm:min-h-[130px]',
-                    !cell.isCurrentMonth && 'bg-fx-bg/40 text-fx-text-muted/40',
-                    cell.isCurrentMonth && 'bg-white hover:bg-fx-bg-hover/50',
+                    'p-1.5 sm:p-2 flex flex-col justify-between transition-colors min-h-[110px] sm:min-h-[130px]',
+                    !cell.isCurrentMonth && 'bg-[#F8F9FB]/40 text-[#8C939E]/40',
+                    cell.isCurrentMonth && 'bg-white hover:bg-[#F8F9FB]/50',
                   )}
                 >
                   {/* Date Header */}
@@ -317,16 +317,16 @@ export function CalendarView() {
                     <span
                       className={cn(
                         'text-xs font-medium inline-flex items-center justify-center w-6 h-6 rounded-full select-none',
-                        isToday && 'bg-[#2563EB] text-white font-semibold',
-                        !isToday && cell.isCurrentMonth && 'text-fx-text-primary',
-                        !isToday && !cell.isCurrentMonth && 'text-fx-text-muted/40',
+                        isToday && 'bg-[#2463EB] text-white font-semibold',
+                        !isToday && cell.isCurrentMonth && 'text-[#17191C]',
+                        !isToday && !cell.isCurrentMonth && 'text-[#8C939E]/40',
                       )}
                     >
                       {cell.date.getDate()}
                     </span>
 
                     {dayTasks.length > 0 && (
-                      <span className="text-[10px] font-mono text-fx-text-muted bg-fx-bg px-1.5 py-0.2 rounded border border-[#E3E7EC]/60">
+                      <span className="text-[10px] font-mono text-[#8C939E] bg-[#F8F9FB] px-1.5 py-0.2 rounded border border-[#E8EBEF]">
                         {dayTasks.length} {dayTasks.length === 1 ? 'item' : 'items'}
                       </span>
                     )}
@@ -339,19 +339,19 @@ export function CalendarView() {
                         key={task.id}
                         onClick={() => setSelectedTaskId(task.id)}
                         className={cn(
-                          'p-1.5 rounded-md border text-[11px] cursor-pointer fx-transition select-none truncate',
+                          'p-1.5 rounded-[6px] border text-[11px] cursor-pointer transition-colors select-none truncate',
                           task.status === TaskStatus.DONE
-                            ? 'bg-[#EDF8F2] border-[#237A57]/30 text-[#237A57]'
+                            ? 'bg-[#EDF7F2] border-[#C6E6D6] text-[#26715A]'
                             : task.status === TaskStatus.WAITING
-                              ? 'bg-[#FFF6E5] border-[#A86B12]/30 text-[#A86B12]'
+                              ? 'bg-[#FFF7E8] border-[#F0DFB7] text-[#9A6515]'
                               : task.status === TaskStatus.BLOCKED
-                                ? 'bg-[#FDEEEE] border-[#C24141]/30 text-[#C24141]'
-                                : 'bg-[#F7F8FA] border-[#E3E7EC] text-fx-text-primary hover:border-[#2563EB]/40 hover:bg-white',
+                                ? 'bg-[#FCEEEE] border-[#F2C0C0] text-[#B54747]'
+                                : 'bg-[#F8F9FB] border-[#E8EBEF] text-[#17191C] hover:border-[#2463EB] hover:bg-white',
                         )}
                         title={`${task.humanId}: ${task.title}`}
                       >
                         <div className="flex items-center gap-1 min-w-0">
-                          <span className="font-mono text-[9px] text-fx-text-muted shrink-0">
+                          <span className="font-mono text-[9px] text-[#8C939E] shrink-0">
                             {task.humanId || 'FX'}
                           </span>
                           <span className="truncate font-medium">{task.title}</span>
@@ -360,7 +360,7 @@ export function CalendarView() {
                     ))}
 
                     {dayTasks.length > 3 && (
-                      <p className="text-[10px] font-medium text-[#2563EB] text-center">
+                      <p className="text-[10px] font-medium text-[#2463EB] text-center">
                         +{dayTasks.length - 3} more
                       </p>
                     )}

@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   FolderKanban,
   CheckSquare,
   GanttChartSquare,
-  Users,
   Plus,
   Calendar,
   AlertCircle,
@@ -14,6 +13,9 @@ import {
   FileText,
   Activity,
   ChevronRight,
+  ListChecks,
+  Wand2,
+  Users,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { TaskStatus, ProjectHealth } from '@futurex/shared';
@@ -35,16 +37,38 @@ interface ProjectDetailsPageProps {
   projectId?: string;
 }
 
-export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsPageProps = {}) {
+function formatTemplateLabel(value?: string | null) {
+  if (!value) return '-';
+  return value
+    .replace(/_/g, ' / ')
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function compactAssignments(assignments: Record<string, string>) {
+  return Object.fromEntries(
+    Object.entries(assignments).filter(([, userId]) => Boolean(userId)),
+  );
+}
+
+export function ProjectDetailsPage({
+  projectId: propProjectId,
+}: ProjectDetailsPageProps = {}) {
   const params = useParams();
   const searchParams = useSearchParams();
   const projectId = propProjectId || (params?.id as string) || '';
 
   const { user } = useAuth();
   const canManage = canManageProjects(user);
+  const queryClient = useQueryClient();
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'tasks' | 'board' | 'calendar' | 'timeline' | 'files' | 'activity'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'development' | 'tasks' | 'board' | 'calendar' | 'timeline' | 'activity'
+  >('overview');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [phaseAssignments, setPhaseAssignments] = useState<Record<string, string>>({});
+  const [roleAssignments, setRoleAssignments] = useState<Record<string, string>>({});
 
   // Fetch Project Details
   const { data: projectData, isLoading } = useQuery({
@@ -54,7 +78,77 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
     staleTime: 20000,
   });
 
-  const isFullWidth = activeTab === 'board' || activeTab === 'timeline' || activeTab === 'calendar';
+  const generateChecklistMutation = useMutation({
+    mutationFn: () =>
+      api.post(`/projects/${projectId}/generate-development-checklist`, {}),
+    onSuccess: () => {
+      setPageError(null);
+      setActiveTab('development');
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: (err: any) =>
+      setPageError(err.message || 'Checklist could not be generated.'),
+  });
+
+  const assignChecklistMutation = useMutation({
+    mutationFn: ({
+      taskId,
+      assigneeId,
+    }: {
+      taskId: string;
+      assigneeId: string;
+    }) =>
+      api.patch(
+        `/projects/${projectId}/development-checklist/${taskId}/assignment`,
+        {
+          assigneeId: assigneeId || null,
+        },
+      ),
+    onSuccess: () => {
+      setPageError(null);
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    },
+    onError: (err: any) =>
+      setPageError(err.message || 'Task assignment could not be updated.'),
+  });
+
+  const markNotApplicableMutation = useMutation({
+    mutationFn: (taskId: string) =>
+      api.patch(`/tasks/${taskId}`, { status: TaskStatus.N_A }),
+    onSuccess: () => {
+      setPageError(null);
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+    },
+    onError: (err: any) =>
+      setPageError(err.message || 'Task could not be marked not applicable.'),
+  });
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: () =>
+      api.post(`/projects/${projectId}/development-checklist/bulk-assign`, {
+        phaseMappings: compactAssignments(phaseAssignments),
+        mappings: compactAssignments(roleAssignments),
+      }),
+    onSuccess: (result: any) => {
+      setPageError(null);
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      if (!result?.assignedCount) {
+        setPageError(
+          'No unassigned checklist items matched the selected phase/responsibility mapping.',
+        );
+      }
+    },
+    onError: (err: any) =>
+      setPageError(err.message || 'Bulk assignment could not be applied.'),
+  });
+
+  const isFullWidth =
+    activeTab === 'board' ||
+    activeTab === 'timeline' ||
+    activeTab === 'calendar';
 
   if (isLoading && !projectData) {
     return (
@@ -66,19 +160,23 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
 
   const project = projectData as any;
   const tasks = (project?.tasks || []) as any[];
+  const checklistTasks = [...tasks]
+    .filter((task) => task.workType === 'STANDARD_CHECKLIST')
+    .sort((a, b) => (a.checklistOrder || 0) - (b.checklistOrder || 0));
   const milestones = (project?.milestones || []) as any[];
   const members = (project?.members || []) as any[];
+  const checklistSummary = project?.checklistSummary;
+  const phaseProgress = (project?.phaseProgress || []) as any[];
+  const checklistPhases = Array.from(
+    new Set(checklistTasks.map((task) => task.checklistPhase).filter(Boolean)),
+  ) as string[];
+  const checklistRoles = Array.from(
+    new Set(
+      checklistTasks.map((task) => task.checklistOwnerRole).filter(Boolean),
+    ),
+  ) as string[];
 
-  // Board columns
-  const boardColumns = [
-    { id: TaskStatus.TODO, label: 'To Do', color: 'bg-gray-400' },
-    { id: TaskStatus.WAITING, label: 'Waiting', color: 'bg-[#A86B12]' },
-    { id: TaskStatus.READY, label: 'Ready to Start', color: 'bg-[#237A57]' },
-    { id: TaskStatus.IN_PROGRESS, label: 'In Progress', color: 'bg-[#2563EB]' },
-    { id: TaskStatus.IN_REVIEW, label: 'In Review', color: 'bg-[#7557B5]' },
-    { id: TaskStatus.BLOCKED, label: 'Blocked', color: 'bg-[#C24141]' },
-    { id: TaskStatus.DONE, label: 'Completed', color: 'bg-[#237A57]' },
-  ];
+  const progressVal = Math.round(project?.progress || 0);
 
   return (
     <AppShell fullWidth={isFullWidth}>
@@ -89,126 +187,167 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
         onSelectTask={(id) => setSelectedTaskId(id)}
       />
 
-      <div className="space-y-8">
-        {(searchParams.get('created') || searchParams.get('updated') || searchParams.get('taskCreated')) && (
-          <div className="rounded-[10px] border border-[#E3E7EC] bg-[#F7F8FA] px-4 py-3 text-xs font-medium text-[#181B20]">
+      <div className="space-y-6">
+        {/* Flash Message Banner */}
+        {(searchParams.get('created') ||
+          searchParams.get('updated') ||
+          searchParams.get('taskCreated')) && (
+          <div className="rounded-[8px] border border-[#E8EBEF] bg-[#F8F9FB] px-4 py-2.5 text-xs text-[#17191C]">
             {searchParams.get('created')
-              ? 'Project created. Create the first task when you are ready.'
+              ? 'Product created. Generate development checklist or add custom tasks.'
               : searchParams.get('taskCreated')
-                ? 'Task created and added to this project.'
-                : 'Project updated.'}
+                ? 'Task created and added to product.'
+                : 'Product updated.'}
           </div>
         )}
 
-        {/* Project Header - De-boxed directly on canvas */}
-        {isLoading ? (
-          <div className="space-y-3 animate-pulse pb-6 border-b border-[#E3E7EC]">
-            <div className="h-4 bg-[#F2F4F7] rounded w-32" />
-            <div className="h-8 bg-[#F2F4F7] rounded w-72" />
-            <div className="h-4 bg-[#F2F4F7] rounded w-full max-w-xl" />
+        {pageError && (
+          <div className="rounded-[8px] border border-[#F9D1D1] bg-[#FCEEEE] px-4 py-2.5 text-xs font-medium text-[#B54747]">
+            {pageError}
           </div>
-        ) : !project ? (
+        )}
+
+        {/* 28. Workspace Product Header */}
+        {!project ? (
           <div className="py-16 text-center space-y-3">
-            <AlertCircle className="w-8 h-8 text-[#C24141] mx-auto" />
-            <h2 className="text-sm font-semibold text-[#181B20]">Project Not Found</h2>
-            <p className="text-xs text-[#626A73]">This project may have been removed or you do not have permission to view it.</p>
+            <AlertCircle className="w-8 h-8 text-[#B54747] mx-auto" />
+            <h2 className="text-sm font-semibold text-[#17191C]">
+              Product Not Found
+            </h2>
+            <p className="text-xs text-[#60666F]">
+              This product may have been removed or you do not have permission to view it.
+            </p>
             <Link href="/projects">
-              <Button size="sm" variant="secondary">Back to Projects</Button>
+              <Button size="sm" variant="secondary">
+                Back to Products
+              </Button>
             </Link>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-4 pb-4 border-b border-[#E8EBEF]">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div className="space-y-2 min-w-0 flex-1">
+              <div className="space-y-1.5 min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <Link
                     href="/projects"
-                    className="text-xs text-[#626A73] hover:text-[#2563EB] fx-transition"
+                    className="text-xs text-[#60666F] hover:text-[#2463EB] fx-transition"
                   >
-                    Projects
+                    Products
                   </Link>
-                  <ChevronRight className="w-3.5 h-3.5 text-[#929AA3]" />
-                  <span className="font-mono text-xs font-semibold text-[#626A73] bg-[#F7F8FA] px-2 py-0.5 rounded-[6px] border border-[#E3E7EC]">
+                  <ChevronRight className="w-3 h-3 text-[#8B929B]" />
+                  <span className="font-mono text-[11px] font-medium text-[#60666F] bg-[#F8F9FB] px-1.5 py-0.5 rounded-[5px] border border-[#E8EBEF]">
                     {project?.key || '...'}
                   </span>
-                  <HealthBadge health={project?.health || ProjectHealth.ON_TRACK} />
+                  <HealthBadge
+                    health={project?.health || ProjectHealth.ON_TRACK}
+                  />
                 </div>
-                <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#181B20]">
+
+                <h1 className="fx-page-title">
                   {project?.name}
                 </h1>
-                {project?.description && (
-                  <p className="text-sm text-[#626A73] leading-relaxed max-w-3xl">
-                    {project.description}
-                  </p>
-                )}
+
+                <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#60666F]">
+                  <span>{(project?.productType || 'Product').replace('_', ' ')}</span>
+                  <span className="text-[#8B929B]">·</span>
+                  <span>{project?.targetDate ? `Target ${formatDate(project.targetDate)}` : 'No target date'}</span>
+                  <span className="text-[#8B929B]">·</span>
+                  <span className="font-medium text-[#17191C]">{progressVal}% complete</span>
+                </div>
               </div>
 
               {canManage && (
                 <div className="flex items-center gap-2 shrink-0">
                   <Link href={`/projects/${projectId}/edit`}>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                    >
-                      Edit Project
+                    <Button size="sm" variant="secondary">
+                      Settings
                     </Button>
                   </Link>
                   <Link href={`/projects/${projectId}/tasks/new`}>
-                    <Button size="sm" variant="primary" leftIcon={<Plus className="w-3.5 h-3.5" />}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      leftIcon={<Plus className="w-3.5 h-3.5" />}
+                    >
                       New Task
                     </Button>
                   </Link>
+                  {!project?.checklistGeneratedAt ? (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      leftIcon={<Wand2 className="w-3.5 h-3.5" />}
+                      loading={generateChecklistMutation.isPending}
+                      onClick={() => generateChecklistMutation.mutate()}
+                    >
+                      Generate Checklist
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={() => setActiveTab('development')}
+                    >
+                      Checklist
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Quick Metrics Bar directly on canvas */}
-            <div className="border-y border-[#E3E7EC] py-3.5 flex flex-wrap items-center justify-between gap-4 text-xs text-[#626A73]">
+            {/* Quick Metrics Bar (Quiet open row) */}
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-4 text-xs text-[#60666F]">
               <div className="flex items-center gap-6">
                 <div>
-                  <span className="text-[#929AA3] text-[11px]">Progress:</span>{' '}
-                  <span className="font-mono font-semibold text-[#181B20]">
-                    {project?.progress || 0}%
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[#929AA3] text-[11px]">Tasks:</span>{' '}
-                  <span className="font-mono font-semibold text-[#181B20]">
+                  <span className="text-[#8B929B]">Tasks:</span>{' '}
+                  <span className="font-mono font-semibold text-[#17191C]">
                     {tasks.length}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#929AA3] text-[11px]">Managing Admin:</span>{' '}
-                  <span className="font-medium text-[#181B20]">
+                  <span className="text-[#8B929B]">Managing Admin:</span>{' '}
+                  <span className="font-medium text-[#17191C]">
                     {project?.projectManager
                       ? `${project.projectManager.firstName} ${project.projectManager.lastName}`
                       : 'Unassigned'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#929AA3] text-[11px]">Target:</span>{' '}
-                  <span className="font-mono text-[#626A73]">
-                    {project?.targetDate ? formatDate(project.targetDate) : 'No deadline'}
+                  <span className="text-[#8B929B]">Launch Readiness:</span>{' '}
+                  <span className="font-mono font-semibold text-[#17191C]">
+                    {Math.round(
+                      project?.launchReadiness ||
+                        checklistSummary?.completionPercent ||
+                        0,
+                    )}%
                   </span>
                 </div>
               </div>
 
               <div className="w-36 hidden sm:block">
-                <Progress value={project?.progress || 0} size="xs" />
+                <Progress value={progressVal} size="xs" />
               </div>
             </div>
           </div>
         )}
 
-        {/* Lightweight Tab Navigation */}
-        <div className="border-b border-[#E3E7EC] pb-3 flex items-center gap-1 overflow-x-auto no-scrollbar">
+        {/* 28. Tab Navigation */}
+        <div className="border-b border-[#E8EBEF] pb-2 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {[
             { id: 'overview', label: 'Overview', icon: Activity },
-            { id: 'tasks', label: `Tasks (${tasks.length})`, icon: CheckSquare },
+            {
+              id: 'development',
+              label: `Development Checklist (${checklistTasks.length})`,
+              icon: ListChecks,
+            },
+            {
+              id: 'tasks',
+              label: `Tasks (${tasks.length})`,
+              icon: CheckSquare,
+            },
             { id: 'board', label: 'Board', icon: FolderKanban },
             { id: 'calendar', label: 'Calendar', icon: Calendar },
             { id: 'timeline', label: 'Timeline', icon: GanttChartSquare },
-            { id: 'files', label: 'Files & Assets', icon: FileText },
             { id: 'activity', label: 'Activity', icon: Activity },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -218,131 +357,236 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  'px-3.5 py-2 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-2 fx-transition',
+                  'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 fx-transition',
                   isActive
-                    ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold'
-                    : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
+                    ? 'bg-[#EEF4FF] text-[#245EC7] font-medium'
+                    : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
                 )}
               >
-                <Icon className={cn('w-3.5 h-3.5', isActive ? 'text-[#2563EB]' : 'text-[#929AA3]')} />
+                <Icon
+                  className={cn(
+                    'w-3.5 h-3.5',
+                    isActive ? 'text-[#245EC7]' : 'text-[#8B929B]',
+                  )}
+                />
                 <span>{tab.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* TAB 1: OVERVIEW */}
+        {/* 29. TAB 1: PRODUCT OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Left Column (8 cols) */}
-            <div className="lg:col-span-8 space-y-8">
-              {/* Milestones Roadmap */}
-              <div className="space-y-3">
-                <div className="pb-2 border-b border-[#E3E7EC]">
-                  <h2 className="text-[14px] font-semibold text-[#181B20]">
-                    Milestone Roadmap
+            {/* Left Primary Column (8 cols) */}
+            <div className="lg:col-span-8 space-y-8 min-w-0">
+
+              {/* 30. Progress by Phase: Calm Table/List (NOT one card per phase) */}
+              <section className="space-y-3">
+                <div className="pb-2 border-b border-[#E8EBEF] flex items-center justify-between">
+                  <h2 className="fx-section-title">
+                    Progress by Phase
                   </h2>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('development')}
+                    className="text-xs font-medium text-[#2463EB] hover:text-[#1D4ED8] fx-transition"
+                  >
+                    View checklist ({checklistTasks.length}) →
+                  </button>
                 </div>
 
-                {milestones.length === 0 ? (
-                  <p className="text-xs text-[#929AA3] py-2">No milestones established for this project.</p>
+                {phaseProgress.length === 0 ? (
+                  <div className="py-4 text-xs text-[#8B929B]">
+                    No phase breakdown available. Generate the standard development checklist to track progress by phase.
+                  </div>
                 ) : (
-                  <div className="space-y-3">
-                    {milestones.map((m: any) => (
-                      <div
-                        key={m.id}
-                        className="p-3.5 rounded-[10px] bg-[#F7F8FA] border border-[#E3E7EC] space-y-2 text-xs"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-[#181B20]">{m.name}</span>
-                          <span className="font-mono text-[11px] text-[#929AA3]">
-                            Target: {m.targetDate ? formatDate(m.targetDate) : 'TBD'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Progress value={m.progress || 0} size="xs" className="flex-1" />
-                          <span className="font-mono text-[11px] text-[#626A73]">
-                            {m.progress || 0}%
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="bg-[#FAFBFC] text-[#60666F] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E8EBEF]">
+                          <th className="py-2.5 px-3">Phase</th>
+                          <th className="py-2.5 px-3 w-48">Progress</th>
+                          <th className="py-2.5 px-3 text-right">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
+                        {phaseProgress.map((phase: any) => {
+                          const pct = Number(phase.completionPercent || 0);
+                          const statusLabel =
+                            pct === 100 ? 'Complete' : pct > 0 ? 'In Progress' : 'Not Started';
+                          const statusColor =
+                            pct === 100
+                              ? 'text-[#26715A] bg-[#EDF7F2]'
+                              : pct > 0
+                                ? 'text-[#245EC7] bg-[#EEF4FF]'
+                                : 'text-[#8B929B] bg-[#F1F3F5]';
+
+                          return (
+                            <tr key={phase.phase} className="hover:bg-[#F8F9FB] fx-transition">
+                              <td className="py-2.5 px-3 font-medium text-[#17191C]">
+                                {phase.phase}
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <div className="flex items-center gap-2">
+                                  <Progress value={pct} size="xs" className="flex-1" />
+                                  <span className="font-mono text-[11px] text-[#60666F] w-9 text-right">
+                                    {pct}%
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-3 text-right">
+                                <span className={cn('px-2 py-0.5 rounded-[5px] text-[11px] font-medium inline-block', statusColor)}>
+                                  {statusLabel}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
-              </div>
+              </section>
 
-              {/* Tasks In Progress & Review */}
-              <div className="space-y-3">
-                <div className="pb-2 border-b border-[#E3E7EC]">
-                  <h2 className="text-[14px] font-semibold text-[#181B20]">
-                    Tasks In Progress & Review
+              {/* Tasks In Progress & Review (Clean rows) */}
+              <section className="space-y-3">
+                <div className="pb-2 border-b border-[#E8EBEF] flex items-center justify-between">
+                  <h2 className="fx-section-title">
+                    Active Deliverables
                   </h2>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('tasks')}
+                    className="text-xs font-medium text-[#2463EB] hover:text-[#1D4ED8] fx-transition"
+                  >
+                    View all ({tasks.length}) →
+                  </button>
                 </div>
+
                 {tasks.filter(
-                  (t: any) => t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.IN_REVIEW,
+                  (t: any) =>
+                    t.status === TaskStatus.IN_PROGRESS ||
+                    t.status === TaskStatus.IN_REVIEW ||
+                    t.status === TaskStatus.READY,
                 ).length === 0 ? (
-                  <p className="text-xs text-[#929AA3] py-2">No active in-progress deliverables right now.</p>
+                  <p className="text-xs text-[#8B929B] py-2">
+                    No active deliverables in progress right now.
+                  </p>
                 ) : (
-                  <div className="divide-y divide-[#E3E7EC]">
+                  <div className="divide-y divide-[#E8EBEF]">
                     {tasks
                       .filter(
                         (t: any) =>
-                          t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.IN_REVIEW,
+                          t.status === TaskStatus.IN_PROGRESS ||
+                          t.status === TaskStatus.IN_REVIEW ||
+                          t.status === TaskStatus.READY,
                       )
-                      .slice(0, 5)
+                      .slice(0, 6)
                       .map((task: any) => (
                         <div
                           key={task.id}
                           onClick={() => setSelectedTaskId(task.id)}
-                          className="py-3 hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex items-center justify-between gap-3 text-xs"
+                          className="py-3 hover:bg-[#F8F9FB] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex items-center justify-between gap-3 text-xs"
                         >
                           <div className="space-y-0.5 min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-[11px] text-[#929AA3]">{task.humanId}</span>
-                              <span className="font-semibold text-[#181B20] truncate">{task.title}</span>
-                            </div>
-                            <p className="text-[11px] text-[#626A73]">
-                              Assignee: {task.assignee ? `${task.assignee.firstName} ${task.assignee.lastName}` : 'Unassigned'}
+                            {/* 33. Task title first, metadata second */}
+                            <p className="font-medium text-[13px] text-[#17191C] hover:text-[#2463EB] truncate fx-transition">
+                              {task.title}
+                            </p>
+                            <p className="text-[11px] text-[#60666F]">
+                              <span className="font-mono text-[#8B929B]">{task.humanId}</span>
+                              {' · '}
+                              <span>{task.phase || 'Core'}</span>
+                              {' · '}
+                              <span>{task.assignee ? `${task.assignee.firstName} ${task.assignee.lastName}` : 'Unassigned'}</span>
                             </p>
                           </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <PriorityBadge priority={task.priority} />
+                          <div className="flex items-center gap-2.5 shrink-0">
+                            <PriorityBadge priority={task.priority} compact />
                             <StatusPill status={task.status} size="xs" />
                           </div>
                         </div>
                       ))}
                   </div>
                 )}
-              </div>
+              </section>
+
+              {/* Milestones Roadmap (Clean divider list) */}
+              <section className="space-y-3">
+                <div className="pb-2 border-b border-[#E8EBEF]">
+                  <h2 className="fx-section-title">
+                    Milestones Roadmap
+                  </h2>
+                </div>
+
+                {milestones.length === 0 ? (
+                  <p className="text-xs text-[#8B929B] py-2">
+                    No milestones established for this product.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-[#E8EBEF]">
+                    {milestones.map((m: any) => (
+                      <div
+                        key={m.id}
+                        className="py-3 flex items-center justify-between gap-4 text-xs"
+                      >
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-[#17191C]">
+                              {m.name}
+                            </span>
+                            <span className="font-mono text-[11px] text-[#8B929B]">
+                              {m.targetDate ? `Target ${formatDate(m.targetDate)}` : 'TBD'}
+                            </span>
+                          </div>
+                          <Progress
+                            value={m.progress || 0}
+                            size="xs"
+                          />
+                        </div>
+                        <span className="font-mono text-[11px] text-[#60666F] shrink-0 w-8 text-right">
+                          {m.progress || 0}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
             </div>
 
-            {/* Right Column (4 cols) */}
-            <div className="lg:col-span-4 space-y-8">
-              {/* Project Metadata Details */}
-              <div className="space-y-3 text-xs">
-                <div className="pb-2 border-b border-[#E3E7EC]">
-                  <h3 className="text-[14px] font-semibold text-[#181B20]">
-                    Project Details
+            {/* Right Utility Column (4 cols) */}
+            <div className="lg:col-span-4 space-y-8 min-w-0">
+              {/* Product Details */}
+              <div className="space-y-2.5 text-xs">
+                <div className="pb-2 border-b border-[#E8EBEF]">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
+                    Product Metadata
                   </h3>
                 </div>
-                <div className="divide-y divide-[#E3E7EC]">
-                  <div className="py-2.5 flex items-center justify-between">
-                    <span className="text-[#626A73]">Project Code</span>
-                    <span className="font-mono font-semibold text-[#181B20]">{project?.key}</span>
+                <div className="divide-y divide-[#E8EBEF]">
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-[#60666F]">Code</span>
+                    <span className="font-mono font-medium text-[#17191C]">
+                      {project?.key}
+                    </span>
                   </div>
-                  <div className="py-2.5 flex items-center justify-between">
-                    <span className="text-[#626A73]">Health Status</span>
-                    <HealthBadge health={project?.health || ProjectHealth.ON_TRACK} />
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-[#60666F]">Health</span>
+                    <HealthBadge
+                      health={project?.health || ProjectHealth.ON_TRACK}
+                    />
                   </div>
-                  <div className="py-2.5 flex items-center justify-between">
-                    <span className="text-[#626A73]">Start Date</span>
-                    <span className="font-mono text-[#626A73]">
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-[#60666F]">Start Date</span>
+                    <span className="font-mono text-[#60666F]">
                       {project?.startDate ? formatDate(project.startDate) : '—'}
                     </span>
                   </div>
-                  <div className="py-2.5 flex items-center justify-between">
-                    <span className="text-[#626A73]">Target Delivery</span>
-                    <span className="font-mono text-[#626A73]">
+                  <div className="py-2 flex items-center justify-between">
+                    <span className="text-[#60666F]">Target Delivery</span>
+                    <span className="font-mono text-[#60666F]">
                       {project?.targetDate ? formatDate(project.targetDate) : '—'}
                     </span>
                   </div>
@@ -350,27 +594,32 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
               </div>
 
               {/* Assigned Team Members */}
-              <div className="space-y-3 text-xs">
-                <div className="pb-2 border-b border-[#E3E7EC]">
-                  <h3 className="text-[14px] font-semibold text-[#181B20]">
-                    Project Members
+              <div className="space-y-2.5 text-xs">
+                <div className="pb-2 border-b border-[#E8EBEF] flex items-center justify-between">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
+                    Team ({members.length})
                   </h3>
                 </div>
-                {(!project?.members || project.members.length === 0) ? (
-                  <p className="text-xs text-[#929AA3] py-2">No members explicitly assigned.</p>
+                {members.length === 0 ? (
+                  <p className="text-xs text-[#8B929B] py-2">
+                    No members assigned yet.
+                  </p>
                 ) : (
-                  <div className="divide-y divide-[#E3E7EC]">
-                    {project.members.map((m: any) => (
-                      <div key={m.id} className="py-2.5 flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-[#EEF4FF] text-[#2563EB] font-semibold text-[11px] flex items-center justify-center shrink-0">
+                  <div className="divide-y divide-[#E8EBEF]">
+                    {members.map((m: any) => (
+                      <div
+                        key={m.id}
+                        className="py-2 flex items-center gap-2.5"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-[#EEF4FF] text-[#2463EB] font-medium text-[10px] flex items-center justify-center shrink-0">
                           {m.user?.firstName?.[0]}
                           {m.user?.lastName?.[0]}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-[#181B20] truncate">
+                          <p className="font-medium text-[#17191C] truncate">
                             {m.user?.firstName} {m.user?.lastName}
                           </p>
-                          <p className="text-[11px] text-[#626A73] truncate capitalize">
+                          <p className="text-[11px] text-[#8B929B] truncate capitalize">
                             {m.roleInProject || m.user?.jobTitle || 'Contributor'}
                           </p>
                         </div>
@@ -383,37 +632,301 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
           </div>
         )}
 
-        {/* TAB 2: TASKS LIST VIEW */}
+        {/* 31 & 32. TAB 2: DEVELOPMENT CHECKLIST — OPERATIONAL TABLE */}
+        {activeTab === 'development' && (
+          <div className="space-y-6">
+            {checklistTasks.length === 0 ? (
+              <div className="py-12 text-center text-xs text-[#60666F] space-y-3">
+                <ListChecks className="mx-auto h-8 w-8 text-[#2463EB]" />
+                <div className="space-y-1">
+                  <p className="font-semibold text-sm text-[#17191C]">
+                    Development checklist is not generated yet.
+                  </p>
+                  <p className="text-[#60666F]">
+                    Generate standard product deliverables, then assign responsibilities across the team.
+                  </p>
+                </div>
+                {canManage && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="primary"
+                    className="mt-2"
+                    leftIcon={<Wand2 className="w-3.5 h-3.5" />}
+                    loading={generateChecklistMutation.isPending}
+                    onClick={() => generateChecklistMutation.mutate()}
+                  >
+                    Generate Checklist
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Checklist Summary (Open metrics row) */}
+                <div className="flex flex-wrap items-center gap-6 py-2 border-b border-[#E8EBEF] text-xs">
+                  <div>
+                    <span className="text-[#8B929B]">Applicable:</span>{' '}
+                    <span className="font-mono font-semibold text-[#17191C]">
+                      {checklistSummary?.totalApplicable || checklistTasks.length}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#8B929B]">Done:</span>{' '}
+                    <span className="font-mono font-semibold text-[#26715A]">
+                      {checklistSummary?.completed || 0}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#8B929B]">Ready:</span>{' '}
+                    <span className="font-mono font-semibold text-[#237A57]">
+                      {checklistSummary?.ready || 0}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#8B929B]">Waiting:</span>{' '}
+                    <span className="font-mono font-semibold text-[#9A6515]">
+                      {checklistSummary?.waiting || 0}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[#8B929B]">Unassigned:</span>{' '}
+                    <span className="font-mono font-semibold text-[#60666F]">
+                      {checklistSummary?.unassigned || 0}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bulk Assignment Area */}
+                {canManage && (
+                  <div className="rounded-[10px] border border-[#E8EBEF] bg-[#F8F9FB] p-4 text-xs space-y-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="text-[13px] font-semibold text-[#17191C]">
+                          Bulk Assignment
+                        </h2>
+                        <p className="text-[12px] text-[#60666F]">
+                          Assign entire phases or responsibilities to active team members.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="primary"
+                        loading={bulkAssignMutation.isPending}
+                        onClick={() => bulkAssignMutation.mutate()}
+                      >
+                        Apply Assignments
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-6 lg:grid-cols-2 pt-2 border-t border-[#E8EBEF]">
+                      <div className="space-y-2">
+                        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
+                          Assign by Phase
+                        </h3>
+                        <div className="grid gap-2">
+                          {checklistPhases.map((phase) => (
+                            <label
+                              key={phase}
+                              className="grid gap-1 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center"
+                            >
+                              <span className="font-medium text-[#17191C]">
+                                {phase}
+                              </span>
+                              <select
+                                value={phaseAssignments[phase] || ''}
+                                onChange={(event) =>
+                                  setPhaseAssignments((prev) => ({
+                                    ...prev,
+                                    [phase]: event.target.value,
+                                  }))
+                                }
+                                className="h-8 rounded-[7px] border border-[#E8EBEF] bg-white px-2 py-1 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none focus:ring-1 focus:ring-[#2463EB]"
+                              >
+                                <option value="">Unassigned</option>
+                                {members.map((member) => (
+                                  <option
+                                    key={member.userId}
+                                    value={member.userId}
+                                  >
+                                    {member.user?.firstName} {member.user?.lastName}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
+                          Assign by Responsibility
+                        </h3>
+                        <div className="grid gap-2">
+                          {checklistRoles.map((role) => (
+                            <label
+                              key={role}
+                              className="grid gap-1 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center"
+                            >
+                              <span className="font-medium text-[#17191C]">
+                                {formatTemplateLabel(role)}
+                              </span>
+                              <select
+                                value={roleAssignments[role] || ''}
+                                onChange={(event) =>
+                                  setRoleAssignments((prev) => ({
+                                    ...prev,
+                                    [role]: event.target.value,
+                                  }))
+                                }
+                                className="h-8 rounded-[7px] border border-[#E8EBEF] bg-white px-2 py-1 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none focus:ring-1 focus:ring-[#2463EB]"
+                              >
+                                <option value="">Unassigned</option>
+                                {members.map((member) => (
+                                  <option
+                                    key={member.userId}
+                                    value={member.userId}
+                                  >
+                                    {member.user?.firstName} {member.user?.lastName}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 31 & 32. Operational Table: #FAFBFC header, 48–56px row height, horizontal row dividers only */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-[#FAFBFC] text-[#60666F] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E8EBEF]">
+                        <th className="py-3 px-3">Item / Deliverable</th>
+                        <th className="py-3 px-3">Phase</th>
+                        <th className="py-3 px-3">Responsibility</th>
+                        <th className="py-3 px-3">Status</th>
+                        <th className="py-3 px-3">Assignee</th>
+                        <th className="py-3 px-3 text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
+                      {checklistTasks.map((task) => (
+                        <tr
+                          key={task.id}
+                          className="hover:bg-[#F8F9FB] fx-transition h-[52px]"
+                        >
+                          <td className="py-2.5 px-3">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTaskId(task.id)}
+                              className="text-left"
+                            >
+                              {/* 33. Title first, metadata second */}
+                              <span className="font-medium text-[13px] text-[#17191C] hover:text-[#2463EB] block">
+                                {task.title}
+                              </span>
+                              <span className="font-mono text-[11px] text-[#8B929B] block">
+                                {task.checklistCode || task.humanId}
+                                {task.checklistDoneWhen && (
+                                  <span className="text-[#60666F] ml-2 font-sans">
+                                    · Done when: {task.checklistDoneWhen}
+                                  </span>
+                                )}
+                              </span>
+                            </button>
+                          </td>
+                          <td className="py-2.5 px-3 text-[#60666F]">
+                            {task.checklistPhase || '-'}
+                          </td>
+                          <td className="py-2.5 px-3 text-[#60666F]">
+                            {formatTemplateLabel(task.checklistOwnerRole)}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <StatusPill status={task.status} size="xs" />
+                          </td>
+                          <td className="py-2.5 px-3">
+                            {canManage ? (
+                              <select
+                                value={task.assigneeId || ''}
+                                disabled={
+                                  assignChecklistMutation.isPending ||
+                                  task.status === TaskStatus.N_A
+                                }
+                                onChange={(event) =>
+                                  assignChecklistMutation.mutate({
+                                    taskId: task.id,
+                                    assigneeId: event.target.value,
+                                  })
+                                }
+                                className="min-w-40 h-8 rounded-[6px] border border-[#E8EBEF] bg-white px-2 py-1 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none focus:ring-1 focus:ring-[#2463EB]"
+                              >
+                                <option value="">Unassigned</option>
+                                {members.map((member) => (
+                                  <option
+                                    key={member.userId}
+                                    value={member.userId}
+                                  >
+                                    {member.user?.firstName} {member.user?.lastName}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : task.assignee ? (
+                              `${task.assignee.firstName} ${task.assignee.lastName}`
+                            ) : (
+                              'Unassigned'
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right">
+                            {canManage && task.status !== TaskStatus.N_A && (
+                              <Button
+                                type="button"
+                                size="xs"
+                                variant="ghost"
+                                loading={markNotApplicableMutation.isPending}
+                                onClick={() =>
+                                  markNotApplicableMutation.mutate(task.id)
+                                }
+                              >
+                                Mark N/A
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* TAB 3: TASKS LIST VIEW */}
         {activeTab === 'tasks' && (
           <div className="space-y-4">
-            {canManage && tasks.length === 0 && (
-              <div className="border border-[#E3E7EC] bg-[#F7F8FA] rounded-[10px] p-6 text-center text-xs">
-                <p className="font-semibold text-[#181B20]">No tasks yet.</p>
-                <p className="mt-1 text-[#626A73]">
-                  Create the first task for this project and assign it to a team member.
-                </p>
-                <Link href={`/projects/${projectId}/tasks/new`} className="mt-3 inline-block">
-                  <Button size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />}>Create Task</Button>
-                </Link>
-              </div>
-            )}
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-[#F7F8FA] text-[#626A73] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E3E7EC]">
-                    <th className="py-3 px-4">Task</th>
+                  <tr className="bg-[#FAFBFC] text-[#60666F] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E8EBEF]">
+                    <th className="py-3 px-3">Task</th>
                     <th className="py-3 px-3">Status</th>
                     <th className="py-3 px-3">Assignee</th>
                     <th className="py-3 px-3">Priority</th>
                     <th className="py-3 px-3">Progress</th>
-                    <th className="py-3 px-4 text-right">Due Date</th>
+                    <th className="py-3 px-3 text-right">Due Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
+                <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
                   {tasks.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-[#929AA3]">
-                        No tasks created for this project yet.
+                      <td
+                        colSpan={6}
+                        className="py-8 text-center text-[#8B929B]"
+                      >
+                        No tasks created for this product yet.
                       </td>
                     </tr>
                   ) : (
@@ -421,33 +934,37 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
                       <tr
                         key={task.id}
                         onClick={() => setSelectedTaskId(task.id)}
-                        className="hover:bg-[#F7F8FA] cursor-pointer fx-transition"
+                        className="hover:bg-[#F8F9FB] cursor-pointer fx-transition h-[52px]"
                       >
-                        <td className="py-3.5 px-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-[11px] text-[#929AA3] shrink-0">
-                              {task.humanId}
-                            </span>
-                            <span className="font-medium text-sm text-[#181B20] hover:text-[#2563EB] truncate max-w-sm fx-transition">
+                        <td className="py-2.5 px-3">
+                          <div className="space-y-0.5">
+                            <span className="font-medium text-[13px] text-[#17191C] hover:text-[#2463EB] truncate block max-w-md fx-transition">
                               {task.title}
+                            </span>
+                            <span className="font-mono text-[11px] text-[#8B929B] block">
+                              {task.humanId}
                             </span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-3">
+                        <td className="py-2.5 px-3">
                           <StatusPill status={task.status} size="xs" />
                         </td>
-                        <td className="py-3.5 px-3 text-[#626A73]">
+                        <td className="py-2.5 px-3 text-[#60666F]">
                           {task.assignee
                             ? `${task.assignee.firstName} ${task.assignee.lastName}`
                             : 'Unassigned'}
                         </td>
-                        <td className="py-3.5 px-3">
-                          <PriorityBadge priority={task.priority} />
+                        <td className="py-2.5 px-3">
+                          <PriorityBadge priority={task.priority} compact />
                         </td>
-                        <td className="py-3.5 px-3 w-28">
-                          <Progress value={task.progress || 0} showLabel={true} size="xs" />
+                        <td className="py-2.5 px-3 w-28">
+                          <Progress
+                            value={task.progress || 0}
+                            showLabel={true}
+                            size="xs"
+                          />
                         </td>
-                        <td className="py-3.5 px-4 text-right font-mono text-[#626A73]">
+                        <td className="py-2.5 px-3 text-right font-mono text-[#60666F]">
                           {task.dueDate ? formatDate(task.dueDate) : '—'}
                         </td>
                       </tr>
@@ -459,75 +976,63 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
           </div>
         )}
 
-        {/* TAB 3: KANBAN BOARD */}
+        {/* TAB 4: KANBAN BOARD */}
         {activeTab === 'board' && (
           <div className="overflow-x-auto pb-6">
-            <div className="flex items-start gap-4 min-w-[1900px]">
-              {boardColumns.map((col) => {
+            <div className="flex items-start gap-3.5 min-w-[1600px]">
+              {[
+                { id: TaskStatus.UNASSIGNED, label: 'Unassigned' },
+                { id: TaskStatus.TODO, label: 'To Do' },
+                { id: TaskStatus.WAITING, label: 'Waiting' },
+                { id: TaskStatus.READY, label: 'Ready' },
+                { id: TaskStatus.IN_PROGRESS, label: 'In Progress' },
+                { id: TaskStatus.IN_REVIEW, label: 'In Review' },
+                { id: TaskStatus.BLOCKED, label: 'Blocked' },
+                { id: TaskStatus.DONE, label: 'Completed' },
+              ].map((col) => {
                 const colTasks = tasks.filter((t: any) => t.status === col.id);
 
                 return (
                   <div
                     key={col.id}
-                    className="w-[280px] bg-[#F7F8FA] border border-[#E3E7EC] rounded-[12px] p-3.5 space-y-3 shrink-0"
+                    className="w-[260px] bg-[#F8F9FB] border border-[#E8EBEF] rounded-[10px] p-3 space-y-2.5 shrink-0"
                   >
-                    {/* Column Header */}
-                    <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
-                      <div className="flex items-center gap-2">
-                        <span className={cn('w-2 h-2 rounded-full shrink-0', col.color)} />
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-[#181B20]">
-                          {col.label}
-                        </h3>
-                      </div>
-                      <span className="text-[11px] font-mono font-medium text-[#626A73] bg-white px-2 py-0.5 rounded-[6px] border border-[#E3E7EC]">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-[#E8EBEF]">
+                      <h3 className="text-xs font-semibold text-[#17191C]">
+                        {col.label}
+                      </h3>
+                      <span className="text-[11px] font-mono text-[#60666F]">
                         {colTasks.length}
                       </span>
                     </div>
 
-                    {/* Column Task Cards */}
-                    <div className="space-y-2.5 min-h-[120px]">
-                      {colTasks.map((task: any) => {
-                        const isWaiting = task.status === TaskStatus.WAITING;
-                        const unfinishedDeps = (task.blockedBy || []).filter(
-                          (b: any) => b.predecessorTask?.status !== TaskStatus.DONE,
-                        );
-
-                        return (
-                          <div
-                            key={task.id}
-                            onClick={() => setSelectedTaskId(task.id)}
-                            className={cn(
-                              'bg-white border border-[#E3E7EC] rounded-[10px] p-3 hover:border-[#2563EB] cursor-pointer fx-transition space-y-2.5 text-xs',
-                              isWaiting && 'bg-[#FFF6E5]/40 border-[#FDE9B8]',
-                            )}
-                          >
-                            <div className="space-y-1">
-                              <span className="font-mono text-[11px] font-medium text-[#929AA3]">
-                                {task.humanId}
-                              </span>
-                              <h4 className="font-medium text-sm text-[#181B20] hover:text-[#2563EB] line-clamp-2 leading-snug">
-                                {task.title}
-                              </h4>
-                            </div>
-
-                            {/* Dependencies callout if waiting */}
-                            {isWaiting && unfinishedDeps.length > 0 && (
-                              <div className="flex items-center gap-1 text-[10px] text-[#A86B12] bg-[#FFF6E5] px-1.5 py-0.5 rounded-[5px] font-medium">
-                                <Lock className="w-2.5 h-2.5 text-[#A86B12] shrink-0" />
-                                <span>Waiting on: {unfinishedDeps.map((d: any) => d.predecessorTask?.humanId).join(', ')}</span>
-                              </div>
-                            )}
-
-                            {/* Card Footer: Assignee, Priority, Due Date */}
-                            <div className="pt-2 border-t border-[#E3E7EC] flex items-center justify-between text-[11px]">
-                              <PriorityBadge priority={task.priority} compact={true} />
-                              <span className="text-[#929AA3] font-mono">
-                                {task.dueDate ? formatDate(task.dueDate) : ''}
-                              </span>
-                            </div>
+                    <div className="space-y-2 min-h-[100px]">
+                      {colTasks.map((task: any) => (
+                        <div
+                          key={task.id}
+                          onClick={() => setSelectedTaskId(task.id)}
+                          className="bg-white border border-[#E8EBEF] rounded-[8px] p-2.5 hover:border-[#2463EB] cursor-pointer fx-transition space-y-2 text-xs"
+                        >
+                          <div className="space-y-0.5">
+                            <h4 className="font-medium text-xs text-[#17191C] hover:text-[#2463EB] line-clamp-2">
+                              {task.title}
+                            </h4>
+                            <span className="font-mono text-[10px] text-[#8B929B]">
+                              {task.humanId}
+                            </span>
                           </div>
-                        );
-                      })}
+
+                          <div className="pt-1.5 border-t border-[#E8EBEF] flex items-center justify-between text-[11px]">
+                            <PriorityBadge
+                              priority={task.priority}
+                              compact={true}
+                            />
+                            <span className="text-[#8B929B] font-mono">
+                              {task.dueDate ? formatDate(task.dueDate) : ''}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
@@ -536,37 +1041,50 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
           </div>
         )}
 
-        {/* TAB 4: CALENDAR */}
+        {/* TAB 5: CALENDAR */}
         {activeTab === 'calendar' && (
-          <div className="border border-[#E3E7EC] rounded-[12px] overflow-hidden">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-[#E3E7EC]">
-              {[...tasks]
-                .filter((task) => task.dueDate)
-                .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
-                .map((task) => (
-                  <button
-                    key={task.id}
-                    onClick={() => setSelectedTaskId(task.id)}
-                    className="p-4 text-left text-xs hover:bg-[#F7F8FA] fx-transition"
-                  >
-                    <p className="font-mono text-[11px] text-[#929AA3]">{task.humanId}</p>
-                    <p className="font-medium text-sm text-[#181B20]">{task.title}</p>
-                    <p className="mt-1 text-[#626A73]">Due {formatDate(task.dueDate)}</p>
-                  </button>
-                ))}
-            </div>
+          <div className="divide-y divide-[#E8EBEF]">
+            {[...tasks]
+              .filter((task) => task.dueDate)
+              .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+              .map((task) => (
+                <div
+                  key={task.id}
+                  onClick={() => setSelectedTaskId(task.id)}
+                  className="py-3 flex items-center justify-between gap-3 text-xs hover:bg-[#F8F9FB] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition"
+                >
+                  <div className="space-y-0.5 min-w-0 flex-1">
+                    <p className="font-medium text-[13px] text-[#17191C]">
+                      {task.title}
+                    </p>
+                    <p className="font-mono text-[11px] text-[#8B929B]">
+                      {task.humanId} · Due {formatDate(task.dueDate)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <PriorityBadge priority={task.priority} compact />
+                    <StatusPill status={task.status} size="xs" />
+                  </div>
+                </div>
+              ))}
             {tasks.filter((task) => task.dueDate).length === 0 && (
-              <p className="p-8 text-center text-xs text-[#929AA3]">No task due dates scheduled.</p>
+              <p className="py-8 text-center text-xs text-[#8B929B]">
+                No task due dates scheduled for this product.
+              </p>
             )}
           </div>
         )}
 
-        {/* TAB 5: TIMELINE */}
+        {/* TAB 6: TIMELINE */}
         {activeTab === 'timeline' && (
-          <div className="border border-[#E3E7EC] rounded-[12px] p-8 text-center text-xs text-[#626A73] space-y-2">
-            <GanttChartSquare className="w-8 h-8 text-[#2563EB] mx-auto" />
-            <p className="font-semibold text-[#181B20]">Gantt Timeline Schedule</p>
-            <p>View cross-project milestones and task dependencies on the global timeline view.</p>
+          <div className="py-12 text-center text-xs text-[#60666F] space-y-2">
+            <GanttChartSquare className="w-8 h-8 text-[#2463EB] mx-auto" />
+            <p className="font-semibold text-[#17191C]">
+              Product Timeline View
+            </p>
+            <p>
+              View cross-product milestones and deliverable dependencies on the global timeline.
+            </p>
             <Link href="/timeline">
               <Button size="sm" variant="secondary" className="mt-3">
                 Open Global Timeline
@@ -575,29 +1093,24 @@ export function ProjectDetailsPage({ projectId: propProjectId }: ProjectDetailsP
           </div>
         )}
 
-        {/* TAB 6: FILES */}
-        {activeTab === 'files' && (
-          <div className="border border-[#E3E7EC] rounded-[12px] p-8 text-center text-xs text-[#626A73] space-y-2">
-            <FileText className="w-8 h-8 text-[#2563EB] mx-auto" />
-            <p className="font-semibold text-[#181B20]">Game Assets & Documents</p>
-            <p>Design documents, art assets, and build manifests linked to this game project.</p>
-          </div>
-        )}
-
         {/* TAB 7: ACTIVITY */}
         {activeTab === 'activity' && (
-          <div className="divide-y divide-[#E3E7EC]">
+          <div className="divide-y divide-[#E8EBEF]">
             {(project?.latestDailyUpdates || []).length === 0 ? (
-              <p className="p-8 text-center text-xs text-[#929AA3]">No recent project activity yet.</p>
+              <p className="py-8 text-center text-xs text-[#8B929B]">
+                No recent activity recorded for this product yet.
+              </p>
             ) : (
               (project.latestDailyUpdates || []).map((update: any) => (
-                <div key={update.id} className="py-3.5 text-xs">
-                  <p className="font-semibold text-[#181B20]">
-                    {update.user?.firstName} {update.user?.lastName} updated {update.task?.humanId}
+                <div key={update.id} className="py-3 text-xs space-y-0.5">
+                  <p className="font-medium text-[#17191C]">
+                    {update.user?.firstName} {update.user?.lastName} updated deliverable {update.task?.humanId}
                   </p>
-                  <p className="mt-1 text-[#626A73]">{update.completedToday}</p>
-                  <p className="mt-1 font-mono text-[11px] text-[#929AA3]">
-                    {update.progressBefore}% to {update.progressAfter}% · {formatDate(update.createdAt)}
+                  {update.completedToday && (
+                    <p className="text-[#60666F]">{update.completedToday}</p>
+                  )}
+                  <p className="font-mono text-[11px] text-[#8B929B]">
+                    {update.progressBefore}% → {update.progressAfter}% · {formatDate(update.createdAt)}
                   </p>
                 </div>
               ))

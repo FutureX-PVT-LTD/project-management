@@ -27,46 +27,50 @@ export function ReportsPage() {
     <AppShell>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-fx-text-primary">
+        <div className="border-b border-[#E8EBEF] pb-4">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#17191C]">
             Studio Performance & Delivery Reports
           </h1>
-          <p className="text-xs sm:text-sm text-fx-text-secondary mt-0.5">
+          <p className="text-xs text-[#60666F] mt-1">
             Operational metrics, milestone completion rates, and cross-project throughput.
           </p>
         </div>
 
-        {/* Summary Metrics */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Summary Metrics Strip */}
+        <div className="bg-white border border-[#E8EBEF] rounded-[10px] grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E8EBEF]">
           {[
-            { label: 'Projects', value: reports.totalProjects || projects.length },
-            { label: 'Tasks', value: reports.totalTasks || 0 },
+            { label: 'Products', value: reports.totalProjects || projects.length },
+            { label: 'Deliverables', value: reports.totalTasks || 0 },
             { label: 'Milestones', value: asArray(reportsData, 'milestoneDelivery').length },
             { label: 'Team Members', value: asArray(reportsData, 'userWorkload').length },
           ].map((metric) => (
-            <div key={metric.label} className="bg-white border border-fx-border rounded-lg p-3">
-              <p className="text-[11px] text-fx-text-muted">{metric.label}</p>
-              <p className="text-lg font-semibold font-mono text-fx-text-primary">{metric.value}</p>
+            <div key={metric.label} className="p-4 space-y-1">
+              <p className="text-[11px] font-medium text-[#8C939E]">{metric.label}</p>
+              <p className="text-xl font-semibold font-mono text-[#17191C]">{metric.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Milestone Delivery Progress by Project */}
-        <div className="bg-white border border-fx-border rounded-[8px] p-5 space-y-4 shadow-none">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-primary">
-
-            Game Project Delivery Velocity
-          </h2>
+        {/* Product Delivery Progress */}
+        <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-[#E8EBEF] pb-3">
+            <h2 className="text-[11px] font-medium uppercase tracking-wider text-[#8C939E]">
+              Product Delivery Velocity
+            </h2>
+            <span className="text-xs font-mono text-[#8C939E]">
+              {projects.length} Products
+            </span>
+          </div>
 
           {projects.length === 0 ? (
-            <p className="text-xs text-fx-text-muted">No projects found to report on.</p>
+            <p className="text-xs text-[#8C939E] py-4 text-center">No products found to report on.</p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3.5 divide-y divide-[#E8EBEF]/60 pt-1">
               {projects.map((proj: any) => (
-                <div key={proj.id} className="space-y-1.5 text-xs">
+                <div key={proj.id} className="pt-3 first:pt-0 space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold text-fx-text-primary">{proj.name}</span>
-                    <span className="font-mono text-fx-text-secondary">{proj.progress || 0}%</span>
+                    <span className="font-medium text-[#17191C]">{proj.name}</span>
+                    <span className="font-mono text-xs font-medium text-[#60666F]">{proj.progress || 0}%</span>
                   </div>
                   <Progress value={proj.progress || 0} size="sm" />
                 </div>

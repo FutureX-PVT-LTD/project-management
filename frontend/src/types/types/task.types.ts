@@ -1,5 +1,5 @@
-import { TaskStatus, TaskPriority, ReviewStatus } from '../enums/task.enum';
-import { UserDto } from './user.types';
+import { TaskStatus, TaskPriority, ReviewStatus } from "../enums/task.enum";
+import { UserDto } from "./user.types";
 
 export interface TaskDto {
   id: string;
@@ -16,6 +16,16 @@ export interface TaskDto {
   assigneeId?: string | null;
   assignee?: UserDto | null;
   collaborators?: UserDto[];
+  workType?: "STANDARD_CHECKLIST" | "CUSTOM" | string;
+  checklistTemplateItemId?: string | null;
+  checklistCode?: string | null;
+  checklistPhase?: string | null;
+  checklistStage?: string | null;
+  checklistOwnerRole?: string | null;
+  checklistDoneWhen?: string | null;
+  checklistMandatory?: boolean;
+  checklistOrder?: number | null;
+  allowParallelWork?: boolean;
   priority: TaskPriority;
   status: TaskStatus;
   progress: number;
@@ -70,6 +80,7 @@ export interface CreateTaskDto {
   projectId: string;
   milestoneId?: string;
   assigneeId?: string;
+  allowParallelWork?: boolean;
   collaboratorIds?: string[];
   priority?: TaskPriority;
   status?: TaskStatus;
@@ -118,6 +129,7 @@ export interface UpdateTaskDto {
   description?: string;
   milestoneId?: string | null;
   assigneeId?: string | null;
+  allowParallelWork?: boolean;
   collaboratorIds?: string[];
   priority?: TaskPriority;
   status?: TaskStatus;
@@ -135,4 +147,5 @@ export interface UpdateTaskDto {
 export interface ReviewTaskDto {
   status: ReviewStatus;
   feedback?: string;
+  completeTask?: boolean;
 }

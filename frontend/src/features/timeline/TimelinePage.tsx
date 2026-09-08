@@ -37,22 +37,22 @@ export function TimelinePage() {
     <AppShell fullWidth={true}>
       <div className="space-y-5">
         {/* Header & Filter */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8EBEF] pb-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-fx-text-primary">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#17191C]">
               Delivery Timeline
             </h1>
-            <p className="text-xs sm:text-sm text-fx-text-secondary mt-0.5">
+            <p className="text-xs text-[#60666F] mt-1">
               Gantt scheduling, cross-project dependencies, and milestone delivery targets.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-fx-text-muted">Filter Project:</span>
+            <span className="text-xs text-[#8C939E]">Filter Project:</span>
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="h-8 rounded-md border border-fx-border bg-white px-2.5 text-xs text-fx-text-primary focus:border-[#2563EB] focus:outline-none"
+              className="h-8 rounded-[9px] border border-[#E8EBEF] bg-[#F8F9FB] px-2.5 text-xs text-[#17191C] focus:bg-white focus:border-[#2463EB] focus:outline-none"
             >
               <option value="">All Projects</option>
               {projects.map((p: any) => (
@@ -66,47 +66,45 @@ export function TimelinePage() {
 
         {/* Timeline Gantt Board */}
         {timelineLoading || projectsLoading ? (
-          <div className="bg-white border border-fx-border rounded-[8px] p-10 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-10 text-center text-xs text-[#8C939E]">
             Loading timeline schedule...
           </div>
         ) : timeline.length === 0 ? (
-          <div className="bg-white border border-fx-border rounded-[8px] p-8 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-8 text-center text-xs text-[#8C939E]">
             No scheduled milestones or deliverables found.
           </div>
         ) : (
-          <div className="bg-white border border-fx-border rounded-[8px] overflow-hidden shadow-none space-y-0">
-            <div className="p-3 bg-fx-bg border-b border-fx-border flex items-center justify-between text-xs">
-
-              <span className="font-semibold text-fx-text-primary uppercase tracking-wider text-[11px]">
+          <div className="bg-white border border-[#E8EBEF] rounded-[10px] overflow-hidden space-y-0">
+            <div className="p-3 bg-[#FAFBFC] border-b border-[#E8EBEF] flex items-center justify-between text-xs">
+              <span className="font-medium text-[#17191C] uppercase tracking-wider text-[11px]">
                 Deliverable Schedule
               </span>
-              <span className="text-[11px] text-fx-text-muted">
+              <span className="text-[11px] text-[#8C939E]">
                 Showing {timeline.length} scheduled items
               </span>
             </div>
 
-            <div className="divide-y divide-fx-border/60">
+            <div className="divide-y divide-[#E8EBEF]">
               {timeline.map((item: any) => (
                 <div
                   key={item.id}
-                  className="p-4 hover:bg-fx-bg-hover fx-transition flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
+                  className="p-3.5 hover:bg-[#F8F9FB] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
                 >
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[11px] font-semibold text-fx-text-muted">
+                      <span className="font-mono text-[11px] font-medium text-[#8C939E]">
                         {item.humanId || item.code || 'MS'}
                       </span>
-                      <span className="font-semibold text-fx-text-primary truncate">
+                      <span className="font-medium text-[#17191C] truncate">
                         {item.title || item.name}
                       </span>
                       {item.type === 'milestone' && (
-                        <span className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200">
+                        <span className="text-[10px] font-medium uppercase px-1.5 py-0.5 rounded-[4px] bg-[#F5F1FB] text-[#6D52A3] border border-[#E4D7F5]">
                           Milestone
                         </span>
                       )}
-
                     </div>
-                    <div className="flex items-center gap-3 text-[11px] text-fx-text-muted">
+                    <div className="flex items-center gap-3 text-[11px] text-[#60666F]">
                       <span>Project: {item.project?.name || '—'}</span>
                       {item.startDate && (
                         <span>
@@ -114,8 +112,8 @@ export function TimelinePage() {
                         </span>
                       )}
                       {item.dueDate && (
-                        <span className="flex items-center gap-1 font-mono text-fx-text-secondary">
-                          <Calendar className="w-3 h-3" /> Due {formatDate(item.dueDate)}
+                        <span className="flex items-center gap-1 font-mono text-[#60666F]">
+                          <Calendar className="w-3 h-3 text-[#8C939E]" /> Due {formatDate(item.dueDate)}
                         </span>
                       )}
                     </div>

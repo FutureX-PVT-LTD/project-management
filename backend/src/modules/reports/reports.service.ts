@@ -256,17 +256,30 @@ export class ReportsService {
       projectId: string;
       projectKey: string;
       taskId?: string;
+      projectName?: string;
+      assigneeName?: string;
+      priority?: string;
+      progress?: number;
+      dueDate?: string | null;
     }[] = [];
 
     awaitingReviewTasks.forEach((t) => {
+      const project = managedProjects.find((p) => p.id === t.projectId);
       needsAttention.push({
         id: `rev-${t.id}`,
         title: `${t.humanId}: ${t.title}`,
-        reason: `Awaiting your review and approval`,
+        reason: `Review ${t.progress}% progress from ${
+          t.assignee ? `${t.assignee.firstName} ${t.assignee.lastName}` : 'Unassigned'
+        }`,
         type: 'REVIEW',
         projectId: t.projectId,
-        projectKey: t.humanId.split('-')[0],
+        projectKey: project?.key || t.humanId.split('-')[0],
         taskId: t.id,
+        projectName: project?.name,
+        assigneeName: t.assignee ? `${t.assignee.firstName} ${t.assignee.lastName}` : 'Unassigned',
+        priority: t.priority,
+        progress: t.progress,
+        dueDate: t.dueDate ? t.dueDate.toISOString() : null,
       });
     });
 
@@ -386,6 +399,23 @@ export class ReportsService {
         overdueTasksCount: p.tasks.filter(
           (t) => t.dueDate && new Date(t.dueDate) < now && t.status !== TaskStatus.DONE,
         ).length,
+        tasks: p.tasks.map((t) => ({
+          id: t.id,
+          humanId: t.humanId,
+          title: t.title,
+          status: t.status,
+          priority: t.priority,
+          progress: t.progress,
+          dueDate: t.dueDate ? t.dueDate.toISOString() : null,
+          assignee: t.assignee,
+        })),
+        milestones: p.milestones.map((m) => ({
+          id: m.id,
+          name: m.name,
+          status: m.status,
+          progress: m.progress,
+          targetDate: m.targetDate ? m.targetDate.toISOString() : null,
+        })),
       })),
       needsAttention,
       teamWorkload: Array.from(memberWorkloadMap.values()),

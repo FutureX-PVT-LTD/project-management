@@ -12,12 +12,14 @@ import { FormPageLayout } from '@/components/layout/FormPageLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Link from 'next/link';
+import { useAuth } from '@/features/auth/AuthContext';
 
 interface UserFormPageProps {
   mode: 'create' | 'edit';
 }
 
 export function UserFormPage({ mode }: UserFormPageProps) {
+  const { user: currentUser } = useAuth();
   const params = useParams();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -45,7 +47,13 @@ export function UserFormPage({ mode }: UserFormPageProps) {
     setLastName(existingUser.lastName || '');
     setEmail(existingUser.email || '');
     setJobTitle(existingUser.jobTitle || '');
-    setRole(existingUser.globalRole === UserRole.ADMIN ? UserRole.ADMIN : UserRole.TEAM_MEMBER);
+    setRole(
+      existingUser.globalRole === UserRole.OWNER
+        ? UserRole.OWNER
+        : existingUser.globalRole === UserRole.ADMIN
+          ? UserRole.ADMIN
+          : UserRole.TEAM_MEMBER,
+    );
   }, [mode, existingUser?.id, existingUser.firstName, existingUser.lastName, existingUser.email, existingUser.jobTitle, existingUser.globalRole]);
 
   const saveMutation = useMutation({
@@ -78,6 +86,10 @@ export function UserFormPage({ mode }: UserFormPageProps) {
     setError(null);
     if (!firstName.trim() || !lastName.trim() || (mode === 'create' && !email.trim())) {
       setError('Full name and work email are required.');
+      return;
+    }
+    if (role === UserRole.OWNER && currentUser?.globalRole !== UserRole.OWNER) {
+      setError('Only a Super Admin can create or assign Super Admin access.');
       return;
     }
     saveMutation.mutate();
@@ -142,6 +154,9 @@ export function UserFormPage({ mode }: UserFormPageProps) {
             >
               <option value={UserRole.TEAM_MEMBER}>Team Member</option>
               <option value={UserRole.ADMIN}>Admin</option>
+              {currentUser?.globalRole === UserRole.OWNER && (
+                <option value={UserRole.OWNER}>Super Admin</option>
+              )}
             </select>
           </section>
 

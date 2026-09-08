@@ -42,12 +42,12 @@ export function NotificationsPage() {
     <AppShell>
       <div className="space-y-5 max-w-3xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8EBEF] pb-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-fx-text-primary">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#17191C]">
               Notifications
             </h1>
-            <p className="text-xs sm:text-sm text-fx-text-secondary mt-0.5">
+            <p className="text-xs text-[#60666F] mt-1">
               Prerequisite unlocks, status updates, and assignment alerts.
             </p>
           </div>
@@ -55,7 +55,7 @@ export function NotificationsPage() {
           <div className="flex items-center gap-2">
             <Button
               size="sm"
-              variant="outline"
+              variant="secondary"
               onClick={() => setFilterUnread(!filterUnread)}
             >
               {filterUnread ? 'Show All' : 'Unread Only'}
@@ -74,30 +74,29 @@ export function NotificationsPage() {
 
         {/* Notifications List */}
         {isLoading ? (
-          <div className="bg-white border border-fx-border rounded-[8px] p-10 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-10 text-center text-xs text-[#8C939E]">
             Loading notifications...
           </div>
         ) : notifications.length === 0 ? (
           <EmptyState
-            icon={<Bell className="w-6 h-6 text-[#2563EB]" />}
+            icon={<Bell className="w-5 h-5 text-[#2463EB]" />}
             title="All caught up"
             description="You have no new alerts or notifications."
           />
         ) : (
-          <div className="bg-white border border-fx-border rounded-[8px] divide-y divide-fx-border/60 overflow-hidden shadow-none">
-
+          <div className="bg-white border border-[#E8EBEF] rounded-[10px] divide-y divide-[#E8EBEF] overflow-hidden">
             {notifications.map((n: any) => (
               <div
                 key={n.id}
                 onClick={() => !n.isRead && markAsReadMutation.mutate(n.id)}
                 className={cn(
-                  'p-4 hover:bg-fx-bg-hover fx-transition flex items-start gap-3 text-xs cursor-pointer',
-                  !n.isRead && 'bg-[#EEF4FF]/50',
+                  'p-3.5 hover:bg-[#F8F9FB] transition-colors flex items-start gap-3 text-xs cursor-pointer',
+                  !n.isRead && 'bg-[#F8FAFF]',
                 )}
               >
-                <div className="mt-0.5 shrink-0">
+                <div className="mt-1 shrink-0">
                   {!n.isRead ? (
-                    <span className="w-2 h-2 rounded-full bg-[#2563EB] block" />
+                    <span className="w-2 h-2 rounded-full bg-[#2463EB] block" />
                   ) : (
                     <span className="w-2 h-2 rounded-full bg-transparent block" />
                   )}
@@ -106,14 +105,14 @@ export function NotificationsPage() {
                 <div className="space-y-0.5 flex-1 min-w-0">
                   <p
                     className={cn(
-                      'text-xs font-semibold',
-                      !n.isRead ? 'text-fx-text-primary' : 'text-fx-text-secondary',
+                      'text-xs font-medium',
+                      !n.isRead ? 'text-[#17191C]' : 'text-[#60666F]',
                     )}
                   >
                     {n.title}
                   </p>
-                  <p className="text-xs text-fx-text-secondary leading-relaxed">{n.message}</p>
-                  <p className="text-[10px] text-fx-text-muted pt-1">{formatDate(n.createdAt)}</p>
+                  <p className="text-xs text-[#60666F] leading-relaxed">{n.message}</p>
+                  <p className="text-[10px] text-[#8C939E] font-mono pt-0.5">{formatDate(n.createdAt)}</p>
                 </div>
               </div>
             ))}

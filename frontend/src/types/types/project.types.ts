@@ -1,5 +1,10 @@
-import { ProjectStatus, ProjectHealth, ProjectMemberRole } from '../enums/project.enum';
-import { UserDto } from './user.types';
+import {
+  ProjectStatus,
+  ProjectHealth,
+  ProjectMemberRole,
+  ProductType,
+} from "../enums/project.enum";
+import { UserDto } from "./user.types";
 
 export interface ProjectMemberDto {
   id: string;
@@ -15,11 +20,16 @@ export interface ProjectDto {
   key: string;
   name: string;
   description?: string;
+  productType?: ProductType;
   status: ProjectStatus;
   health: ProjectHealth;
   healthReason?: string;
   manualHealthOverride?: boolean;
   progress: number;
+  launchReadiness?: number;
+  currentPhase?: string | null;
+  checklistGeneratedAt?: string | null;
+  checklistTemplateVersion?: string | null;
   startDate?: string;
   targetDate?: string;
   completedDate?: string;
@@ -32,14 +42,17 @@ export interface ProjectDto {
   blockedTasksCount?: number;
   overdueTasksCount?: number;
   currentMilestoneName?: string;
+  checklistSummary?: ProjectChecklistSummaryDto;
+  phaseProgress?: ProjectPhaseProgressDto[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateProjectDto {
-  key: string;
+  key?: string;
   name: string;
   description?: string;
+  productType?: ProductType;
   status?: ProjectStatus;
   health?: ProjectHealth;
   startDate?: string;
@@ -51,6 +64,7 @@ export interface CreateProjectDto {
 export interface UpdateProjectDto {
   name?: string;
   description?: string;
+  productType?: ProductType;
   status?: ProjectStatus;
   health?: ProjectHealth;
   healthReason?: string;
@@ -58,6 +72,33 @@ export interface UpdateProjectDto {
   startDate?: string;
   targetDate?: string;
   projectManagerId?: string;
+}
+
+export interface ProjectChecklistSummaryDto {
+  totalApplicable: number;
+  completed: number;
+  inProgress: number;
+  ready: number;
+  waiting: number;
+  blocked: number;
+  unassigned: number;
+  inReview: number;
+  notApplicable: number;
+  progress: number;
+  launchReadiness: number;
+  currentPhase: string | null;
+}
+
+export interface ProjectPhaseProgressDto {
+  phase: string;
+  totalApplicable: number;
+  completed: number;
+  inProgress: number;
+  ready: number;
+  waiting: number;
+  blocked: number;
+  unassigned: number;
+  progress: number;
 }
 
 export interface ProjectUpdateDto {

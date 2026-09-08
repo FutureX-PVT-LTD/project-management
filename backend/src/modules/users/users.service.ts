@@ -155,7 +155,11 @@ export class UsersService {
     };
   }
 
-  async create(dto: CreateUserDto, actorId: string) {
+  async create(dto: CreateUserDto, actorId: string, actorRole: UserRole) {
+    if (dto.globalRole === UserRole.OWNER && actorRole !== UserRole.OWNER) {
+      throw new ForbiddenException('Only a Super Admin can create another Super Admin');
+    }
+
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase().trim() },
     });
@@ -209,6 +213,19 @@ export class UsersService {
     // Owner protection: Lower roles cannot demote or edit Owner
     if (user.globalRole === UserRole.OWNER && actorRole !== UserRole.OWNER && id !== actorId) {
       throw new ForbiddenException('Owner account cannot be modified by other users');
+    }
+
+    if (dto.globalRole === UserRole.OWNER && actorRole !== UserRole.OWNER) {
+      throw new ForbiddenException('Only a Super Admin can promote users to Super Admin');
+    }
+
+    if (
+      user.globalRole === UserRole.OWNER &&
+      dto.globalRole &&
+      dto.globalRole !== UserRole.OWNER &&
+      id === actorId
+    ) {
+      throw new ForbiddenException('Super Admin cannot demote their own account');
     }
 
     // Update team memberships if provided

@@ -1,51 +1,54 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Drawer } from '@/components/ui/Drawer';
-import { UserRole } from '@futurex/shared';
-import { X, Search, Check, Users, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api-client";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Drawer } from "@/components/ui/Drawer";
+import { UserRole } from "@futurex/shared";
+import { X, Search, Check, Users, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface CreateProjectDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerProps) {
+export function CreateProjectDrawer({
+  open,
+  onOpenChange,
+}: CreateProjectDrawerProps) {
   const queryClient = useQueryClient();
 
-  const [key, setKey] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [targetDate, setTargetDate] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [targetDate, setTargetDate] = useState("");
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
-  const [memberSearch, setMemberSearch] = useState('');
+  const [memberSearch, setMemberSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   // Reset form when drawer opens
   useEffect(() => {
     if (open) {
-      setKey('');
-      setName('');
-      setDescription('');
-      setStartDate(new Date().toISOString().split('T')[0]);
-      setTargetDate('');
+      setName("");
+      setDescription("");
+      setStartDate(new Date().toISOString().split("T")[0]);
+      setTargetDate("");
       setSelectedMemberIds([]);
-      setMemberSearch('');
+      setMemberSearch("");
       setError(null);
     }
   }, [open]);
 
   // Fetch only active TEAM_MEMBER users (exclude Admin/Owner)
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', 'team-members'],
-    queryFn: () => api.get('/users?role=TEAM_MEMBER&isActive=true'),
+    queryKey: ["users", "team-members"],
+    queryFn: () => api.get("/users?role=TEAM_MEMBER&isActive=true"),
     enabled: open,
   });
 
@@ -57,25 +60,34 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
     if (!memberSearch) return true;
     const q = memberSearch.toLowerCase();
     const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
-    return fullName.includes(q) || (u.jobTitle && u.jobTitle.toLowerCase().includes(q));
+    return (
+      fullName.includes(q) ||
+      (u.jobTitle && u.jobTitle.toLowerCase().includes(q))
+    );
   });
 
   const createProjectMutation = useMutation({
-    mutationFn: (dto: any) => api.post('/projects', dto),
+    mutationFn: (dto: any) => api.post("/projects", dto),
     onSuccess: () => {
       onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
     },
     onError: (err: any) => {
-      setError(err.response?.data?.message || err.message || 'Failed to create project');
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to create project",
+      );
     },
   });
 
   const toggleMember = (userId: string) => {
     setSelectedMemberIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
     );
   };
 
@@ -87,13 +99,12 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
     e.preventDefault();
     setError(null);
 
-    if (!key.trim() || !name.trim()) {
-      setError('Project Key and Name are required');
+    if (!name.trim()) {
+      setError("Product name is required");
       return;
     }
 
     createProjectMutation.mutate({
-      key: key.toUpperCase().trim(),
       name: name.trim(),
       description: description.trim() || undefined,
       startDate: startDate ? new Date(startDate).toISOString() : undefined,
@@ -106,8 +117,8 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
     <Drawer
       open={open}
       onOpenChange={onOpenChange}
-      title="Create New Project"
-      description="Set up game workspace deliverables, schedule targets, and assign team members."
+      title="Create New Product"
+      description="Set up product workspace deliverables, schedule targets, and assign team members."
       footer={
         <>
           <Button
@@ -125,12 +136,16 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
             size="md"
             isLoading={createProjectMutation.isPending}
           >
-            Create Project
+            Create Product
           </Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit} id="create-project-form" className="space-y-6 text-xs">
+      <form
+        onSubmit={handleSubmit}
+        id="create-project-form"
+        className="space-y-6 text-xs"
+      >
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2 text-xs text-fx-semantic-danger animate-fadeIn">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -138,39 +153,22 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
           </div>
         )}
 
-        {/* Section 1: Project Details */}
+        {/* Section 1: Product Details */}
         <div className="space-y-3">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">
-            Project Details
+            Product Details
           </h3>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-fx-text-primary mb-1">
-                Project Key <span className="text-fx-semantic-danger">*</span>
-              </label>
-              <Input
-                placeholder="e.g. CR"
-                value={key}
-                maxLength={6}
-                onChange={(e) => setKey(e.target.value.toUpperCase())}
-                className="font-mono text-xs uppercase"
-                required
-              />
-              <span className="text-[10px] text-fx-text-muted mt-1 block">2-6 uppercase letters</span>
-            </div>
-
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-fx-text-primary mb-1">
-                Project Name <span className="text-fx-semantic-danger">*</span>
-              </label>
-              <Input
-                placeholder="e.g. Colombo Rider – Season 2"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-fx-text-primary mb-1">
+              Product Name <span className="text-fx-semantic-danger">*</span>
+            </label>
+            <Input
+              placeholder="e.g. Colombo Rider – Season 2"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
           </div>
 
           <div>
@@ -277,10 +275,13 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-md text-[11px] text-amber-900 space-y-1">
                 <p className="font-semibold">No team members found</p>
                 <p className="text-amber-800">
-                  Create team member accounts in{' '}
-                  <Link href="/admin/users" className="font-medium underline text-amber-950">
+                  Create team member accounts in{" "}
+                  <Link
+                    href="/admin/users"
+                    className="font-medium underline text-amber-950"
+                  >
                     User Management
-                  </Link>{' '}
+                  </Link>{" "}
                   first to assign them to projects.
                 </p>
               </div>
@@ -298,31 +299,37 @@ export function CreateProjectDrawer({ open, onOpenChange }: CreateProjectDrawerP
                         key={emp.id}
                         onClick={() => toggleMember(emp.id)}
                         className={cn(
-                          'p-2.5 flex items-center justify-between cursor-pointer fx-transition select-none',
-                          isSelected ? 'bg-[#EEF4FF]/60' : 'hover:bg-fx-bg-hover',
+                          "p-2.5 flex items-center justify-between cursor-pointer fx-transition select-none",
+                          isSelected
+                            ? "bg-[#EEF4FF]/60"
+                            : "hover:bg-fx-bg-hover",
                         )}
                       >
                         <div className="flex items-center gap-2.5">
                           <div
                             className={cn(
-                              'w-4 h-4 rounded border flex items-center justify-center shrink-0',
+                              "w-4 h-4 rounded border flex items-center justify-center shrink-0",
                               isSelected
-                                ? 'bg-[#2563EB] border-[#2563EB] text-white'
-                                : 'border-fx-border bg-white',
+                                ? "bg-[#2563EB] border-[#2563EB] text-white"
+                                : "border-fx-border bg-white",
                             )}
                           >
-                            {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                            {isSelected && (
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            )}
                           </div>
                           <div>
                             <p className="text-xs font-medium text-fx-text-primary">
                               {emp.firstName} {emp.lastName}
                             </p>
                             <p className="text-[10px] text-fx-text-muted">
-                              {emp.jobTitle || 'Team Member'}
+                              {emp.jobTitle || "Team Member"}
                             </p>
                           </div>
                         </div>
-                        <span className="text-[10px] text-fx-text-muted font-mono">{emp.email}</span>
+                        <span className="text-[10px] text-fx-text-muted font-mono">
+                          {emp.email}
+                        </span>
                       </div>
                     );
                   })

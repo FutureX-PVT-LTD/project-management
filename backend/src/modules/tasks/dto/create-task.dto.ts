@@ -9,8 +9,8 @@ import {
   Max,
   IsBoolean,
   IsArray,
-} from 'class-validator';
-import { TaskStatus, TaskPriority, ReviewStatus } from '@futurex/shared';
+} from "class-validator";
+import { TaskStatus, TaskPriority, ReviewStatus } from "@futurex/shared";
 
 export class CreateTaskDto {
   @IsString()
@@ -32,6 +32,47 @@ export class CreateTaskDto {
   @IsString()
   @IsOptional()
   assigneeId?: string;
+
+  @IsString()
+  @IsOptional()
+  workType?: string;
+
+  @IsString()
+  @IsOptional()
+  checklistTemplateItemId?: string;
+
+  @IsString()
+  @IsOptional()
+  checklistCode?: string;
+
+  @IsString()
+  @IsOptional()
+  checklistPhase?: string;
+
+  @IsString()
+  @IsOptional()
+  checklistStage?: string;
+
+  @IsString()
+  @IsOptional()
+  checklistOwnerRole?: string;
+
+  @IsString()
+  @IsOptional()
+  checklistDoneWhen?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  checklistMandatory?: boolean;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  checklistOrder?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  allowParallelWork?: boolean;
 
   @IsArray()
   @IsOptional()
@@ -94,6 +135,10 @@ export class UpdateTaskDto {
   @IsOptional()
   assigneeId?: string | null;
 
+  @IsBoolean()
+  @IsOptional()
+  allowParallelWork?: boolean;
+
   @IsArray()
   @IsOptional()
   collaboratorIds?: string[];
@@ -155,6 +200,10 @@ export class ReviewTaskDto {
   @IsString()
   @IsOptional()
   feedback?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  completeTask?: boolean;
 }
 
 export class CreateTaskDailyUpdateDto {

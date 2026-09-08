@@ -21,9 +21,9 @@ const priorityConfig: Record<
 > = {
   [TaskPriority.URGENT]: {
     label: 'Urgent',
-    icon: <AlertTriangle className="w-3 h-3 text-[#C24141]" />,
-    text: 'text-[#C24141]',
-    bg: 'bg-[#FDEEEE]',
+    icon: <AlertTriangle className="w-3 h-3 text-[#B54747]" />,
+    text: 'text-[#B54747]',
+    bg: 'bg-[#FCEEEE]',
   },
   [TaskPriority.HIGH]: {
     label: 'High',
@@ -33,15 +33,15 @@ const priorityConfig: Record<
   },
   [TaskPriority.MEDIUM]: {
     label: 'Medium',
-    icon: <Minus className="w-3 h-3 text-[#2563EB]" />,
-    text: 'text-[#2563EB]',
+    icon: <Minus className="w-3 h-3 text-[#245EC7]" />,
+    text: 'text-[#245EC7]',
     bg: 'bg-[#EEF4FF]',
   },
   [TaskPriority.LOW]: {
     label: 'Low',
-    icon: <ArrowDown className="w-3 h-3 text-[#626A73]" />,
-    text: 'text-[#626A73]',
-    bg: 'bg-[#F2F4F7]',
+    icon: <ArrowDown className="w-3 h-3 text-[#60666F]" />,
+    text: 'text-[#60666F]',
+    bg: 'bg-[#F1F3F5]',
   },
 };
 
@@ -53,10 +53,10 @@ export function PriorityBadge({
 }: PriorityBadgeProps) {
   const isCompact = compact || !showLabel;
   const config = priorityConfig[priority] || {
-    label: priority,
-    icon: <Minus className="w-3 h-3 text-[#929AA3]" />,
-    text: 'text-[#929AA3]',
-    bg: 'bg-[#F2F4F7]',
+    label: priority || 'Normal',
+    icon: <Minus className="w-3 h-3 text-[#8B929B]" />,
+    text: 'text-[#8B929B]',
+    bg: 'bg-[#F1F3F5]',
   };
 
   return (

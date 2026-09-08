@@ -9,6 +9,7 @@ import { Drawer } from '@/components/ui/Drawer';
 import { UserRole } from '@futurex/shared';
 import { AlertCircle, Shield, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
 
 interface CreateUserDrawerProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface CreateUserDrawerProps {
 }
 
 export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const [firstName, setFirstName] = useState('');
@@ -51,6 +53,7 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
   });
 
   if (!open) return null;
+  const canCreateSuperAdmin = user?.globalRole === UserRole.OWNER;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,7 +167,7 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
           <label className="block text-xs font-medium text-fx-text-primary mb-2">
             System Role & Permissions <span className="text-fx-semantic-danger">*</span>
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className={cn('grid gap-3', canCreateSuperAdmin ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2')}>
             <div
               onClick={() => setRole(UserRole.TEAM_MEMBER)}
               className={cn(
@@ -200,6 +203,26 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
                 Manages projects, assigns work, reviews deliverables, and provisions users.
               </p>
             </div>
+
+            {canCreateSuperAdmin && (
+              <div
+                onClick={() => setRole(UserRole.OWNER)}
+                className={cn(
+                  'p-3.5 border rounded-[8px] cursor-pointer fx-transition select-none space-y-1',
+                  role === UserRole.OWNER
+                    ? 'border-[#2563EB] bg-[#EEF4FF]/50 ring-1 ring-[#2563EB]'
+                    : 'border-fx-border hover:bg-fx-bg-hover bg-white',
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-[#7557B5]" />
+                  <span className="font-semibold text-xs text-fx-text-primary">Super Admin</span>
+                </div>
+                <p className="text-[11px] text-fx-text-secondary leading-snug">
+                  Full workspace control, including project deletion and Super Admin creation.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

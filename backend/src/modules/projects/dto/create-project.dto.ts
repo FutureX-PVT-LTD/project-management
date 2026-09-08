@@ -6,17 +6,23 @@ import {
   IsDateString,
   IsArray,
   IsBoolean,
+  IsObject,
   Matches,
-} from 'class-validator';
-import { ProjectStatus, ProjectHealth, ProjectMemberRole } from '@futurex/shared';
+} from "class-validator";
+import {
+  ProjectStatus,
+  ProjectHealth,
+  ProjectMemberRole,
+  ProductType,
+} from "@futurex/shared";
 
 export class CreateProjectDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @Matches(/^[A-Z0-9]{2,6}$/i, {
-    message: 'Project key must be 2-6 letters or numbers.',
+    message: "Project key must be 2-6 letters or numbers.",
   })
-  key: string;
+  key?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -25,6 +31,10 @@ export class CreateProjectDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsEnum(ProductType)
+  @IsOptional()
+  productType?: ProductType;
 
   @IsEnum(ProjectStatus)
   @IsOptional()
@@ -60,6 +70,10 @@ export class UpdateProjectDto {
   @IsOptional()
   description?: string;
 
+  @IsEnum(ProductType)
+  @IsOptional()
+  productType?: ProductType;
+
   @IsEnum(ProjectStatus)
   @IsOptional()
   status?: ProjectStatus;
@@ -87,6 +101,40 @@ export class UpdateProjectDto {
   @IsString()
   @IsOptional()
   projectManagerId?: string;
+}
+
+export class GenerateDevelopmentChecklistDto {
+  @IsString()
+  @IsOptional()
+  templateVersion?: string;
+}
+
+export class AssignChecklistItemDto {
+  @IsString()
+  @IsOptional()
+  assigneeId?: string | null;
+
+  @IsDateString()
+  @IsOptional()
+  dueDate?: string | null;
+
+  @IsBoolean()
+  @IsOptional()
+  requiresReview?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  allowParallelWork?: boolean;
+}
+
+export class BulkResponsibilityAssignmentDto {
+  @IsObject()
+  @IsOptional()
+  mappings?: Record<string, string | null>;
+
+  @IsObject()
+  @IsOptional()
+  phaseMappings?: Record<string, string | null>;
 }
 
 export class PostProjectUpdateDto {

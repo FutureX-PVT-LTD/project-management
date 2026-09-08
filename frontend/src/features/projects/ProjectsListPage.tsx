@@ -9,7 +9,6 @@ import {
   LayoutGrid,
   List,
   ArrowRight,
-  ChevronRight,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { ProjectStatus } from '@futurex/shared';
@@ -52,7 +51,7 @@ export function ProjectsListPage() {
   };
 
   const statusTabs = [
-    { id: 'ALL', label: 'All Projects' },
+    { id: 'ALL', label: 'All Products' },
     { id: ProjectStatus.ACTIVE, label: 'Active' },
     { id: ProjectStatus.PLANNED, label: 'Planned' },
     { id: ProjectStatus.AT_RISK, label: 'At Risk' },
@@ -63,27 +62,27 @@ export function ProjectsListPage() {
     <AppShell>
       <div className="space-y-8">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E3E7EC] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-[#E8EBEF] pb-6">
           <div>
-            <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#181B20]">
-              Projects Directory
+            <h1 className="fx-page-title">
+              Products Directory
             </h1>
-            <p className="text-sm text-[#626A73] mt-1">
-              Production tracking, milestones, and deliverable execution across all studio titles.
+            <p className="text-[13px] text-[#60666F] mt-1">
+              Deliverable execution, checklist governance, and milestone readiness across all studio titles.
             </p>
           </div>
 
           {canManage && (
             <Link href="/projects/new">
               <Button size="sm" variant="primary" leftIcon={<Plus className="w-3.5 h-3.5" />}>
-                New Project
+                New Product
               </Button>
             </Link>
           )}
         </div>
 
         {/* Status Tabs & Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E3E7EC] pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8EBEF] pb-3">
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
             {statusTabs.map((tab) => {
               const isActive = statusFilter === tab.id;
@@ -92,10 +91,10 @@ export function ProjectsListPage() {
                   key={tab.id}
                   onClick={() => setStatusFilter(tab.id)}
                   className={cn(
-                    'px-3.5 py-2 text-xs font-medium whitespace-nowrap rounded-[6px] fx-transition',
+                    'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] fx-transition',
                     isActive
-                      ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold border border-[#2563EB]/20'
-                      : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
+                      ? 'bg-[#EEF4FF] text-[#245EC7] font-medium'
+                      : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
                   )}
                 >
                   {tab.label}
@@ -105,38 +104,38 @@ export function ProjectsListPage() {
           </div>
 
           {/* Search & View Mode Toggles */}
-          <div className="flex items-center gap-3 pb-1 sm:pb-0">
-            <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#929AA3]" />
+          <div className="flex items-center gap-2.5">
+            <div className="relative w-full sm:w-60">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8B929B]" />
               <input
                 type="text"
-                placeholder="Search projects..."
+                placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] placeholder:text-[#929AA3] focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] fx-transition"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8F9FB] border border-[#E8EBEF] rounded-[8px] text-[#17191C] placeholder:text-[#8B929B] focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#2463EB] focus:border-[#2463EB] fx-transition"
               />
             </div>
 
-            <div className="flex items-center gap-0.5 border border-[#E3E7EC] rounded-[8px] p-0.5 bg-[#F7F8FA] shrink-0">
+            <div className="flex items-center gap-0.5 border border-[#E8EBEF] rounded-[7px] p-0.5 bg-[#F8F9FB] shrink-0">
               <button
                 onClick={() => setViewMode('cards')}
                 className={cn(
-                  'p-1.5 rounded-[6px] text-xs fx-transition',
+                  'p-1.5 rounded-[5px] text-xs fx-transition',
                   viewMode === 'cards'
-                    ? 'bg-white text-[#181B20] font-semibold shadow-sm'
-                    : 'text-[#929AA3] hover:text-[#181B20]',
+                    ? 'bg-white text-[#17191C] shadow-xs'
+                    : 'text-[#8B929B] hover:text-[#17191C]',
                 )}
-                title="Cards View"
+                title="Grid View"
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setViewMode('table')}
                 className={cn(
-                  'p-1.5 rounded-[6px] text-xs fx-transition',
+                  'p-1.5 rounded-[5px] text-xs fx-transition',
                   viewMode === 'table'
-                    ? 'bg-white text-[#181B20] font-semibold shadow-sm'
-                    : 'text-[#929AA3] hover:text-[#181B20]',
+                    ? 'bg-white text-[#17191C] shadow-xs'
+                    : 'text-[#8B929B] hover:text-[#17191C]',
                 )}
                 title="Table View"
               >
@@ -150,56 +149,62 @@ export function ProjectsListPage() {
         {isLoading ? (
           <ProjectsListSkeleton />
         ) : projects.length === 0 ? (
-          <div className="py-16 text-center space-y-4 max-w-sm mx-auto">
-            <div className="w-12 h-12 rounded-[12px] bg-[#EEF4FF] text-[#2563EB] mx-auto flex items-center justify-center">
-              <FolderKanban className="w-6 h-6" />
+          <div className="py-16 text-center space-y-3 max-w-sm mx-auto">
+            <div className="w-10 h-10 rounded-full bg-[#EEF4FF] text-[#2463EB] mx-auto flex items-center justify-center">
+              <FolderKanban className="w-5 h-5" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-[#181B20]">No projects found</h3>
-              <p className="text-xs text-[#626A73]">
+              <h3 className="text-[13px] font-semibold text-[#17191C]">No products found</h3>
+              <p className="text-[12px] text-[#60666F]">
                 {search
-                  ? `No projects matched the search "${search}".`
-                  : 'Create your first project and assign team members to begin tracking deliverables.'}
+                  ? `No products matched the search "${search}".`
+                  : 'Create your first product to generate standard checklists and monitor deliverable execution.'}
               </p>
             </div>
             {canManage && !search && (
               <Link href="/projects/new">
                 <Button size="sm" variant="primary" leftIcon={<Plus className="w-3.5 h-3.5" />}>
-                  Create Project
+                  Create Product
                 </Button>
               </Link>
             )}
           </div>
         ) : viewMode === 'cards' ? (
-          /* Rich Project Tiles View - De-boxed open cards */
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          /* 24. Spacious 2-Column Product Surfaces with Breathing Room & Inline Metadata */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {projects.map((proj: any) => {
               const doneCount = proj.completedTasksCount || proj.stats?.completedTasks || 0;
               const inProgressCount = proj.inProgressTasksCount || 0;
               const waitingCount = proj.waitingTasksCount || 0;
               const inReviewCount = proj.inReviewTasksCount || 0;
-              const progressVal = Math.round(proj.progress || 0);
+              const totalCount = proj.tasksCount || (doneCount + inProgressCount + waitingCount + inReviewCount) || 1;
+              const progressVal = Math.round(proj.progress || (totalCount > 0 ? (doneCount / totalCount) * 100 : 0));
               const members = proj.members || [];
 
               return (
                 <div
                   key={proj.id}
                   onClick={() => openProject(proj.id)}
-                  className="rounded-[16px] bg-white border border-[#E3E7EC] hover:border-[#2563EB] p-5 sm:p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-4 fx-transition cursor-pointer flex flex-col justify-between"
+                  className="rounded-[12px] bg-white border border-[#E8EBEF] hover:border-[#DCE1E7] p-5 sm:p-6 space-y-4 fx-transition cursor-pointer flex flex-col justify-between"
                 >
                   <div className="space-y-3">
-                    {/* Top Row: Key, Title, Health */}
+                    {/* Top Row: Title, Key, Health */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 min-w-0">
-                        <span className="font-mono text-[11px] font-semibold px-2 py-0.5 rounded-[6px] bg-[#F7F8FA] text-[#626A73] border border-[#E3E7EC]">
-                          {proj.cleanKey}
-                        </span>
-                        <h3 className="text-base sm:text-lg font-semibold text-[#181B20] hover:text-[#2563EB] truncate tracking-tight pt-1">
-                          {proj.name}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-base font-semibold text-[#17191C] hover:text-[#2463EB] truncate tracking-tight">
+                            {proj.name}
+                          </h3>
+                          <span className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-[5px] bg-[#F8F9FB] text-[#60666F] border border-[#E8EBEF]">
+                            {proj.cleanKey}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-[#60666F]">
+                          {(proj.productType || 'Product').replace('_', ' ')}
+                        </p>
                       </div>
                       <div className="shrink-0 flex items-center gap-1.5">
-                        <HealthBadge health={proj.health} reason={proj.healthReason} showReason={true} />
+                        <HealthBadge health={proj.health} reason={proj.healthReason} />
                         {canManage && (
                           <div
                             onClick={(e) => e.stopPropagation()}
@@ -212,52 +217,45 @@ export function ProjectsListPage() {
                     </div>
 
                     {proj.description && (
-                      <p className="text-xs text-[#626A73] line-clamp-2 leading-relaxed">
+                      <p className="text-[12px] text-[#60666F] line-clamp-2 leading-relaxed">
                         {proj.description}
                       </p>
                     )}
 
-                    {/* Progress Bar & Percentage */}
-                    <div className="space-y-1.5 pt-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium text-[#181B20]">{progressVal}% complete</span>
-                        <span className="font-mono text-[11px] text-[#929AA3]">
+                    {/* Progress Bar */}
+                    <div className="space-y-1 pt-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-medium text-[#17191C]">{progressVal}% complete</span>
+                        <span className="font-mono text-[#8B929B]">
                           {proj.targetDate ? `Target ${formatDate(proj.targetDate)}` : 'No target date'}
                         </span>
                       </div>
-                      <div className="w-full bg-[#F2F4F7] rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-[#F3F5F7] rounded-full h-1.5 overflow-hidden">
                         <div
-                          className="bg-[#2563EB] h-full rounded-full fx-transition"
+                          className="bg-[#2463EB] h-full rounded-full fx-transition"
                           style={{ width: `${Math.min(100, Math.max(0, progressVal))}%` }}
                         />
                       </div>
                     </div>
 
-                    {/* Task Breakdown Chips */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1 text-xs">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] bg-[#EDF8F2] text-[#237A57] text-[11px] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#237A57]" />
-                        <span>{doneCount} Done</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] bg-[#EEF4FF] text-[#2563EB] text-[11px] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
-                        <span>{inProgressCount} In Progress</span>
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] bg-[#FFF6E5] text-[#A86B12] text-[11px] font-medium">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#A86B12]" />
-                        <span>{waitingCount} Waiting</span>
-                      </span>
+                    {/* 24. Status counts as text / inline metadata (NOT nested square cells) */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 text-[12px] text-[#60666F]">
+                      <span className="text-[#26715A] font-medium">{doneCount} completed</span>
+                      <span className="text-[#8B929B]">·</span>
+                      <span>{inProgressCount} active</span>
+                      <span className="text-[#8B929B]">·</span>
+                      <span>{waitingCount} waiting</span>
                       {inReviewCount > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] bg-[#F4F0FC] text-[#7557B5] text-[11px] font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#7557B5]" />
-                          <span>{inReviewCount} In Review</span>
-                        </span>
+                        <>
+                          <span className="text-[#8B929B]">·</span>
+                          <span className="text-[#6D52A3] font-medium">{inReviewCount} in review</span>
+                        </>
                       )}
                     </div>
                   </div>
 
-                  {/* Milestone & Footer */}
-                  <div className="pt-3 border-t border-[#E3E7EC] flex items-center justify-between gap-3 text-xs">
+                  {/* Footer */}
+                  <div className="pt-3 border-t border-[#E8EBEF] flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="flex -space-x-1.5 overflow-hidden">
                         {members.slice(0, 3).map((m: any, idx: number) => {
@@ -265,7 +263,7 @@ export function ProjectsListPage() {
                           return (
                             <div
                               key={u.id || idx}
-                              className="w-5 h-5 rounded-full bg-[#F7F8FA] border border-white text-[9px] font-semibold flex items-center justify-center text-[#626A73]"
+                              className="w-5 h-5 rounded-full bg-[#F8F9FB] border border-white text-[9px] font-semibold flex items-center justify-center text-[#60666F]"
                               title={`${u.firstName} ${u.lastName}`}
                             >
                               {getInitials(u.firstName, u.lastName)}
@@ -273,12 +271,12 @@ export function ProjectsListPage() {
                           );
                         })}
                       </div>
-                      <span className="text-[11px] text-[#929AA3]">
+                      <span className="text-[11px] text-[#8B929B]">
                         {members.length > 0 ? `${members.length} members` : '1 member'}
                       </span>
                     </div>
 
-                    <span className="text-xs font-medium text-[#2563EB] flex items-center gap-1 hover:text-[#1D4ED8] fx-transition">
+                    <span className="text-[12px] font-medium text-[#2463EB] flex items-center gap-1 hover:text-[#1D4ED8] fx-transition">
                       <span>Open</span>
                       <ArrowRight className="w-3 h-3" />
                     </span>
@@ -288,30 +286,30 @@ export function ProjectsListPage() {
             })}
           </div>
         ) : (
-          /* Table View - Open layout */
+          /* Table View: Open layout with #FAFBFC header */
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#F7F8FA] text-[#626A73] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E3E7EC]">
-                  <th className="py-3 px-4">Game Project</th>
-                  <th className="py-3 px-3">Status / Health</th>
+                <tr className="bg-[#FAFBFC] text-[#60666F] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E8EBEF]">
+                  <th className="py-3 px-4">Product Title</th>
+                  <th className="py-3 px-3">Health</th>
                   <th className="py-3 px-3">Progress</th>
                   <th className="py-3 px-3">Managing Admin</th>
                   <th className="py-3 px-4 text-right">Target Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
+              <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
                 {projects.map((proj: any) => (
                   <tr
                     key={proj.id}
                     onClick={() => openProject(proj.id)}
-                    className="hover:bg-[#F7F8FA] cursor-pointer fx-transition"
+                    className="hover:bg-[#F8F9FB] cursor-pointer fx-transition"
                   >
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-sm text-[#181B20] hover:text-[#2563EB] fx-transition">
+                      <div className="font-semibold text-sm text-[#17191C] hover:text-[#2463EB] fx-transition">
                         {proj.name}
                       </div>
-                      <div className="text-[11px] text-[#929AA3] font-mono mt-0.5">
+                      <div className="text-[11px] text-[#8B929B] font-mono mt-0.5">
                         {proj.cleanKey}
                       </div>
                     </td>
@@ -320,23 +318,23 @@ export function ProjectsListPage() {
                     </td>
                     <td className="py-3.5 px-3 w-40">
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[11px] text-[#626A73]">
+                        <div className="flex justify-between text-[11px] text-[#60666F]">
                           <span>{Math.round(proj.progress || 0)}%</span>
                         </div>
-                        <div className="w-full bg-[#F2F4F7] rounded-full h-1.5 overflow-hidden">
+                        <div className="w-full bg-[#F3F5F7] rounded-full h-1.5 overflow-hidden">
                           <div
-                            className="bg-[#2563EB] h-full rounded-full"
+                            className="bg-[#2463EB] h-full rounded-full"
                             style={{ width: `${Math.min(100, Math.max(0, proj.progress || 0))}%` }}
                           />
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-3 text-[#626A73]">
+                    <td className="py-3.5 px-3 text-[#60666F]">
                       {proj.projectManager
                         ? `${proj.projectManager.firstName} ${proj.projectManager.lastName}`
                         : 'Unassigned'}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-[#626A73] font-medium">
+                    <td className="py-3.5 px-4 text-right font-mono text-[#60666F] font-medium">
                       {proj.targetDate ? formatDate(proj.targetDate) : '—'}
                     </td>
                   </tr>

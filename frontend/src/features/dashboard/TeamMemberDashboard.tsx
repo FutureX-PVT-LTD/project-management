@@ -8,12 +8,8 @@ import {
   Lock,
   Clock,
   CheckCircle2,
-  Check,
   Activity,
   ArrowRight,
-  Sparkles,
-  AlertCircle,
-  ExternalLink,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray } from '@/lib/api-data';
@@ -95,7 +91,6 @@ export function TeamMemberDashboard() {
   const completedTasks = tasks.filter((t) => t.status === TaskStatus.DONE);
   const activeTasksCount = inProgressTasks.length + readyTasks.length + waitingTasks.length + blockedTasks.length;
 
-  // Sorting priority: Overdue -> Urgent -> High -> Medium -> Low
   const priorityWeight: Record<string, number> = {
     URGENT: 100,
     HIGH: 80,
@@ -124,8 +119,6 @@ export function TeamMemberDashboard() {
   const sortedReadyTasks = sortTasks(readyTasks);
   const sortedWaitingTasks = sortTasks(waitingTasks);
 
-  // Dynamic Hero Engine Determination
-  // Priority: IN_PROGRESS -> READY -> WAITING -> BLOCKED -> ALL_CLEAR
   let heroType: 'CURRENT_FOCUS' | 'READY_TO_START' | 'WAITING' | 'BLOCKED' | 'ALL_CLEAR' = 'ALL_CLEAR';
   let heroTask: any = null;
   let otherActiveTasks: any[] = [];
@@ -155,13 +148,11 @@ export function TeamMemberDashboard() {
     heroTask = blockedTasks[0];
   }
 
-  // Up Next Deadlines (3 to 5 near-term actionable events)
   const upNextDeadlines = tasks
     .filter((t) => t.dueDate && t.status !== TaskStatus.DONE && t.status !== TaskStatus.CANCELED)
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
     .slice(0, 5);
 
-  // Recent Daily Updates (latest 3-4 items)
   const recentDailyUpdates = tasks
     .flatMap((t) => (t.dailyUpdates || []).map((u: any) => ({ ...u, task: t })))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -169,7 +160,6 @@ export function TeamMemberDashboard() {
 
   const firstName = user?.firstName || 'there';
 
-  // Dynamic Greeting Subtitle based on real data
   const getGreetingSubtitle = () => {
     if (activeTasksCount === 0) {
       if (completedTasks.length > 0) {
@@ -201,7 +191,7 @@ export function TeamMemberDashboard() {
   };
 
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto">
+    <div className="space-y-8">
       {/* SlideOver Task Drawer */}
       <TaskDetailSlideOver
         taskId={selectedTaskId}
@@ -210,73 +200,70 @@ export function TeamMemberDashboard() {
         onSelectTask={(id) => setSelectedTaskId(id)}
       />
 
-      {/* 1. Greeting Area & Action-First Workload Summary */}
-      <div className="border-b border-[#E3E7EC] pb-5 space-y-4">
+      {/* Greeting Area & Workload Summary */}
+      <div className="border-b border-[#E8EBEF] pb-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
           <div>
-            <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#181B20]">
+            <h1 className="fx-page-title">
               Good morning, {firstName}
             </h1>
-            <p className="text-sm text-[#626A73] mt-1">
+            <p className="text-[13px] text-[#60666F] mt-1">
               {getGreetingSubtitle()}
             </p>
           </div>
-          <span className="text-xs text-[#929AA3] font-medium shrink-0">
+          <span className="text-[12px] text-[#8B929B] font-medium shrink-0">
             {now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           </span>
         </div>
 
-        {/* Action-First Workload Summary (Clean & compact, non-competing) */}
+        {/* Action-First Workload Summary */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <div className="flex flex-wrap items-center gap-2">
-            {/* Active Work */}
             <Link
               href="/my-work?tab=ALL"
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] text-xs fx-transition border',
                 activeTasksCount > 0
-                  ? 'bg-[#EEF4FF] border-[#2563EB]/20 text-[#2563EB] font-medium hover:bg-[#E0ECFF]'
-                  : 'bg-[#F7F8FA] border-[#E3E7EC] text-[#626A73] hover:text-[#181B20]',
+                  ? 'bg-[#EEF4FF] border-[#2463EB]/20 text-[#2463EB] font-medium hover:bg-[#E0ECFF]'
+                  : 'bg-[#F8F9FB] border-[#E8EBEF] text-[#60666F] hover:text-[#17191C]',
               )}
             >
-              <span className="text-[#626A73]">Active Work:</span>
-              <span className="font-semibold font-mono text-[#181B20]">{activeTasksCount}</span>
+              <span className="text-[#60666F]">Active:</span>
+              <span className="font-semibold font-mono text-[#17191C]">{activeTasksCount}</span>
             </Link>
 
-            {/* Ready (Only highlighted if tasks exist) */}
             <Link
               href="/my-work?tab=READY"
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] text-xs fx-transition border',
                 readyTasks.length > 0
-                  ? 'bg-[#EDF8F2] border-[#237A57]/20 text-[#237A57] font-medium hover:bg-[#E3F4EB]'
-                  : 'bg-[#F7F8FA] border-[#E3E7EC] text-[#929AA3] hover:text-[#181B20]',
+                  ? 'bg-[#EFF8F3] border-[#237A57]/20 text-[#237A57] font-medium'
+                  : 'bg-[#F8F9FB] border-[#E8EBEF] text-[#8B929B] hover:text-[#17191C]',
               )}
             >
               <span
                 className={cn(
                   'w-1.5 h-1.5 rounded-full shrink-0',
-                  readyTasks.length > 0 ? 'bg-[#237A57]' : 'bg-[#929AA3]',
+                  readyTasks.length > 0 ? 'bg-[#237A57]' : 'bg-[#8B929B]',
                 )}
               />
               <span>Ready:</span>
               <span className="font-semibold font-mono">{readyTasks.length}</span>
             </Link>
 
-            {/* Waiting (Only highlighted if tasks exist) */}
             <Link
               href="/my-work?tab=WAITING"
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1 rounded-[6px] text-xs fx-transition border',
                 waitingTasks.length > 0
-                  ? 'bg-[#FFF6E5] border-[#A86B12]/20 text-[#A86B12] font-medium hover:bg-[#FEEFD4]'
-                  : 'bg-[#F7F8FA] border-[#E3E7EC] text-[#929AA3] hover:text-[#181B20]',
+                  ? 'bg-[#FFF7E8] border-[#9A6515]/20 text-[#9A6515] font-medium'
+                  : 'bg-[#F8F9FB] border-[#E8EBEF] text-[#8B929B] hover:text-[#17191C]',
               )}
             >
               <span
                 className={cn(
                   'w-1.5 h-1.5 rounded-full shrink-0',
-                  waitingTasks.length > 0 ? 'bg-[#A86B12]' : 'bg-[#929AA3]',
+                  waitingTasks.length > 0 ? 'bg-[#9A6515]' : 'bg-[#8B929B]',
                 )}
               />
               <span>Waiting:</span>
@@ -284,80 +271,75 @@ export function TeamMemberDashboard() {
             </Link>
           </div>
 
-          {/* Subdued Completed Link */}
           {completedTasks.length > 0 && (
             <Link
               href="/my-work?tab=COMPLETED"
-              className="inline-flex items-center gap-1.5 text-xs text-[#626A73] hover:text-[#2563EB] fx-transition font-medium"
+              className="inline-flex items-center gap-1.5 text-xs text-[#60666F] hover:text-[#2463EB] fx-transition font-medium"
             >
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#237A57]" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#26715A]" />
               <span>{completedTasks.length} Completed</span>
-              <ArrowRight className="w-3 h-3 text-[#929AA3]" />
+              <ArrowRight className="w-3 h-3 text-[#8B929B]" />
             </Link>
           )}
         </div>
       </div>
 
-      {/* 2. Main Work Layout (Desktop: 70% primary work / 30% utility sidebar) */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
+      {/* Main Work Layout: 70% primary work / 30% utility sidebar */}
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-8 items-start">
 
-        {/* PRIMARY WORK COLUMN (~70%) */}
-        <div className="flex flex-col gap-8 min-w-0">
+        {/* PRIMARY WORK COLUMN */}
+        <div className="space-y-8 min-w-0">
 
-          {/* DYNAMIC HERO SECTION */}
+          {/* DYNAMIC HERO SECTION: Clean surface */}
           {heroType === 'CURRENT_FOCUS' && heroTask && (
-            <div className="rounded-[16px] bg-white border border-[#E3E7EC] p-5 sm:p-6 shadow-xs hover:border-[#2563EB]/40 fx-transition space-y-4">
-              {/* Eyebrow */}
+            <div className="rounded-[12px] bg-white border border-[#E8EBEF] p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#2563EB] flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-pulse" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#245EC7] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#2463EB]" />
                   Current Focus
                 </span>
-                <span className="text-xs text-[#929AA3] font-medium">In Progress</span>
+                <span className="text-xs text-[#8B929B]">In Progress</span>
               </div>
 
-              {/* Task Title - Strongest Visual Element */}
               <div
                 onClick={() => setSelectedTaskId(heroTask.id)}
                 className="cursor-pointer group space-y-1"
               >
-                <h2 className="text-xl sm:text-[24px] font-semibold text-[#181B20] group-hover:text-[#2563EB] leading-tight tracking-tight fx-transition">
+                <h2 className="text-xl sm:text-[22px] font-semibold text-[#17191C] group-hover:text-[#2463EB] leading-tight tracking-tight fx-transition">
                   {heroTask.title}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-[#626A73] pt-0.5">
-                  <span className="font-medium text-[#181B20]">{heroTask.project?.name}</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[#60666F] pt-0.5">
+                  <span className="font-medium text-[#17191C]">{heroTask.project?.name}</span>
                   <span>•</span>
-                  <span className="font-mono text-[#929AA3] px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
+                  <span className="font-mono text-[#8B929B] px-1.5 py-0.5 bg-[#F8F9FB] rounded-[5px] border border-[#E8EBEF]">
                     {formatTaskId(heroTask.humanId, heroTask.project?.key, heroTask.project?.name)}
                   </span>
                   {heroTask.milestone && (
                     <>
                       <span>•</span>
-                      <span className="text-[#7557B5] font-medium">{heroTask.milestone.name}</span>
+                      <span className="text-[#6D52A3] font-medium">{heroTask.milestone.name}</span>
                     </>
                   )}
                 </div>
               </div>
 
-              {/* Progress Bar */}
               <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-[#626A73] font-medium">Execution Progress</span>
-                  <span className="font-mono font-bold text-[#2563EB]">{heroTask.progress}% complete</span>
+                  <span className="text-[#60666F]">Execution Progress</span>
+                  <span className="font-mono font-semibold text-[#2463EB]">{heroTask.progress}% complete</span>
                 </div>
                 <Progress value={heroTask.progress} showLabel={false} size="sm" />
               </div>
 
-              {/* Metadata & Dominant Action Bar */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#E3E7EC]">
-                <div className="flex flex-wrap items-center gap-3 text-xs text-[#626A73]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#E8EBEF]">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-[#60666F]">
                   {heroTask.dueDate && (
                     <span
                       className={cn(
                         'flex items-center gap-1 font-medium text-xs',
                         new Date(heroTask.dueDate) < now
-                          ? 'text-[#C24141] font-semibold'
-                          : 'text-[#626A73]',
+                          ? 'text-[#B54747] font-semibold'
+                          : 'text-[#60666F]',
                       )}
                     >
                       <Calendar className="w-3.5 h-3.5" />
@@ -369,71 +351,60 @@ export function TeamMemberDashboard() {
                   <StatusPill status={heroTask.status} size="xs" />
                 </div>
 
-                <div className="shrink-0 flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={() => setSelectedTaskId(heroTask.id)}
-                    rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-                    className="w-full sm:w-auto"
-                  >
-                    {heroTask.status === TaskStatus.IN_REVIEW ? 'View Submission' : 'Update Progress'}
-                  </Button>
-                </div>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  onClick={() => setSelectedTaskId(heroTask.id)}
+                  rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                  className="w-full sm:w-auto"
+                >
+                  {heroTask.status === TaskStatus.IN_REVIEW ? 'View Submission' : 'Update Progress'}
+                </Button>
               </div>
             </div>
           )}
 
           {heroType === 'READY_TO_START' && heroTask && (
-            <div className="rounded-[16px] bg-white border border-[#E3E7EC] p-5 sm:p-6 shadow-xs hover:border-[#237A57]/40 fx-transition space-y-4">
-              {/* Eyebrow */}
+            <div className="rounded-[12px] bg-white border border-[#E8EBEF] p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#237A57] flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#237A57]" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#237A57] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#237A57]" />
                   Ready to Start
                 </span>
-                <span className="text-xs text-[#237A57] font-medium">All prerequisites clear</span>
+                <span className="text-xs text-[#237A57]">All prerequisites clear</span>
               </div>
 
-              {/* Task Title */}
               <div
                 onClick={() => setSelectedTaskId(heroTask.id)}
                 className="cursor-pointer group space-y-1"
               >
-                <h2 className="text-xl sm:text-[24px] font-semibold text-[#181B20] group-hover:text-[#2563EB] leading-tight tracking-tight fx-transition">
+                <h2 className="text-xl sm:text-[22px] font-semibold text-[#17191C] group-hover:text-[#2463EB] leading-tight tracking-tight fx-transition">
                   {heroTask.title}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-[#626A73] pt-0.5">
-                  <span className="font-medium text-[#181B20]">{heroTask.project?.name}</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[#60666F] pt-0.5">
+                  <span className="font-medium text-[#17191C]">{heroTask.project?.name}</span>
                   <span>•</span>
-                  <span className="font-mono text-[#929AA3] px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
+                  <span className="font-mono text-[#8B929B] px-1.5 py-0.5 bg-[#F8F9FB] rounded-[5px] border border-[#E8EBEF]">
                     {formatTaskId(heroTask.humanId, heroTask.project?.key, heroTask.project?.name)}
                   </span>
-                  {heroTask.milestone && (
-                    <>
-                      <span>•</span>
-                      <span className="text-[#7557B5] font-medium">{heroTask.milestone.name}</span>
-                    </>
-                  )}
                 </div>
               </div>
 
               {heroTask.description && (
-                <p className="text-xs sm:text-[13px] text-[#626A73] line-clamp-2 max-w-2xl leading-relaxed">
+                <p className="text-xs sm:text-[13px] text-[#60666F] line-clamp-2 max-w-2xl leading-relaxed">
                   {heroTask.description}
                 </p>
               )}
 
-              {/* Metadata & Primary Action */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#E3E7EC]">
-                <div className="flex flex-wrap items-center gap-3 text-xs text-[#626A73]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#E8EBEF]">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-[#60666F]">
                   {heroTask.dueDate && (
                     <span
                       className={cn(
                         'flex items-center gap-1 font-medium text-xs',
                         new Date(heroTask.dueDate) < now
-                          ? 'text-[#C24141] font-semibold'
-                          : 'text-[#626A73]',
+                          ? 'text-[#B54747] font-semibold'
+                          : 'text-[#60666F]',
                       )}
                     >
                       <Calendar className="w-3.5 h-3.5" />
@@ -472,46 +443,43 @@ export function TeamMemberDashboard() {
           )}
 
           {heroType === 'WAITING' && heroTask && (
-            <div className="rounded-[16px] bg-white border border-[#E3E7EC] p-5 sm:p-6 shadow-xs hover:border-[#A86B12]/40 fx-transition space-y-4">
-              {/* Eyebrow */}
+            <div className="rounded-[12px] bg-white border border-[#E8EBEF] p-5 sm:p-6 shadow-xs space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#A86B12] flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-[#A86B12]" />
-                  Waiting on Other Work
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#9A6515] flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#9A6515]" />
+                  Waiting on Prerequisites
                 </span>
-                <span className="text-xs text-[#A86B12] font-medium">Pending prerequisite</span>
+                <span className="text-xs text-[#9A6515]">Pending other work</span>
               </div>
 
-              {/* Task Title */}
               <div
                 onClick={() => setSelectedTaskId(heroTask.id)}
                 className="cursor-pointer group space-y-1"
               >
-                <h2 className="text-xl sm:text-[24px] font-semibold text-[#181B20] group-hover:text-[#2563EB] leading-tight tracking-tight fx-transition">
+                <h2 className="text-xl sm:text-[22px] font-semibold text-[#17191C] group-hover:text-[#2463EB] leading-tight tracking-tight fx-transition">
                   {heroTask.title}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-[#626A73] pt-0.5">
-                  <span className="font-medium text-[#181B20]">{heroTask.project?.name}</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-[#60666F] pt-0.5">
+                  <span className="font-medium text-[#17191C]">{heroTask.project?.name}</span>
                   <span>•</span>
-                  <span className="font-mono text-[#929AA3] px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
+                  <span className="font-mono text-[#8B929B] px-1.5 py-0.5 bg-[#F8F9FB] rounded-[5px] border border-[#E8EBEF]">
                     {formatTaskId(heroTask.humanId, heroTask.project?.key, heroTask.project?.name)}
                   </span>
                 </div>
               </div>
 
-              {/* Prerequisite explainer box */}
               {heroTask.blockedBy && heroTask.blockedBy.length > 0 && (
-                <div className="p-3 rounded-[10px] bg-[#FFF6E5] text-xs text-[#A86B12] flex items-start gap-2.5">
-                  <Lock className="w-4 h-4 text-[#A86B12] shrink-0 mt-0.5" />
-                  <div className="space-y-1 min-w-0">
-                    <span className="font-semibold text-[10px] uppercase tracking-wider block text-[#A86B12]">
+                <div className="p-3 rounded-[8px] bg-[#FFF7E8] text-xs text-[#9A6515] flex items-start gap-2">
+                  <Lock className="w-3.5 h-3.5 text-[#9A6515] shrink-0 mt-0.5" />
+                  <div className="space-y-0.5 min-w-0">
+                    <span className="font-medium text-[11px] block text-[#9A6515]">
                       Waiting for prerequisite deliverables:
                     </span>
                     {heroTask.blockedBy.map((b: any) => (
-                      <div key={b.id || b.predecessorTaskId} className="text-xs text-[#181B20] font-medium">
-                        <span className="font-mono text-[#626A73]">{formatTaskId(b.predecessorTask?.humanId)}</span> · {b.predecessorTask?.title}
+                      <div key={b.id || b.predecessorTaskId} className="text-xs text-[#17191C]">
+                        <span className="font-mono text-[#60666F]">{formatTaskId(b.predecessorTask?.humanId)}</span> · {b.predecessorTask?.title}
                         {b.predecessorTask?.assignee && (
-                          <span className="text-[#626A73] font-normal"> (assigned to {b.predecessorTask.assignee.firstName} {b.predecessorTask.assignee.lastName})</span>
+                          <span className="text-[#60666F]"> (assigned to {b.predecessorTask.assignee.firstName} {b.predecessorTask.assignee.lastName})</span>
                         )}
                       </div>
                     ))}
@@ -519,11 +487,10 @@ export function TeamMemberDashboard() {
                 </div>
               )}
 
-              {/* Metadata & Action */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#E3E7EC]">
-                <div className="flex flex-wrap items-center gap-3 text-xs text-[#626A73]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#E8EBEF]">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-[#60666F]">
                   {heroTask.dueDate && (
-                    <span className="flex items-center gap-1 font-medium text-[#626A73]">
+                    <span className="flex items-center gap-1 font-medium text-[#60666F]">
                       <Calendar className="w-3.5 h-3.5" /> Due {formatDate(heroTask.dueDate)}
                     </span>
                   )}
@@ -544,80 +511,52 @@ export function TeamMemberDashboard() {
           )}
 
           {heroType === 'ALL_CLEAR' && (
-            <div className="rounded-[16px] bg-white border border-[#E3E7EC] p-6 sm:p-8 text-center space-y-4 shadow-xs">
-              <div className="w-12 h-12 rounded-full bg-[#EDF8F2] text-[#237A57] flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-6 h-6" />
+            <div className="py-12 text-center space-y-3">
+              <div className="w-10 h-10 rounded-full bg-[#EFF8F3] text-[#237A57] flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-5 h-5" />
               </div>
               <div className="space-y-1">
-                <h2 className="text-lg sm:text-xl font-semibold text-[#181B20]">
+                <h2 className="text-base font-semibold text-[#17191C]">
                   You're all caught up
                 </h2>
-                <p className="text-xs sm:text-sm text-[#626A73] max-w-md mx-auto">
-                  No active work is assigned right now. You can check studio project directories or review previous deliverables.
+                <p className="text-xs text-[#60666F] max-w-sm mx-auto">
+                  No active deliverables require your attention right now.
                 </p>
               </div>
-
-              {projects.length > 0 && (
-                <div className="pt-4 border-t border-[#E3E7EC] max-w-lg mx-auto text-left">
-                  <p className="text-[11px] font-semibold text-[#929AA3] uppercase tracking-wider mb-2.5">
-                    My Studio Projects ({projects.length})
-                  </p>
-                  <div className="space-y-2">
-                    {projects.map((p: any) => (
-                      <Link
-                        key={p.id}
-                        href={`/projects/${p.id}`}
-                        className="flex items-center justify-between p-3 rounded-[10px] bg-[#F7F8FA] hover:bg-[#F2F4F7] border border-[#E3E7EC] fx-transition text-xs group"
-                      >
-                        <span className="font-medium text-[#181B20] group-hover:text-[#2563EB] fx-transition">
-                          {p.name}
-                        </span>
-                        <span className="text-[#2563EB] flex items-center gap-1 font-medium">
-                          Browse <ArrowRight className="w-3 h-3" />
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
-          {/* OTHER ACTIVE WORK (Rendered ONLY if multiple in-progress tasks exist) */}
+          {/* OTHER ACTIVE WORK: Calm open rows */}
           {otherActiveTasks.length > 0 && (
             <section className="space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
-                <h3 className="text-[13px] font-semibold text-[#181B20] uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
-                  <span>Other Active Work</span>
-                  <span className="text-xs font-mono text-[#929AA3] font-normal">
-                    ({otherActiveTasks.length})
-                  </span>
+              <div className="flex items-center justify-between pb-2 border-b border-[#E8EBEF]">
+                <h3 className="fx-section-title">
+                  Other Active Work ({otherActiveTasks.length})
                 </h3>
               </div>
 
-              <div className="space-y-2">
+              <div className="divide-y divide-[#E8EBEF]">
                 {otherActiveTasks.map((task: any) => {
                   const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
                   return (
                     <div
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="p-3.5 rounded-[12px] bg-white border border-[#E3E7EC] hover:border-[#2563EB] shadow-xs fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs cursor-pointer"
+                      className="py-3 hover:bg-[#F8F9FB] -mx-2 px-2 rounded-[8px] fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs cursor-pointer"
                     >
-                      <div className="space-y-1 min-w-0 flex-1">
+                      <div className="space-y-0.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] font-medium text-[#929AA3] px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
+                          <span className="font-mono text-[11px] text-[#8B929B] px-1.5 py-0.5 bg-[#F8F9FB] rounded-[5px] border border-[#E8EBEF]">
                             {cleanId}
                           </span>
-                          <span className="font-medium text-sm text-[#181B20] hover:text-[#2563EB] truncate fx-transition">
+                          <span className="font-medium text-sm text-[#17191C] hover:text-[#2463EB] truncate fx-transition">
                             {task.title}
                           </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#626A73]">
+                        <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-[#60666F]">
                           <span>{task.project?.name}</span>
                           {task.dueDate && (
-                            <span className="text-[#929AA3] font-mono">Due {formatDate(task.dueDate)}</span>
+                            <span className="text-[#8B929B] font-mono">· Due {formatDate(task.dueDate)}</span>
                           )}
                         </div>
                       </div>
@@ -636,7 +575,7 @@ export function TeamMemberDashboard() {
                             setSelectedTaskId(task.id);
                           }}
                         >
-                          Update Progress
+                          Update
                         </Button>
                       </div>
                     </div>
@@ -646,41 +585,37 @@ export function TeamMemberDashboard() {
             </section>
           )}
 
-          {/* READY TO START (Rendered ONLY if ready tasks exist and not already hero) */}
+          {/* READY TO START */}
           {otherReadyTasks.length > 0 && (
             <section className="space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
-                <h3 className="text-[13px] font-semibold text-[#181B20] uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#237A57]" />
-                  <span>Ready to Start</span>
-                  <span className="text-xs font-mono text-[#929AA3] font-normal">
-                    ({otherReadyTasks.length})
-                  </span>
+              <div className="flex items-center justify-between pb-2 border-b border-[#E8EBEF]">
+                <h3 className="fx-section-title">
+                  Ready to Start ({otherReadyTasks.length})
                 </h3>
               </div>
 
-              <div className="space-y-2">
+              <div className="divide-y divide-[#E8EBEF]">
                 {otherReadyTasks.map((task: any) => {
                   const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
                   return (
                     <div
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="p-3.5 rounded-[12px] bg-white border border-[#E3E7EC] hover:border-[#237A57] shadow-xs fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs cursor-pointer"
+                      className="py-3 hover:bg-[#F8F9FB] -mx-2 px-2 rounded-[8px] fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs cursor-pointer"
                     >
                       <div className="space-y-0.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] font-medium text-[#929AA3] px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
+                          <span className="font-mono text-[11px] text-[#8B929B] px-1.5 py-0.5 bg-[#F8F9FB] rounded-[5px] border border-[#E8EBEF]">
                             {cleanId}
                           </span>
-                          <span className="font-medium text-[#181B20] hover:text-[#2563EB] truncate">
+                          <span className="font-medium text-sm text-[#17191C] hover:text-[#2463EB] truncate">
                             {task.title}
                           </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#626A73] pt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-[#60666F]">
                           <span>{task.project?.name}</span>
                           {task.dueDate && (
-                            <span className="text-[#929AA3] font-mono">Due {formatDate(task.dueDate)}</span>
+                            <span className="text-[#8B929B] font-mono">· Due {formatDate(task.dueDate)}</span>
                           )}
                         </div>
                       </div>
@@ -696,7 +631,7 @@ export function TeamMemberDashboard() {
                               e.stopPropagation();
                               startWorkMutation.mutate(task.id);
                             }}
-                            leftIcon={<Play className="w-3 h-3 text-[#2563EB] fill-[#2563EB]" />}
+                            leftIcon={<Play className="w-3 h-3 text-[#2463EB] fill-[#2463EB]" />}
                           >
                             Start Work
                           </Button>
@@ -709,84 +644,16 @@ export function TeamMemberDashboard() {
             </section>
           )}
 
-          {/* WAITING ON OTHER WORK (Rendered ONLY if waiting tasks exist and not already hero) */}
-          {otherWaitingTasks.length > 0 && (
-            <section className="space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
-                <h3 className="text-[13px] font-semibold text-[#181B20] uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#A86B12]" />
-                  <span>Waiting on Other Work</span>
-                  <span className="text-xs font-mono text-[#929AA3] font-normal">
-                    ({otherWaitingTasks.length})
-                  </span>
-                </h3>
-              </div>
-
-              <div className="divide-y divide-[#E3E7EC]">
-                {otherWaitingTasks.map((task: any) => {
-                  const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
-                  const blockers = task.blockedBy || [];
-                  const unfinishedBlockers = blockers.filter(
-                    (b: any) => b.predecessorTask?.status !== TaskStatus.DONE,
-                  );
-
-                  return (
-                    <div
-                      key={task.id}
-                      onClick={() => setSelectedTaskId(task.id)}
-                      className="py-3 hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[8px] fx-transition flex flex-col sm:flex-row sm:items-start justify-between gap-3 text-xs cursor-pointer"
-                    >
-                      <div className="space-y-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] font-medium text-[#929AA3] px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
-                            {cleanId}
-                          </span>
-                          <span className="font-medium text-sm text-[#181B20] hover:text-[#2563EB] truncate">
-                            {task.title}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#626A73]">
-                          <span>{task.project?.name}</span>
-                          {task.dueDate && <span>• Due {formatDate(task.dueDate)}</span>}
-                          {unfinishedBlockers.length > 0 && (
-                            <span className="text-[#A86B12] font-medium">
-                              Waiting for: {unfinishedBlockers.map((b: any) => formatTaskId(b.predecessorTask?.humanId)).join(', ')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <StatusPill status={task.status} size="xs" />
-                        <Button
-                          size="xs"
-                          variant="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedTaskId(task.id);
-                          }}
-                        >
-                          View Dependency
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* RECENT DAILY UPDATES (Rendered ONLY if updates exist, collapsed otherwise) */}
+          {/* RECENT DAILY UPDATES */}
           {recentDailyUpdates.length > 0 && (
-            <section className="space-y-3 pt-2">
-              <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
-                <h3 className="text-[13px] font-semibold text-[#181B20] uppercase tracking-wider flex items-center gap-2">
-                  <Activity className="w-3.5 h-3.5 text-[#929AA3]" />
-                  <span>Recent Updates</span>
+            <section className="space-y-3">
+              <div className="flex items-center justify-between pb-2 border-b border-[#E8EBEF]">
+                <h3 className="fx-section-title">
+                  Recent Daily Updates
                 </h3>
               </div>
 
-              <div className="divide-y divide-[#E3E7EC]">
+              <div className="divide-y divide-[#E8EBEF]">
                 {recentDailyUpdates.map((update: any) => {
                   const task = update.task || {};
                   const cleanId = formatTaskId(task.humanId);
@@ -795,25 +662,25 @@ export function TeamMemberDashboard() {
                     <div
                       key={update.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="py-2.5 hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex items-start justify-between gap-3 text-xs"
+                      className="py-2.5 hover:bg-[#F8F9FB] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex items-start justify-between gap-3 text-xs"
                     >
                       <div className="space-y-0.5 min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-[#929AA3] text-[11px] px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
+                          <span className="font-mono text-[#8B929B] text-[11px] px-1.5 py-0.5 bg-[#F8F9FB] rounded-[5px] border border-[#E8EBEF]">
                             {cleanId}
                           </span>
-                          <span className="font-medium text-[#181B20] truncate">{task.title}</span>
-                          <span className="text-[#2563EB] font-semibold font-mono">{update.progress}%</span>
+                          <span className="font-medium text-[#17191C] truncate">{task.title}</span>
+                          <span className="text-[#2463EB] font-mono font-medium">{update.progress}%</span>
                         </div>
 
                         {update.completedToday && (
-                          <p className="text-[#626A73] text-xs line-clamp-1">
-                            <span className="font-medium text-[#181B20]">Completed:</span> {update.completedToday}
+                          <p className="text-[#60666F] text-xs line-clamp-1">
+                            {update.completedToday}
                           </p>
                         )}
                       </div>
 
-                      <span className="font-mono text-[11px] text-[#929AA3] shrink-0">
+                      <span className="font-mono text-[11px] text-[#8B929B] shrink-0">
                         {formatTimeAgo(update.createdAt)}
                       </span>
                     </div>
@@ -825,29 +692,28 @@ export function TeamMemberDashboard() {
 
         </div>
 
-        {/* UTILITY COLUMN (~30%): Up Next & Calendar */}
-        <div className="flex flex-col gap-6 min-w-0">
+        {/* UTILITY COLUMN: Up Next & Calendar */}
+        <div className="space-y-8 min-w-0">
 
           {/* UP NEXT DEADLINES */}
-          <div className="space-y-3 pb-6 border-b border-[#E3E7EC]">
+          <div className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <h3 className="text-[13px] font-semibold text-[#181B20] uppercase tracking-wider flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-[#929AA3]" />
-                <span>Up Next</span>
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
+                Up Next
               </h3>
               <Link
                 href="/my-work?tab=ALL"
-                className="text-xs text-[#2563EB] font-medium hover:text-[#1D4ED8] flex items-center gap-0.5 fx-transition"
+                className="text-[11px] font-medium text-[#2463EB] hover:text-[#1D4ED8] flex items-center gap-0.5 fx-transition"
               >
-                <span>View all work</span>
+                <span>View all</span>
                 <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
 
             {upNextDeadlines.length === 0 ? (
-              <p className="text-xs text-[#929AA3] py-2">No upcoming deadlines scheduled.</p>
+              <p className="text-xs text-[#8B929B] py-1">No upcoming deadlines.</p>
             ) : (
-              <div className="divide-y divide-[#E3E7EC]">
+              <div className="divide-y divide-[#E8EBEF]">
                 {upNextDeadlines.map((task: any) => {
                   const isOverdue = new Date(task.dueDate) < now;
                   const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
@@ -855,22 +721,22 @@ export function TeamMemberDashboard() {
                     <div
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="py-2.5 cursor-pointer hover:bg-[#F7F8FA] rounded-[8px] px-1 -mx-1 fx-transition text-xs space-y-1"
+                      className="py-2.5 cursor-pointer hover:bg-[#F8F9FB] rounded-[6px] px-1 -mx-1 fx-transition text-xs space-y-1"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-[#181B20] truncate hover:text-[#2563EB] fx-transition">
+                        <span className="font-medium text-[#17191C] truncate hover:text-[#2463EB] fx-transition">
                           {task.title}
                         </span>
                         <span
                           className={cn(
                             'font-mono text-[11px] shrink-0 font-medium',
-                            isOverdue ? 'text-[#C24141] font-semibold' : 'text-[#626A73]',
+                            isOverdue ? 'text-[#B54747]' : 'text-[#60666F]',
                           )}
                         >
                           {formatDate(task.dueDate)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-[#929AA3]">
+                      <div className="flex items-center justify-between text-[11px] text-[#8B929B]">
                         <span className="font-mono">{cleanId} · {task.project?.name}</span>
                         <StatusPill status={task.status} size="xs" />
                       </div>
@@ -881,12 +747,13 @@ export function TeamMemberDashboard() {
             )}
           </div>
 
-          {/* MINI DELIVERY CALENDAR */}
+          {/* CALENDAR */}
           <CalendarWidget
             tasks={tasks}
             projects={projects}
             onSelectTask={(id) => setSelectedTaskId(id)}
-            title="Delivery Calendar"
+            borderless={true}
+            title="Schedule"
           />
 
         </div>

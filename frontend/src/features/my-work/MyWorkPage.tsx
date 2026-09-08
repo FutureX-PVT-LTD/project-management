@@ -128,17 +128,17 @@ function MyWorkContent() {
 
       const groups = [];
       if (needsAttention.length > 0)
-        groups.push({ groupName: 'Needs Attention', items: needsAttention, dotColor: 'bg-[#C24141]' });
+        groups.push({ groupName: 'Needs Attention', items: needsAttention, dotColor: 'bg-[#B54747]' });
       if (inProgress.length > 0)
-        groups.push({ groupName: 'In Progress', items: inProgress, dotColor: 'bg-[#2563EB]' });
+        groups.push({ groupName: 'In Progress', items: inProgress, dotColor: 'bg-[#245EC7]' });
       if (ready.length > 0)
         groups.push({ groupName: 'Ready to Start', items: ready, dotColor: 'bg-[#237A57]' });
       if (waiting.length > 0)
-        groups.push({ groupName: 'Waiting on Prerequisites', items: waiting, dotColor: 'bg-[#A86B12]' });
+        groups.push({ groupName: 'Waiting on Prerequisites', items: waiting, dotColor: 'bg-[#9A6515]' });
       if (upcoming.length > 0)
-        groups.push({ groupName: 'Upcoming', items: upcoming, dotColor: 'bg-[#929AA3]' });
+        groups.push({ groupName: 'Upcoming', items: upcoming, dotColor: 'bg-[#8C939E]' });
       if (done.length > 0)
-        groups.push({ groupName: 'Completed', items: done, dotColor: 'bg-[#237A57]' });
+        groups.push({ groupName: 'Completed', items: done, dotColor: 'bg-[#26715A]' });
 
       return groups.length > 0 ? groups : [{ groupName: 'Assigned Work', items: [] }];
     }
@@ -165,6 +165,58 @@ function MyWorkContent() {
   }, [allTasks, groupBy]);
 
   const now = new Date();
+  const workflowColumns = [
+    {
+      id: 'ready',
+      title: 'Ready',
+      subtitle: 'Start these next',
+      color: 'bg-[#237A57]',
+      border: 'hover:border-[#237A57]',
+      items: allTasks.filter((t) => t.status === TaskStatus.READY),
+      empty: 'No ready tasks',
+      icon: <Play className="w-3.5 h-3.5" />,
+    },
+    {
+      id: 'doing',
+      title: 'Doing',
+      subtitle: 'Active work',
+      color: 'bg-[#245EC7]',
+      border: 'hover:border-[#2463EB]',
+      items: allTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS),
+      empty: 'Nothing in progress',
+      icon: <Calendar className="w-3.5 h-3.5" />,
+    },
+    {
+      id: 'review',
+      title: 'Review',
+      subtitle: 'Submitted to Admin',
+      color: 'bg-[#6D52A3]',
+      border: 'hover:border-[#6D52A3]',
+      items: allTasks.filter((t) => t.status === TaskStatus.IN_REVIEW),
+      empty: 'No submitted work',
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+    },
+    {
+      id: 'waiting',
+      title: 'Waiting',
+      subtitle: 'Locked by dependencies',
+      color: 'bg-[#9A6515]',
+      border: 'hover:border-[#9A6515]',
+      items: allTasks.filter((t) => t.status === TaskStatus.WAITING || t.status === TaskStatus.BLOCKED),
+      empty: 'No blocked work',
+      icon: <Lock className="w-3.5 h-3.5" />,
+    },
+    {
+      id: 'done',
+      title: 'Done',
+      subtitle: 'Completed work',
+      color: 'bg-[#26715A]',
+      border: 'hover:border-[#26715A]',
+      items: allTasks.filter((t) => t.status === TaskStatus.DONE),
+      empty: 'No completed tasks',
+      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+    },
+  ];
 
   const tabs = [
     { id: 'ALL', label: 'All' },
@@ -297,6 +349,61 @@ function MyWorkContent() {
     }
   };
 
+  const renderKanbanTaskCard = (task: any) => {
+    const isOverdue =
+      task.dueDate && new Date(task.dueDate) < now && task.status !== TaskStatus.DONE;
+    const cleanId = formatTaskId(task.humanId, task.project?.key, task.project?.name);
+    const progressValue = Math.min(Math.max(Number(task.progress || 0), 0), 100);
+
+    return (
+      <div
+        key={task.id}
+        onClick={() => setSelectedTaskId(task.id)}
+        className="rounded-[10px] bg-white border border-[#E8EBEF] p-3 hover:border-[#2463EB] cursor-pointer transition-colors space-y-2.5"
+      >
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-mono text-[10px] font-medium text-[#8C939E] px-1.5 py-0.5 bg-[#F8F9FB] rounded-[4px] border border-[#E8EBEF] truncate">
+              {cleanId}
+            </span>
+            <PriorityBadge priority={task.priority} compact />
+          </div>
+          <p className="text-[13px] font-medium text-[#17191C] leading-snug line-clamp-2">
+            {task.title}
+          </p>
+          <p className="text-[11px] text-[#60666F] truncate">
+            {task.project?.name || 'Project'}
+          </p>
+        </div>
+
+        {(task.status === TaskStatus.IN_PROGRESS || task.status === TaskStatus.IN_REVIEW) && (
+          <Progress value={progressValue} showLabel size="xs" />
+        )}
+
+        <div className="flex items-center justify-between gap-2">
+          {task.dueDate ? (
+            <span
+              className={cn(
+                'text-[11px] font-mono',
+                isOverdue ? 'text-[#B54747] font-medium' : 'text-[#8C939E]',
+              )}
+            >
+              {isOverdue ? 'Overdue ' : 'Due '}
+              {formatDate(task.dueDate)}
+            </span>
+          ) : (
+            <span className="text-[11px] text-[#8C939E]">No due date</span>
+          )}
+          <StatusPill status={task.status} size="xs" />
+        </div>
+
+        <div className="pt-0.5" onClick={(e) => e.stopPropagation()}>
+          {renderTaskAction(task)}
+        </div>
+      </div>
+    );
+  };
+
   const waitingCount = allTasks.filter((t) => t.status === TaskStatus.WAITING).length;
   const inProgressCount = allTasks.filter(
     (t) => t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.IN_REVIEW,
@@ -324,19 +431,19 @@ function MyWorkContent() {
         onSelectTask={(id) => setSelectedTaskId(id)}
       />
 
-      <div className="space-y-8 w-full">
+      <div className="space-y-6 w-full">
         {/* Header */}
-        <div className="border-b border-[#E3E7EC] pb-6">
-          <h1 className="text-2xl sm:text-[32px] font-semibold tracking-tight text-[#181B20]">
+        <div className="border-b border-[#E8EBEF] pb-4">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#17191C]">
             My Work
           </h1>
-          <p className="text-sm text-[#626A73] mt-1">
+          <p className="text-xs text-[#60666F] mt-1">
             {subtitle}
           </p>
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="border-b border-[#E3E7EC] pb-3 flex items-center gap-1 overflow-x-auto no-scrollbar">
+        <div className="border-b border-[#E8EBEF] pb-2.5 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => {
             const isActive = selectedTab === tab.id;
             return (
@@ -345,10 +452,10 @@ function MyWorkContent() {
                 type="button"
                 onClick={() => setSelectedTab(tab.id)}
                 className={cn(
-                  'px-3.5 py-2 text-xs font-medium whitespace-nowrap rounded-[6px] fx-transition',
+                  'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] transition-colors',
                   isActive
-                    ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold'
-                    : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
+                    ? 'bg-[#EEF4FF] text-[#2463EB] font-semibold'
+                    : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
                 )}
               >
                 {tab.label}
@@ -361,13 +468,13 @@ function MyWorkContent() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
           <div className="flex flex-1 items-center gap-2 max-w-md">
             <div className="relative w-full">
-              <Search className="w-3.5 h-3.5 text-[#929AA3] absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-3.5 h-3.5 text-[#8C939E] absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search tasks by title, ID, or description..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] text-[#181B20] placeholder:text-[#929AA3] focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] fx-transition"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8F9FB] border border-[#E8EBEF] rounded-[9px] text-[#17191C] placeholder:text-[#8C939E] focus:outline-none focus:bg-white focus:border-[#2463EB] transition-colors"
               />
             </div>
           </div>
@@ -377,7 +484,7 @@ function MyWorkContent() {
             <select
               value={projectFilter}
               onChange={(e) => setProjectFilter(e.target.value)}
-              className="h-8 rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] px-2.5 text-xs text-[#181B20] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
+              className="h-8 rounded-[9px] border border-[#E8EBEF] bg-[#F8F9FB] px-2.5 text-xs text-[#17191C] focus:bg-white focus:outline-none focus:border-[#2463EB]"
             >
               <option value="">All Projects</option>
               {allProjects.map((p: any) => (
@@ -391,7 +498,7 @@ function MyWorkContent() {
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="h-8 rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] px-2.5 text-xs text-[#181B20] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
+              className="h-8 rounded-[9px] border border-[#E8EBEF] bg-[#F8F9FB] px-2.5 text-xs text-[#17191C] focus:bg-white focus:outline-none focus:border-[#2463EB]"
             >
               <option value="">All Priorities</option>
               <option value={TaskPriority.URGENT}>Urgent</option>
@@ -404,7 +511,7 @@ function MyWorkContent() {
             <select
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as any)}
-              className="h-8 rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] px-2.5 text-xs text-[#181B20] focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB]"
+              className="h-8 rounded-[9px] border border-[#E8EBEF] bg-[#F8F9FB] px-2.5 text-xs text-[#17191C] focus:bg-white focus:outline-none focus:border-[#2463EB]"
             >
               <option value="workflow">Group: Workflow</option>
               <option value="project">Group: Project</option>
@@ -416,39 +523,77 @@ function MyWorkContent() {
 
         {/* Task Groups / List - De-boxed open rows */}
         {isLoading ? (
-          <div className="py-12 text-center text-xs text-[#929AA3]">
+          <div className="py-12 text-center text-xs text-[#8C939E]">
             Loading assigned tasks...
           </div>
         ) : allTasks.length === 0 ? (
           <div className="py-16 text-center space-y-2 max-w-sm mx-auto">
-            <CheckCircle2 className="w-6 h-6 text-[#237A57] mx-auto" />
-            <h3 className="text-sm font-semibold text-[#181B20]">No tasks in this view</h3>
-            <p className="text-xs text-[#626A73]">
+            <CheckCircle2 className="w-6 h-6 text-[#26715A] mx-auto" />
+            <h3 className="text-sm font-semibold text-[#17191C]">No tasks in this view</h3>
+            <p className="text-xs text-[#60666F]">
               {selectedTab === 'ALL'
                 ? 'No tasks are currently assigned to you.'
                 : `No tasks found under the ${tabs.find((t) => t.id === selectedTab)?.label} tab.`}
             </p>
           </div>
+        ) : groupBy === 'workflow' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 items-start">
+            {workflowColumns.map((column) => (
+              <section
+                key={column.id}
+                className="rounded-[10px] border border-[#E8EBEF] bg-[#F8F9FB] min-h-[260px]"
+              >
+                <div className="px-3 py-2.5 border-b border-[#E8EBEF] bg-white rounded-t-[10px]">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={cn('w-2 h-2 rounded-full shrink-0', column.color)} />
+                      <div className="min-w-0">
+                        <h2 className="text-[13px] font-semibold text-[#17191C] truncate">
+                          {column.title}
+                        </h2>
+                        <p className="text-[11px] text-[#8C939E] truncate">
+                          {column.subtitle}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="font-mono text-[11px] font-medium text-[#60666F]">
+                      {column.items.length}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-2 space-y-2">
+                  {column.items.length === 0 ? (
+                    <div className="h-20 rounded-[8px] border border-dashed border-[#D8DCE2] bg-white/60 flex items-center justify-center text-[11px] text-[#8C939E]">
+                      {column.empty}
+                    </div>
+                  ) : (
+                    column.items.map((task: any) => renderKanbanTaskCard(task))
+                  )}
+                </div>
+              </section>
+            ))}
+          </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {groupedTasks.map((group: any) => {
               if (group.items.length === 0) return null;
 
               return (
-                <div key={group.groupName} className="space-y-3">
-                  <div className="flex items-center gap-2 pb-2 border-b border-[#E3E7EC]">
+                <div key={group.groupName} className="space-y-2">
+                  <div className="flex items-center gap-2 pb-2 border-b border-[#E8EBEF]">
                     {group.dotColor && (
                       <span className={cn('w-2 h-2 rounded-full', group.dotColor)} />
                     )}
-                    <h2 className="text-[14px] font-semibold text-[#181B20]">
+                    <h2 className="text-[13px] font-semibold text-[#17191C]">
                       {group.groupName}
                     </h2>
-                    <span className="text-xs font-mono text-[#929AA3]">
+                    <span className="text-xs font-mono text-[#8C939E]">
                       ({group.items.length})
                     </span>
                   </div>
 
-                  <div className="divide-y divide-[#E3E7EC]">
+                  <div className="divide-y divide-[#E8EBEF]">
                     {group.items.map((task: any) => {
                       const isOverdue =
                         task.dueDate && new Date(task.dueDate) < now && task.status !== TaskStatus.DONE;
@@ -461,26 +606,26 @@ function MyWorkContent() {
                         <div
                           key={task.id}
                           onClick={() => setSelectedTaskId(task.id)}
-                          className="py-3.5 hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                          className="py-3 hover:bg-[#F8F9FB] -mx-2 px-2 rounded-[8px] cursor-pointer transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                         >
                           <div className="space-y-1 min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-medium text-[#929AA3] text-[11px] shrink-0 px-1.5 py-0.5 bg-[#F7F8FA] rounded-[6px] border border-[#E3E7EC]">
+                              <span className="font-mono font-medium text-[#8C939E] text-[11px] shrink-0 px-1.5 py-0.5 bg-[#F8F9FB] rounded-[4px] border border-[#E8EBEF]">
                                 {cleanId}
                               </span>
-                              <span className="font-medium text-sm text-[#181B20] hover:text-[#2563EB] truncate fx-transition">
+                              <span className="font-medium text-xs text-[#17191C] hover:text-[#2463EB] truncate transition-colors">
                                 {task.title}
                               </span>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#626A73]">
+                            <div className="flex flex-wrap items-center gap-x-2.5 text-[11px] text-[#60666F]">
                               <span>{task.project?.name}</span>
                               {task.milestone && <span>• {task.milestone.name}</span>}
                               {task.dueDate && (
                                 <span
                                   className={cn(
-                                    'flex items-center gap-1 font-medium',
-                                    isOverdue ? 'text-[#C24141] font-semibold' : 'text-[#929AA3]',
+                                    'flex items-center gap-1 font-mono',
+                                    isOverdue ? 'text-[#B54747] font-medium' : 'text-[#8C939E]',
                                   )}
                                 >
                                   <Calendar className="w-3 h-3" />
@@ -489,7 +634,7 @@ function MyWorkContent() {
                                 </span>
                               )}
                               {task.status === TaskStatus.WAITING && unfinishedDeps.length > 0 && (
-                                <span className="text-[#A86B12] font-medium">
+                                <span className="text-[#9A6515] font-medium">
                                   Waiting for: {unfinishedDeps.map((b: any) => formatTaskId(b.predecessorTask?.humanId)).join(', ')}
                                 </span>
                               )}
