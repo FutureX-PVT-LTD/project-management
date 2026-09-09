@@ -17,74 +17,109 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
     environment: production
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_USER: ${{ secrets.VPS_USER }}
       VPS_PORT: ${{ secrets.VPS_PORT }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+
     steps:
       - name: Checkout source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           persist-credentials: false
 
-      - name: Configure verified SSH host
+      - name: Configure verified SSH connection
         shell: bash
         run: |
           set -euo pipefail
-          : "${VPS_HOST:?}" "${VPS_USER:?}" "${VPS_SSH_KEY:?}" "${VPS_KNOWN_HOSTS:?}"
+          : "${VPS_HOST:?VPS_HOST secret is required}"
+          : "${VPS_USER:?VPS_USER secret is required}"
+          : "${VPS_SSH_KEY:?VPS_SSH_KEY secret is required}"
+          : "${VPS_KNOWN_HOSTS:?Add the verified server host key as VPS_KNOWN_HOSTS}"
+          port="${VPS_PORT:-22}"
+          [[ "$port" =~ ^[0-9]{1,5}$ ]]
+          [[ "$VPS_HOST" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]]
+          [[ "$VPS_USER" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -i ~/.ssh/deploy_key -p "$port" "$VPS_USER@$VPS_HOST" \
+            'test -d /var/www/project-management'
 
       - name: Upload source preserving persistent data
         shell: bash
         run: |
           set -euo pipefail
           port="${VPS_PORT:-22}"
-          [[ "$port" =~ ^[0-9]+$ ]]
           rsync -az --delete \
-            -e "ssh -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p $port" \
+            -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p $port" \
             --exclude=".git" --exclude=".github" --exclude="node_modules" \
             --exclude=".next" --exclude=".next-dev" --exclude="dist" \
-            --exclude=".env*" --exclude="uploads" --exclude="*.log" \
+            --exclude=".env*" --exclude="uploads" --exclude="logs" \
+            --exclude="scratch" --exclude="*.log" \
             ./ "$VPS_USER@$VPS_HOST:/var/www/project-management/"
 
       - name: Verify configuration, test, build and restart
         shell: bash
         run: |
           set -euo pipefail
-          ssh -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" 'bash -se' <<'REMOTE'
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -i ~/.ssh/deploy_key -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" 'bash -se' <<'REMOTE'
           set -euo pipefail
           cd /var/www/project-management
-          test -f backend/.env
-          test -f frontend/.env.production
+          test -f backend/.env || { echo "ERROR: backend/.env is required"; exit 1; }
+          test -f frontend/.env.production || { echo "ERROR: frontend/.env.production is required"; exit 1; }
+
+          node -v
+          corepack prepare pnpm@12.3.4 --activate
+          corepack pnpm --version
           export NODE_ENV=production
           export NEXT_TELEMETRY_DISABLED=1
+
+          # Keep the committed build allowlist, patched overrides and lockfile intact.
           corepack pnpm install --frozen-lockfile --prod=false
           cd backend
           corepack pnpm exec prisma generate
           corepack pnpm run typecheck
-          NODE_ENV=test corepack pnpm test -- --runInBand
+          NODE_ENV=test corepack pnpm run test --runInBand
           corepack pnpm run build
-          # Fail before restarting if production authentication settings are unsafe.
+
+          # Production requires HTTPS origins, Secure cookies and independent signing secrets.
           node -r dotenv/config -e "require('./dist/common/security/http-security').validateSecurityEnvironment(); const s=require('./dist/modules/auth/auth-secrets'); s.getJwtAccessSecret(); s.getJwtRefreshSecret();"
-          # Existing db-push installations must be baselined before enabling migrations.
+
+          # Existing db-push databases must first be baselined; never reset production here.
           corepack pnpm exec prisma migrate deploy
           node scripts/check-production.cjs
+
           cd ../frontend
+          export API_URL=http://127.0.0.1:5040
+          export NEXT_PUBLIC_API_URL=/api/v1
+          export NODE_OPTIONS="--max-old-space-size=1024"
           corepack pnpm run build
           test -f .next/BUILD_ID
+          unset NODE_OPTIONS
+
           cd ..
-          pm2 startOrReload deploy/ecosystem.config.cjs --env production
+          nginx -t
+          pm2 startOrReload deploy/ecosystem.config.cjs --env production --update-env
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 --max-time 5 \
+            --output /dev/null http://127.0.0.1:5040/api/v1/health
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 --max-time 5 \
+            --output /dev/null http://127.0.0.1:3040/login
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 --max-time 5 \
+            --output /dev/null http://127.0.0.1:3040/api/v1/health
           pm2 save
-          curl --fail --silent http://127.0.0.1:5040/api/v1/health
-          curl --fail --silent --output /dev/null http://127.0.0.1:3040/login
+          systemctl reload nginx
+          echo "Build, migration and local upstream checks passed."
           REMOTE
 
       - name: Remove deployment key
         if: always()
+        shell: bash
         run: rm -f ~/.ssh/deploy_key
