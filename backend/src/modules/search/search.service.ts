@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@futurex/shared';
+import { projectScope, taskScope } from '../../common/security/access-policy';
 
 @Injectable()
 export class SearchService {
@@ -11,12 +12,12 @@ export class SearchService {
       return { tasks: [], projects: [], users: [], milestones: [] };
     }
 
-    const s = query.trim();
+    const s = query.trim().slice(0, 200);
 
     const [tasks, projects, users, milestones] = await Promise.all([
       this.prisma.task.findMany({
         where: {
-          deletedAt: null,
+          ...taskScope(user),
           OR: [
             { title: { contains: s, mode: 'insensitive' } },
             { humanId: { contains: s, mode: 'insensitive' } },
@@ -31,7 +32,7 @@ export class SearchService {
       }),
       this.prisma.project.findMany({
         where: {
-          deletedAt: null,
+          ...projectScope(user),
           OR: [
             { name: { contains: s, mode: 'insensitive' } },
             { key: { contains: s, mode: 'insensitive' } },
@@ -47,6 +48,7 @@ export class SearchService {
         where: {
           deletedAt: null,
           isActive: true,
+          ...(user.globalRole === UserRole.TEAM_MEMBER ? { id: user.id } : {}),
           OR: [
             { firstName: { contains: s, mode: 'insensitive' } },
             { lastName: { contains: s, mode: 'insensitive' } },
@@ -67,6 +69,7 @@ export class SearchService {
       }),
       this.prisma.milestone.findMany({
         where: {
+          project: projectScope(user),
           OR: [
             { name: { contains: s, mode: 'insensitive' } },
             { description: { contains: s, mode: 'insensitive' } },

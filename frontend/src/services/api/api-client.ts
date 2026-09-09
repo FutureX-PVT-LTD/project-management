@@ -3,7 +3,7 @@
  */
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+  process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
 export class ApiError extends Error {
   statusCode: number;
@@ -19,6 +19,23 @@ export class ApiError extends Error {
 
 // Module-level single-flight refresh promise to coordinate concurrent 401s
 let refreshPromise: Promise<boolean> | null = null;
+
+async function refreshSession(): Promise<boolean> {
+  const refresh = async () => {
+    // Another tab may have already refreshed while this tab waited for the lock.
+    const current = await fetch(`${API_BASE_URL}/auth/me`, { credentials: 'include', cache: 'no-store' });
+    if (current.ok) return true;
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'FutureX' },
+    });
+    return response.ok;
+  };
+  if (typeof navigator !== 'undefined' && navigator.locks) {
+    return navigator.locks.request('futurex-session-refresh', refresh);
+  }
+  return refresh();
+}
 
 interface CustomRequestInit extends RequestInit {
   _retry?: boolean;
@@ -36,6 +53,7 @@ async function request<T = any>(
 
   const defaultHeaders: Record<string, string> = {
     Accept: 'application/json',
+    'X-Requested-With': 'FutureX',
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
   };
 
@@ -67,12 +85,7 @@ async function request<T = any>(
       if (!refreshPromise) {
         refreshPromise = (async () => {
           try {
-            const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-            });
-            return refreshRes.ok;
+            return await refreshSession();
           } catch {
             return false;
           } finally {

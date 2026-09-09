@@ -13,7 +13,6 @@ import { FilesModule } from './modules/files/files.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { AuditModule } from './modules/audit/audit.module';
-import { EventsModule } from './modules/events/events.module';
 import { SearchModule } from './modules/search/search.module';
 import { HealthModule } from './modules/health/health.module';
 
@@ -38,7 +37,6 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
     NotificationsModule,
     ReportsModule,
     AuditModule,
-    EventsModule,
     SearchModule,
     HealthModule,
   ],

@@ -5,6 +5,7 @@ import { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtPayload, UserRole } from '@futurex/shared';
 import { getJwtAccessSecret } from '../auth-secrets';
+import { IDLE_MS } from '../session-policy';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -26,13 +27,26 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         },
       ]),
       ignoreExpiration: false,
+      algorithms: ['HS256'],
       secretOrKey: getJwtAccessSecret(),
     });
   }
 
   async validate(payload: JwtPayload) {
+    if (!payload.sid || typeof payload.sid !== 'string' || typeof payload.sub !== 'string') {
+      throw new UnauthorizedException('Session invalid');
+    }
+    const now = new Date();
+    const session = await this.prisma.session.updateMany({
+      where: {
+        id: payload.sid, userId: payload.sub, isRevoked: false,
+        expiresAt: { gt: now }, lastSeenAt: { gt: new Date(now.getTime() - IDLE_MS) },
+      },
+      data: { lastSeenAt: now },
+    });
+    if (session.count !== 1) throw new UnauthorizedException('Session expired or revoked');
     const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
+      where: { id: payload.sub, deletedAt: null },
       select: {
         id: true,
         email: true,

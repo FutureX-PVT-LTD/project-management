@@ -1,6 +1,7 @@
 import { Controller, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { DependenciesService } from './dependencies.service';
-import { CreateDependencyDto, UserRole, AuthUser } from '@futurex/shared';
+import { UserRole, AuthUser } from '@futurex/shared';
+import { CreateDependencyDto } from './dependency.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';

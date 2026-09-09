@@ -8,7 +8,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
-import { CreateCommentDto, UpdateCommentDto, AuthUser } from '@futurex/shared';
+import { AuthUser } from '@futurex/shared';
+import { CreateCommentDto, UpdateCommentDto } from './comments.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -20,9 +21,9 @@ export class CommentsController {
   @Post()
   async create(
     @Body() dto: CreateCommentDto,
-    @CurrentUser('id') authorId: string,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.commentsService.create(dto, authorId);
+    return this.commentsService.create(dto, actor.id, actor.globalRole);
   }
 
   @Patch(':id')

@@ -2,17 +2,19 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMilestoneDto, UpdateMilestoneDto } from './dto/create-milestone.dto';
 import { MilestoneStatus } from '@futurex/shared';
+import { Actor, requireProject, taskScope } from '../../common/security/access-policy';
 
 @Injectable()
 export class MilestonesService {
   constructor(private prisma: PrismaService) {}
 
-  async findByProject(projectId: string) {
+  async findByProject(projectId: string, actor: Actor) {
+    await requireProject(this.prisma, projectId, actor);
     const milestones = await this.prisma.milestone.findMany({
       where: { projectId },
       include: {
         tasks: {
-          where: { deletedAt: null },
+          where: taskScope(actor),
           select: { id: true, status: true },
         },
       },

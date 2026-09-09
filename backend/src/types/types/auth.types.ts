@@ -17,6 +17,7 @@ export interface LoginResponse {
 }
 
 export interface JwtPayload {
+  sid?: string;
   sub: string;
   email: string;
   role: UserRole;

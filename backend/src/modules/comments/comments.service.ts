@@ -5,12 +5,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCommentDto, UpdateCommentDto, TaskActionType, NotificationType, UserRole } from '@futurex/shared';
+import { requireTask } from '../../common/security/access-policy';
 
 @Injectable()
 export class CommentsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(dto: CreateCommentDto, authorId: string) {
+  async create(dto: CreateCommentDto, authorId: string, globalRole: UserRole) {
+    await requireTask(this.prisma, dto.taskId, { id: authorId, globalRole });
     const task = await this.prisma.task.findUnique({
       where: { id: dto.taskId },
       include: { assignee: true, creator: true },
@@ -77,6 +79,7 @@ export class CommentsService {
   async update(id: string, dto: UpdateCommentDto, userId: string, userRole: UserRole) {
     const comment = await this.prisma.taskComment.findUnique({ where: { id } });
     if (!comment) throw new NotFoundException('Comment not found');
+    await requireTask(this.prisma, comment.taskId, { id: userId, globalRole: userRole });
 
     if (comment.authorId !== userId && userRole !== UserRole.OWNER && userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('You can only edit your own comments');
@@ -116,6 +119,7 @@ export class CommentsService {
   async delete(id: string, userId: string, userRole: UserRole) {
     const comment = await this.prisma.taskComment.findUnique({ where: { id } });
     if (!comment) throw new NotFoundException('Comment not found');
+    await requireTask(this.prisma, comment.taskId, { id: userId, globalRole: userRole });
 
     if (comment.authorId !== userId && userRole !== UserRole.OWNER && userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('You can only delete your own comments');

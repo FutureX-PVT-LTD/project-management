@@ -9,7 +9,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { TeamsService } from './teams.service';
-import { CreateTeamDto, UserRole } from '@futurex/shared';
+import { UserRole, AuthUser } from '@futurex/shared';
+import { CreateTeamDto, UpdateTeamDto } from './team.dto';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -20,13 +22,13 @@ export class TeamsController {
   constructor(private teamsService: TeamsService) {}
 
   @Get()
-  async findAll() {
-    return this.teamsService.findAll();
+  async findAll(@CurrentUser() actor: AuthUser) {
+    return this.teamsService.findAll(actor.globalRole === UserRole.TEAM_MEMBER ? actor.id : undefined);
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string) {
-    return this.teamsService.findById(id);
+  async findById(@Param('id') id: string, @CurrentUser() actor: AuthUser) {
+    return this.teamsService.findById(id, actor.globalRole === UserRole.TEAM_MEMBER ? actor.id : undefined);
   }
 
   @Roles(UserRole.ADMIN, UserRole.OWNER)
@@ -37,7 +39,7 @@ export class TeamsController {
 
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: Partial<CreateTeamDto>) {
+  async update(@Param('id') id: string, @Body() dto: UpdateTeamDto) {
     return this.teamsService.update(id, dto);
   }
 

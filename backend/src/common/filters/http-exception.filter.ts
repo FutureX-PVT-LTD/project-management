@@ -34,7 +34,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         error = obj.error || exception.name;
       }
     } else if (exception instanceof Error) {
-      this.logger.error(`Unhandled Exception: ${exception.message}`, exception.stack);
+      this.logger.error(`Unhandled exception: ${exception.name}`);
       if (process.env.NODE_ENV !== 'production') {
         message = exception.message;
       }
@@ -46,7 +46,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error,
       message,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: request.route?.path || 'unmatched',
     };
 
     response.status(status).json(errorResponse);

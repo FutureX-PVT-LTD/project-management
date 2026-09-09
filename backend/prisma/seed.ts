@@ -5,6 +5,13 @@ import { seedDevelopmentChecklist } from './development-checklist.seed';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' && process.env.SEED_RESET === 'true') {
+    throw new Error('Production database reset is prohibited');
+  }
+  if (!process.env.OWNER_SEED_PASSWORD || !process.env.ADMIN_SEED_PASSWORD ||
+      process.env.OWNER_SEED_PASSWORD.length < 12 || process.env.ADMIN_SEED_PASSWORD.length < 12) {
+    throw new Error('Set OWNER_SEED_PASSWORD and ADMIN_SEED_PASSWORD to independent passwords of at least 12 characters');
+  }
   console.log('🌱 Starting FutureX database initialization...');
 
   // 1. Optional clean reset for local demo databases only.
@@ -38,10 +45,10 @@ async function main() {
   // 2. Read Super Admin and Admin Configuration from Environment Variables with safe local defaults
   const ownerName = (process.env.OWNER_SEED_NAME || 'FutureX Super Admin').trim();
   const ownerEmail = (process.env.OWNER_SEED_EMAIL || 'owner@futurex.com').trim().toLowerCase();
-  const ownerPassword = process.env.OWNER_SEED_PASSWORD || 'Owner2026!@#';
+  const ownerPassword = process.env.OWNER_SEED_PASSWORD;
   const adminName = (process.env.ADMIN_SEED_NAME || 'FutureX Admin').trim();
   const adminEmail = (process.env.ADMIN_SEED_EMAIL || 'admin@futurex.com').trim().toLowerCase();
-  const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'Admin2026!@#';
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD;
 
   const ownerNameParts = ownerName.split(' ');
   const ownerFirstName = ownerNameParts[0] || 'FutureX';
@@ -57,13 +64,7 @@ async function main() {
   // 4. Idempotent Super Admin and Admin Creation (Upsert)
   const owner = await prisma.user.upsert({
     where: { email: ownerEmail },
-    update: {
-      firstName: ownerFirstName,
-      lastName: ownerLastName,
-      globalRole: 'OWNER',
-      isActive: true,
-      jobTitle: 'Super Administrator',
-    },
+    update: {},
     create: {
       email: ownerEmail,
       passwordHash: ownerPasswordHash,
@@ -77,13 +78,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {
-      firstName,
-      lastName,
-      globalRole: 'ADMIN',
-      isActive: true,
-      jobTitle: 'System Administrator',
-    },
+    update: {},
     create: {
       email: adminEmail,
       passwordHash,

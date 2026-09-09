@@ -16,9 +16,11 @@ import {
 } from './dto/login.dto';
 import { UserRole, AuditAction } from '@futurex/shared';
 import { getJwtAccessSecret, getJwtRefreshSecret } from './auth-secrets';
+import { ACCESS_SECONDS, IDLE_MS, SESSION_MS, REMEMBER_MS, tokenHash } from './session-policy';
 
 @Injectable()
 export class AuthService {
+  private readonly dummyHash = argon2.hash(crypto.randomBytes(32));
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
@@ -32,6 +34,7 @@ export class AuthService {
     });
 
     if (!user) {
+      await argon2.verify(await this.dummyHash, loginDto.password);
       await this.recordAudit(
         null,
         AuditAction.USER_LOGIN_FAILED,
@@ -44,7 +47,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    if (!user.isActive) {
+    if (!user.isActive || user.deletedAt) {
+      await argon2.verify(user.passwordHash, loginDto.password);
       await this.recordAudit(
         user.id,
         AuditAction.USER_LOGIN_FAILED,
@@ -55,7 +59,7 @@ export class AuthService {
         { reason: 'Account disabled' },
       );
       throw new UnauthorizedException(
-        'Your account has been deactivated. Please contact an administrator.',
+        'Invalid email or password',
       );
     }
 
@@ -75,15 +79,18 @@ export class AuthService {
 
     // Determine expiration based on rememberMe
     const isRememberMe = Boolean(loginDto.rememberMe);
-    const refreshDays = isRememberMe ? 30 : 7;
-    const refreshExpiresIn = isRememberMe ? '30d' : (process.env.JWT_REFRESH_EXPIRES_IN || process.env.JWT_REFRESH_EXPIRATION || '7d');
-    const accessExpiresIn = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRATION || '15m';
+    const lifetime = isRememberMe ? REMEMBER_MS : SESSION_MS;
+    const refreshDays = lifetime / 86400000;
+    const refreshExpiresIn = lifetime / 1000;
+    const accessExpiresIn = ACCESS_SECONDS;
+    const sessionId = crypto.randomUUID();
     const jwtSecret = getJwtAccessSecret();
     const jwtRefreshSecret = getJwtRefreshSecret();
 
     // Generate tokens
     const payload = {
       sub: user.id,
+      sid: sessionId,
       email: user.email,
       role: user.globalRole,
     };
@@ -96,15 +103,16 @@ export class AuthService {
     const refreshToken = this.jwtService.sign(payload, {
       secret: jwtRefreshSecret,
       expiresIn: refreshExpiresIn,
+      jwtid: crypto.randomUUID(),
     });
 
     // Save hashed refresh token session
-    const refreshTokenHash = await argon2.hash(refreshToken);
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + refreshDays);
+    const refreshTokenHash = tokenHash(refreshToken);
+    const expiresAt = new Date(Date.now() + lifetime);
 
     await this.prisma.session.create({
       data: {
+        id: sessionId,
         userId: user.id,
         refreshTokenHash,
         expiresAt,
@@ -153,38 +161,41 @@ export class AuthService {
 
     const jwtSecret = getJwtAccessSecret();
     const jwtRefreshSecret = getJwtRefreshSecret();
-    const accessExpiresIn = process.env.JWT_EXPIRES_IN || process.env.JWT_EXPIRATION || '15m';
+    const accessExpiresIn = ACCESS_SECONDS;
 
     try {
       const payload = this.jwtService.verify(token, {
         secret: jwtRefreshSecret,
+        algorithms: ['HS256'],
       });
+      if (typeof payload.sid !== 'string' || typeof payload.sub !== 'string') {
+        throw new UnauthorizedException('Invalid refresh session');
+      }
 
       const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
       });
 
-      if (!user || !user.isActive) {
+      if (!user || !user.isActive || user.deletedAt) {
         throw new UnauthorizedException('Invalid refresh session');
       }
 
       // Check active sessions (and recently rotated sessions within 15-second grace window)
-      const fifteenSecondsAgo = new Date(Date.now() - 15 * 1000);
+      const fifteenSecondsAgo = new Date(Date.now() - IDLE_MS);
       const sessions = await this.prisma.session.findMany({
         where: {
           userId: user.id,
+          id: payload.sid,
           expiresAt: { gt: new Date() },
-          OR: [
-            { isRevoked: false },
-            { createdAt: { gte: fifteenSecondsAgo } },
-          ],
+          isRevoked: false,
+          lastSeenAt: { gt: fifteenSecondsAgo },
         },
         orderBy: { createdAt: 'desc' },
       });
 
       let validSession = null;
       for (const session of sessions) {
-        const matches = await argon2.verify(session.refreshTokenHash, token);
+        const matches = session.refreshTokenHash === tokenHash(token);
         if (matches) {
           validSession = session;
           break;
@@ -192,27 +203,22 @@ export class AuthService {
       }
 
       if (!validSession) {
+        await this.prisma.session.updateMany({
+          where: { id: payload.sid, userId: user.id }, data: { isRevoked: true },
+        });
         throw new UnauthorizedException('Session expired or revoked');
       }
 
       // If this session is not already revoked, revoke it now (Token Rotation)
-      if (!validSession.isRevoked) {
-        await this.prisma.session.update({
-          where: { id: validSession.id },
-          data: { isRevoked: true },
-        });
-      }
-
-      // Calculate remaining session lifetime or default to 7 days
-      const daysRemaining = Math.max(
-        1,
-        Math.ceil((validSession.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
-      );
-      const newRefreshExpiresIn = `${daysRemaining}d`;
+      const secondsRemaining = Math.floor((validSession.expiresAt.getTime() - Date.now()) / 1000);
+      if (secondsRemaining <= 0) throw new UnauthorizedException('Session expired');
+      const daysRemaining = secondsRemaining / 86400;
+      const newRefreshExpiresIn = secondsRemaining;
 
       // Create new tokens
       const newPayload = {
         sub: user.id,
+        sid: validSession.id,
         email: user.email,
         role: user.globalRole,
       };
@@ -225,19 +231,18 @@ export class AuthService {
       const newRefreshToken = this.jwtService.sign(newPayload, {
         secret: jwtRefreshSecret,
         expiresIn: newRefreshExpiresIn,
+        jwtid: crypto.randomUUID(),
       });
 
-      const newHash = await argon2.hash(newRefreshToken);
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + daysRemaining);
-
-      await this.prisma.session.create({
-        data: {
-          userId: user.id,
-          refreshTokenHash: newHash,
-          expiresAt,
+      const rotated = await this.prisma.session.updateMany({
+        where: {
+          id: validSession.id, isRevoked: false,
+          refreshTokenHash: validSession.refreshTokenHash,
+          expiresAt: { gt: new Date() },
         },
+        data: { refreshTokenHash: tokenHash(newRefreshToken), lastSeenAt: new Date() },
       });
+      if (rotated.count !== 1) throw new UnauthorizedException('Refresh already used');
 
       return {
         user: {
@@ -283,15 +288,11 @@ export class AuthService {
     }
 
     const newHash = await argon2.hash(dto.newPassword);
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { passwordHash: newHash },
-    });
-
-    // Revoke old sessions
-    await this.prisma.session.updateMany({
-      where: { userId, isRevoked: false },
-      data: { isRevoked: true },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: {
+        passwordHash: newHash, resetPasswordToken: null, resetPasswordExpires: null,
+      } });
+      await tx.session.updateMany({ where: { userId }, data: { isRevoked: true } });
     });
 
     await this.recordAudit(userId, AuditAction.PASSWORD_RESET, 'User', userId);
@@ -328,7 +329,7 @@ export class AuthService {
         { action: 'FORGOT_PASSWORD_REQUESTED', email: user.email },
       );
 
-      this.logger.log(`Password reset token generated for ${user.email}`);
+      this.logger.log('Password reset requested');
     }
 
     return {
@@ -357,8 +358,9 @@ export class AuthService {
 
     const newHash = await argon2.hash(dto.newPassword);
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    await this.prisma.$transaction(async (tx) => {
+    const consumed = await tx.user.updateMany({
+      where: { id: user.id, resetPasswordToken: resetTokenHash, resetPasswordExpires: { gt: new Date() }, isActive: true, deletedAt: null },
       data: {
         passwordHash: newHash,
         resetPasswordToken: null,
@@ -366,10 +368,12 @@ export class AuthService {
       },
     });
 
+    if (consumed.count !== 1) throw new BadRequestException('Reset link invalid or expired');
     // Revoke all existing sessions
-    await this.prisma.session.updateMany({
+    await tx.session.updateMany({
       where: { userId: user.id, isRevoked: false },
       data: { isRevoked: true },
+    });
     });
 
     await this.recordAudit(

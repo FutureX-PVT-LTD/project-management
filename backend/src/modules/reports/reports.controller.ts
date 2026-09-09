@@ -24,6 +24,7 @@ export class ReportsController {
     return this.reportsService.getPMDashboardData(pmUserId);
   }
 
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Get('analytics')
   async getReports() {
     return this.reportsService.getReportsData();

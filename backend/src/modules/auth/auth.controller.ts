@@ -43,7 +43,7 @@ export class AuthController {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: 'lax' as const,
+      sameSite: process.env.COOKIE_SAMESITE === 'strict' ? 'strict' as const : 'lax' as const,
       path: '/',
     };
 
@@ -60,7 +60,6 @@ export class AuthController {
 
     return {
       user: result.user,
-      accessToken: result.accessToken,
     };
   }
 
@@ -78,7 +77,7 @@ export class AuthController {
     const cookieOptions = {
       httpOnly: true,
       secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: 'lax' as const,
+      sameSite: process.env.COOKIE_SAMESITE === 'strict' ? 'strict' as const : 'lax' as const,
       path: '/',
     };
 
@@ -95,7 +94,6 @@ export class AuthController {
 
     return {
       user: result.user,
-      accessToken: result.accessToken,
     };
   }
 
@@ -112,7 +110,7 @@ export class AuthController {
       path: '/',
       httpOnly: true,
       secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: 'lax' as const,
+      sameSite: process.env.COOKIE_SAMESITE === 'strict' ? 'strict' as const : 'lax' as const,
     };
 
     res.clearCookie('access_token', clearOptions);

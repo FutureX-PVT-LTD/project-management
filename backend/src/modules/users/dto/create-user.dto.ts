@@ -7,6 +7,7 @@ import {
   MinLength,
   IsArray,
   IsBoolean,
+  MaxLength,
 } from 'class-validator';
 import { UserRole } from '@futurex/shared';
 
@@ -36,9 +37,10 @@ export class CreateUserDto {
   globalRole: UserRole;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   @MinLength(8, { message: 'Password must be at least 8 characters' })
-  password?: string;
+  @MaxLength(128)
+  password: string;
 
   @IsArray()
   @IsOptional()
@@ -73,4 +75,16 @@ export class UpdateUserDto {
   @IsArray()
   @IsOptional()
   teamIds?: string[];
+}
+
+export class ResetUserPasswordDto {
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  newPassword: string;
+}
+
+export class ToggleUserActiveDto {
+  @IsBoolean()
+  isActive: boolean;
 }

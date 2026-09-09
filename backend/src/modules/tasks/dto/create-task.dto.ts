@@ -9,6 +9,9 @@ import {
   Max,
   IsBoolean,
   IsArray,
+  IsInt,
+  MaxLength,
+  ArrayMaxSize,
 } from "class-validator";
 import { TaskStatus, TaskPriority, ReviewStatus } from "@futurex/shared";
 
@@ -75,6 +78,8 @@ export class CreateTaskDto {
   allowParallelWork?: boolean;
 
   @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
   @IsOptional()
   collaboratorIds?: string[];
 
@@ -114,6 +119,8 @@ export class CreateTaskDto {
   parentTaskId?: string;
 
   @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
   @IsOptional()
   dependsOnTaskIds?: string[];
 }
@@ -140,6 +147,8 @@ export class UpdateTaskDto {
   allowParallelWork?: boolean;
 
   @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
   @IsOptional()
   collaboratorIds?: string[];
 
@@ -207,6 +216,7 @@ export class ReviewTaskDto {
 }
 
 export class CreateTaskDailyUpdateDto {
+  @IsInt()
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -214,6 +224,7 @@ export class CreateTaskDailyUpdateDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(10000)
   completedToday: string;
 
   @IsString()
@@ -222,6 +233,7 @@ export class CreateTaskDailyUpdateDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(10000)
   nextStep: string;
 
   @IsString()

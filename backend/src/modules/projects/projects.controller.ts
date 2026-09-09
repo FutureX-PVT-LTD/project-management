@@ -17,6 +17,7 @@ import {
   GenerateDevelopmentChecklistDto,
   AssignChecklistItemDto,
   BulkResponsibilityAssignmentDto,
+  AddProjectMemberDto,
 } from './dto/create-project.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -112,11 +113,10 @@ export class ProjectsController {
   @Post(':id/members')
   async addMember(
     @Param('id') id: string,
-    @Body('userId') userId: string,
-    @Body('role') role: ProjectMemberRole,
+    @Body() dto: AddProjectMemberDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    return this.projectsService.addMember(id, userId, role || ProjectMemberRole.MEMBER, actor.id, actor.globalRole);
+    return this.projectsService.addMember(id, dto.userId, dto.role || ProjectMemberRole.MEMBER, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)

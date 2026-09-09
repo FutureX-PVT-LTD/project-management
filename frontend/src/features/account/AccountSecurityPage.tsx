@@ -28,7 +28,11 @@ export function AccountSecurityPage() {
       setNewPassword('');
       setConfirmPassword('');
       setError('');
-      setSuccess('Password updated successfully.');
+      setSuccess('Password updated. Please sign in again.');
+      const channel = new BroadcastChannel('futurex-auth');
+      channel.postMessage('changed');
+      channel.close();
+      window.location.assign('/login');
     },
     onError: (err) => {
       setSuccess('');

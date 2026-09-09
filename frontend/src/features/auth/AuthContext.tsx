@@ -38,6 +38,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isInitialized = React.useRef(false);
 
   useEffect(() => {
+    const channel = new BroadcastChannel('futurex-auth');
+    channel.onmessage = () => {
+      queryClient.clear();
+      window.location.reload();
+    };
+    return () => channel.close();
+  }, [queryClient]);
+
+  const notifyAuthChange = () => {
+    const channel = new BroadcastChannel('futurex-auth');
+    channel.postMessage('changed');
+    channel.close();
+  };
+
+  useEffect(() => {
     if (pathname === '/login' || pathname === '/forgot-password' || pathname === '/reset-password') {
       setIsLoading(false);
       return;
@@ -61,9 +76,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Clear any previous query cache before fresh navigation
     queryClient.clear();
+    notifyAuthChange();
 
     // Validate and handle safe redirection
-    if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+    if (returnTo && /^\/(?!\/)/.test(returnTo) && !/[\\\u0000-\u0020]/.test(returnTo)) {
       router.push(returnTo);
     } else {
       // Role-based landing redirection
@@ -80,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await api.post('/auth/logout');
+      notifyAuthChange();
     } catch (err) {
       // Ignore network errors on logout
     } finally {

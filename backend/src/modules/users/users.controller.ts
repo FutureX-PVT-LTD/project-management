@@ -12,7 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
+import { CreateUserDto, UpdateUserDto, ResetUserPasswordDto, ToggleUserActiveDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -26,15 +26,18 @@ export class UsersController {
 
   @Get()
   async findAll(
+    @CurrentUser() actor: AuthUser,
     @Query('search') search?: string,
     @Query('role') role?: UserRole,
     @Query('teamId') teamId?: string,
     @Query('isActive') isActive?: string,
   ) {
     const activeBool = isActive !== undefined ? isActive === 'true' : undefined;
+    if (actor.globalRole === UserRole.TEAM_MEMBER) return this.usersService.findDirectory(actor.id);
     return this.usersService.findAll({ search, role, teamId, isActive: activeBool });
   }
 
+  @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Get(':id')
   async findById(@Param('id') id: string) {
     return this.usersService.findById(id);
@@ -64,19 +67,19 @@ export class UsersController {
   @Patch(':id/toggle-active')
   async toggleActive(
     @Param('id') id: string,
-    @Body('isActive') isActive: boolean,
+    @Body() dto: ToggleUserActiveDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    return this.usersService.toggleActive(id, isActive, actor.id, actor.globalRole);
+    return this.usersService.toggleActive(id, dto.isActive, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Post(':id/reset-password')
   async resetPassword(
     @Param('id') id: string,
-    @Body('newPassword') newPassword: string,
-    @CurrentUser('id') actorId: string,
+    @Body() dto: ResetUserPasswordDto,
+    @CurrentUser() actor: AuthUser,
   ) {
-    return this.usersService.resetPassword(id, newPassword || 'FutureX2026!@#', actorId);
+    return this.usersService.resetPassword(id, dto.newPassword, actor.id, actor.globalRole);
   }
 }

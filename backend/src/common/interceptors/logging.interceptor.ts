@@ -14,7 +14,8 @@ export class LoggingInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    const { method, url, user } = request;
+    const { method, user } = request;
+    const url = request.route?.path || 'unmatched';
     const now = Date.now();
     const userId = user?.id ? `[User: ${user.id}]` : '[Anon]';
 
@@ -30,7 +31,7 @@ export class LoggingInterceptor implements NestInterceptor {
         error: (error) => {
           const duration = Date.now() - now;
           this.logger.error(
-            `${method} ${url} ${error.status || 500} - ${duration}ms ${userId}: ${error.message}`,
+            `${method} ${url} ${error.status || 500} - ${duration}ms ${userId}`,
           );
         },
       }),

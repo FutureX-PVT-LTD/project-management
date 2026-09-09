@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsBoolean } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, IsOptional, IsBoolean } from 'class-validator';
 
 export class LoginDto {
   @IsEmail({}, { message: 'Please provide a valid work email address' })
@@ -8,6 +8,7 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(6, { message: 'Password must be at least 6 characters long' })
+  @MaxLength(128)
   password: string;
 
   @IsOptional()
@@ -23,6 +24,7 @@ export class ChangePasswordDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(8, { message: 'New password must be at least 8 characters long' })
+  @MaxLength(128)
   newPassword: string;
 }
 
@@ -40,5 +42,6 @@ export class ResetPasswordDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(8, { message: 'New password must be at least 8 characters long' })
+  @MaxLength(128)
   newPassword: string;
 }

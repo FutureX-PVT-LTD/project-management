@@ -206,6 +206,7 @@ export class ProjectsService {
           },
         },
         dailyUpdates: {
+          where: user.globalRole === UserRole.TEAM_MEMBER ? { userId: user.id } : {},
           orderBy: { createdAt: "desc" },
           take: 10,
           include: {
@@ -230,7 +231,7 @@ export class ProjectsService {
           },
         },
         tasks: {
-          where: { deletedAt: null },
+          where: { deletedAt: null, ...(user.globalRole === UserRole.TEAM_MEMBER ? { assigneeId: user.id } : {}) },
           select: {
             id: true,
             humanId: true,
@@ -792,7 +793,7 @@ export class ProjectsService {
       where: { projectId_userId: { projectId, userId } },
       create: { projectId, userId, role: ProjectMemberRole.MEMBER },
       update: { role: ProjectMemberRole.MEMBER },
-      include: { user: true },
+      include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, globalRole: true } } },
     });
 
     await this.prisma.notification.create({
@@ -902,6 +903,11 @@ export class ProjectsService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.project.updateMany({
+        where: { id: projectId, checklistGeneratedAt: null, deletedAt: null },
+        data: { checklistGeneratedAt: new Date() },
+      });
+      if (claimed.count !== 1) throw new BadRequestException('Checklist already generated');
       const lastTask = await tx.task.findFirst({
         where: { projectId },
         orderBy: { taskNumber: "desc" },
@@ -1159,6 +1165,10 @@ export class ProjectsService {
 
     const mappings = dto.mappings || {};
     const phaseMappings = dto.phaseMappings || {};
+    const values = [...Object.values(mappings), ...Object.values(phaseMappings)];
+    if (values.length > 100 || values.some((value) => value !== null && typeof value !== 'string')) {
+      throw new BadRequestException('Invalid assignment mappings');
+    }
     const roleEntries = [
       ...Object.entries(mappings).filter(([, userId]) => Boolean(userId)),
       ...Object.entries(phaseMappings).filter(([, userId]) => Boolean(userId)),

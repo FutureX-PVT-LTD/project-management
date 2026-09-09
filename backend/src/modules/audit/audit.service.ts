@@ -46,8 +46,8 @@ export class AuditService {
           },
         },
         orderBy: { createdAt: 'desc' },
-        take: params?.limit || 50,
-        skip: params?.offset || 0,
+        take: Number.isFinite(params?.limit) ? Math.min(100, Math.max(1, Math.trunc(params.limit))) : 50,
+        skip: Number.isFinite(params?.offset) ? Math.min(100000, Math.max(0, Math.trunc(params.offset))) : 0,
       }),
     ]);
 

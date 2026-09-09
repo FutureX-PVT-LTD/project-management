@@ -24,6 +24,7 @@ import {
   NotificationType,
 } from "@futurex/shared";
 import { normalizeAllTasks } from "./normalize-tasks.util";
+import { requireTask, taskScope } from '../../common/security/access-policy';
 
 @Injectable()
 export class TasksService implements OnModuleInit {
@@ -116,7 +117,7 @@ export class TasksService implements OnModuleInit {
     }
 
     const where: any = {
-      deletedAt: null,
+      ...taskScope({ id: userId, globalRole: UserRole.TEAM_MEMBER }),
       AND: andConditions,
     };
 
@@ -271,7 +272,7 @@ export class TasksService implements OnModuleInit {
     actorId?: string,
     actorRole?: UserRole,
   ) {
-    const where: any = { deletedAt: null };
+    const where: any = { deletedAt: null, project: { deletedAt: null } };
 
     if (params.projectId) where.projectId = params.projectId;
     if (params.milestoneId) where.milestoneId = params.milestoneId;
@@ -294,11 +295,13 @@ export class TasksService implements OnModuleInit {
       actorRole !== UserRole.ADMIN
     ) {
       where.project = {
+        deletedAt: null,
         OR: [
           { projectManagerId: actorId },
           { members: { some: { userId: actorId } } },
         ],
       };
+      where.AND = [{ assigneeId: actorId }];
     }
 
     if (params.search) {
@@ -388,6 +391,7 @@ export class TasksService implements OnModuleInit {
   }
 
   async findById(id: string, actorId?: string, actorRole?: UserRole) {
+    if (actorId && actorRole) await requireTask(this.prisma, id, { id: actorId, globalRole: actorRole });
     const task = await this.prisma.task.findUnique({
       where: { id, deletedAt: null },
       include: {
@@ -811,6 +815,13 @@ export class TasksService implements OnModuleInit {
     actorId: string,
     actorRole: UserRole,
   ) {
+    return this.prisma.$transaction(async (tx) =>
+      new TasksService(tx as PrismaService).updateWithinTransaction(id, dto, actorId, actorRole),
+      { isolationLevel: 'Serializable', timeout: 15000 });
+  }
+
+  private async updateWithinTransaction(id: string, dto: UpdateTaskDto, actorId: string, actorRole: UserRole) {
+    await requireTask(this.prisma, id, { id: actorId, globalRole: actorRole });
     const task = await this.prisma.task.findUnique({
       where: { id, deletedAt: null },
       include: {
@@ -836,9 +847,7 @@ export class TasksService implements OnModuleInit {
     // Permission check
     const isOwnerOrAdmin =
       actorRole === UserRole.OWNER || actorRole === UserRole.ADMIN;
-    const isAssignee =
-      task.assigneeId === actorId ||
-      (isSubtask && task.parentTask?.assigneeId === actorId);
+    const isAssignee = task.assigneeId === actorId;
     const isCollaborator = await this.prisma.taskCollaborator.findUnique({
       where: { taskId_userId: { taskId: id, userId: actorId } },
     });
@@ -898,6 +907,13 @@ export class TasksService implements OnModuleInit {
         });
       }
     } else {
+      if (dto.progress !== undefined && (dto.progress >= 100 || dto.progress < task.progress)) {
+        throw new BadRequestException('Progress must not decrease and completion requires review');
+      }
+      if ((dto.isManualBlocked !== undefined || dto.manualBlockReason !== undefined || dto.actualHours !== undefined) &&
+          ![TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED].includes(task.status as TaskStatus)) {
+        throw new BadRequestException('Only active work can be updated');
+      }
       // TEAM_MEMBER operational boundaries:
       // Only the assigned team member can execute actions on their task
       if (!isAssignee) {
@@ -922,7 +938,7 @@ export class TasksService implements OnModuleInit {
         dto.collaboratorIds !== undefined ||
         dto.parentTaskId !== undefined;
 
-      if (hasPlanningUpdates && !isSubtask) {
+      if (hasPlanningUpdates) {
         throw new ForbiddenException({
           statusCode: 403,
           code: "TASK_PLANNING_IMMUTABLE",
@@ -962,7 +978,7 @@ export class TasksService implements OnModuleInit {
           }
         }
 
-        if (dto.status === TaskStatus.DONE && !isSubtask) {
+        if (dto.status === TaskStatus.DONE) {
           throw new ForbiddenException({
             statusCode: 403,
             code: "TASK_DIRECT_COMPLETION_NOT_ALLOWED",
@@ -1297,7 +1313,7 @@ export class TasksService implements OnModuleInit {
       updated.milestoneId || task.milestoneId,
     );
 
-    return this.findById(id);
+    return this.findById(id, actorId, actorRole);
   }
 
   async submitDailyUpdate(
@@ -1306,6 +1322,7 @@ export class TasksService implements OnModuleInit {
     actorRole: UserRole,
     dto: CreateTaskDailyUpdateDto,
   ) {
+    await requireTask(this.prisma, taskId, { id: userId, globalRole: actorRole });
     const task = await this.prisma.task.findUnique({
       where: { id: taskId, deletedAt: null },
       include: {
@@ -1393,6 +1410,11 @@ export class TasksService implements OnModuleInit {
     );
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const locked = await tx.task.updateMany({
+        where: { id: taskId, assigneeId: userId, status: TaskStatus.IN_PROGRESS, progress: task.progress, deletedAt: null },
+        data: { progress: dto.progress },
+      });
+      if (locked.count !== 1) throw new BadRequestException('Task changed. Refresh and try again');
       const existing = await tx.taskDailyUpdate.findUnique({
         where: {
           taskId_userId_workDate: {
@@ -1598,7 +1620,16 @@ export class TasksService implements OnModuleInit {
     reviewerRole: UserRole,
     dto: ReviewTaskDto,
   ) {
-    if (reviewerRole === UserRole.TEAM_MEMBER) {
+    return this.prisma.$transaction(async (tx) =>
+      new TasksService(tx as PrismaService).reviewWithinTransaction(id, reviewerId, reviewerRole, dto),
+      { isolationLevel: 'Serializable', timeout: 15000 });
+  }
+
+  private async reviewWithinTransaction(id: string, reviewerId: string, reviewerRole: UserRole, dto: ReviewTaskDto) {
+    if (![ReviewStatus.APPROVED, ReviewStatus.REJECTED].includes(dto.status)) {
+      throw new BadRequestException('Choose approve or reject');
+    }
+    if (reviewerRole !== UserRole.ADMIN && reviewerRole !== UserRole.OWNER) {
       throw new ForbiddenException("Only Admins can review and approve tasks.");
     }
 
@@ -1614,6 +1645,8 @@ export class TasksService implements OnModuleInit {
     });
 
     if (!task) throw new NotFoundException("Task not found");
+    if (task.project.deletedAt) throw new NotFoundException('Project not found');
+    if (task.assigneeId === reviewerId) throw new ForbiddenException('Self approval is prohibited');
 
     if (task.status !== TaskStatus.IN_REVIEW) {
       throw new BadRequestException("Task is not currently awaiting review");

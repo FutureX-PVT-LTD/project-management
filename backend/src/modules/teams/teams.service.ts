@@ -1,13 +1,15 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTeamDto, UserRole } from '@futurex/shared';
+import { publicUserSelect } from '../../common/security/access-policy';
 
 @Injectable()
 export class TeamsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(memberId?: string) {
     const teams = await this.prisma.team.findMany({
+      where: memberId ? { members: { some: { userId: memberId } } } : {},
       include: {
         leadUser: {
           select: {
@@ -87,13 +89,13 @@ export class TeamsService {
     }));
   }
 
-  async findById(id: string) {
+  async findById(id: string, memberId?: string) {
     const team = await this.prisma.team.findUnique({
-      where: { id },
+      where: { id, ...(memberId ? { members: { some: { userId: memberId } } } : {}) },
       include: {
-        leadUser: true,
+        leadUser: { select: publicUserSelect },
         members: {
-          include: { user: true },
+          include: { user: { select: publicUserSelect } },
         },
       },
     });
@@ -126,8 +128,8 @@ export class TeamsService {
           : undefined,
       },
       include: {
-        leadUser: true,
-        members: { include: { user: true } },
+        leadUser: { select: publicUserSelect },
+        members: { include: { user: { select: publicUserSelect } } },
       },
     });
 
@@ -157,8 +159,8 @@ export class TeamsService {
         leadUserId: dto.leadUserId !== undefined ? dto.leadUserId : undefined,
       },
       include: {
-        leadUser: true,
-        members: { include: { user: true } },
+        leadUser: { select: publicUserSelect },
+        members: { include: { user: { select: publicUserSelect } } },
       },
     });
   }

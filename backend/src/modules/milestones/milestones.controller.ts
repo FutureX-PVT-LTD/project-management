@@ -13,7 +13,8 @@ import { CreateMilestoneDto, UpdateMilestoneDto } from './dto/create-milestone.d
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole } from '@futurex/shared';
+import { UserRole, AuthUser } from '@futurex/shared';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('milestones')
@@ -21,8 +22,8 @@ export class MilestonesController {
   constructor(private milestonesService: MilestonesService) {}
 
   @Get('project/:projectId')
-  async findByProject(@Param('projectId') projectId: string) {
-    return this.milestonesService.findByProject(projectId);
+  async findByProject(@Param('projectId') projectId: string, @CurrentUser() actor: AuthUser) {
+    return this.milestonesService.findByProject(projectId, actor);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)

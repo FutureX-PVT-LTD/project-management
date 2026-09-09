@@ -8,10 +8,22 @@ import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
 import { UserRole, AuditAction } from '@futurex/shared';
+import { publicUserSelect } from '../../common/security/access-policy';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
+
+  async findDirectory(userId: string) {
+    const memberships = await this.prisma.projectMember.findMany({
+      where: { userId, project: { deletedAt: null } }, select: { projectId: true },
+    });
+    return this.prisma.user.findMany({
+      where: { isActive: true, deletedAt: null, OR: [
+        { id: userId }, { projectMemberships: { some: { projectId: { in: memberships.map((m) => m.projectId) } } } },
+      ] }, select: publicUserSelect, take: 200,
+    });
+  }
 
   async findAll(params?: { search?: string; role?: UserRole; teamId?: string; isActive?: boolean }) {
     const where: any = { deletedAt: null };
@@ -168,7 +180,8 @@ export class UsersService {
       throw new BadRequestException('A user with this email address already exists');
     }
 
-    const defaultPassword = dto.password || 'FutureX2026!@#';
+    if (!dto.password) throw new BadRequestException('An initial password is required');
+    const defaultPassword = dto.password;
     const passwordHash = await argon2.hash(defaultPassword);
 
     const user = await this.prisma.user.create({
@@ -241,7 +254,8 @@ export class UsersService {
       }
     }
 
-    const updated = await this.prisma.user.update({
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.update({
       where: { id },
       data: {
         firstName: dto.firstName !== undefined ? dto.firstName.trim() : undefined,
@@ -251,6 +265,12 @@ export class UsersService {
         globalRole: dto.globalRole !== undefined ? dto.globalRole : undefined,
         isActive: dto.isActive !== undefined ? dto.isActive : undefined,
       },
+    });
+
+      if (dto.globalRole !== undefined || dto.isActive !== undefined) {
+        await tx.session.updateMany({ where: { userId: id }, data: { isRevoked: true } });
+      }
+      return result;
     });
 
     await this.recordAudit(actorId, AuditAction.USER_UPDATED, 'User', id, dto);
@@ -294,7 +314,7 @@ export class UsersService {
     return { success: true, message: `User ${isActive ? 'activated' : 'deactivated'} successfully` };
   }
 
-  async resetPassword(id: string, newPassword: string, actorId: string) {
+  async resetPassword(id: string, newPassword: string, actorId: string, actorRole: UserRole) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -303,17 +323,22 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    if (user.globalRole === UserRole.OWNER && actorRole !== UserRole.OWNER) {
+      throw new ForbiddenException('Only a Super Admin may reset a Super Admin password');
+    }
     const passwordHash = await argon2.hash(newPassword);
 
-    await this.prisma.user.update({
+    await this.prisma.$transaction(async (tx) => {
+    await tx.user.update({
       where: { id },
-      data: { passwordHash },
+      data: { passwordHash, resetPasswordToken: null, resetPasswordExpires: null },
     });
 
     // Revoke sessions
-    await this.prisma.session.updateMany({
+    await tx.session.updateMany({
       where: { userId: id },
       data: { isRevoked: true },
+    });
     });
 
     await this.recordAudit(actorId, AuditAction.PASSWORD_RESET, 'User', id);

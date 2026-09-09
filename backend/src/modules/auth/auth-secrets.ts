@@ -1,10 +1,11 @@
-const DEV_ACCESS_SECRET = 'futurex_dev_access_secret_change_me';
-const DEV_REFRESH_SECRET = 'futurex_dev_refresh_secret_change_me';
+import { randomBytes } from 'crypto';
+const DEV_ACCESS_SECRET = randomBytes(48).toString('hex');
+const DEV_REFRESH_SECRET = randomBytes(48).toString('hex');
 
 function requireSecret(name: 'JWT_SECRET' | 'JWT_REFRESH_SECRET', devFallback: string): string {
   const value = process.env[name];
 
-  if (value && value.trim().length >= 32) {
+  if (value && value.trim().length >= 32 && !/futurex|change.?me|example|replace/i.test(value)) {
     return value;
   }
 

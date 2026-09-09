@@ -146,3 +146,12 @@ export class PostProjectUpdateDto {
   @IsNotEmpty()
   note: string;
 }
+
+export class AddProjectMemberDto {
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
+  @IsEnum(ProjectMemberRole)
+  @IsOptional()
+  role?: ProjectMemberRole;
+}
