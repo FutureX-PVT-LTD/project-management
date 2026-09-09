@@ -31,7 +31,7 @@ export class LoggingInterceptor implements NestInterceptor {
         error: (error) => {
           const duration = Date.now() - now;
           this.logger.error(
-            `${method} ${url} ${error.status || 500} - ${duration}ms ${userId}`,
+            `${method} ${url} ${error.code === 'P2034' ? 409 : error.status || 500} - ${duration}ms ${userId}`,
           );
         },
       }),

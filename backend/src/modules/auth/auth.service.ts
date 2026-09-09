@@ -180,15 +180,14 @@ export class AuthService {
         throw new UnauthorizedException('Invalid refresh session');
       }
 
-      // Check active sessions (and recently rotated sessions within 15-second grace window)
-      const fifteenSecondsAgo = new Date(Date.now() - IDLE_MS);
+      const idleCutoff = new Date(Date.now() - IDLE_MS);
       const sessions = await this.prisma.session.findMany({
         where: {
           userId: user.id,
           id: payload.sid,
           expiresAt: { gt: new Date() },
           isRevoked: false,
-          lastSeenAt: { gt: fifteenSecondsAgo },
+          lastSeenAt: { gt: idleCutoff },
         },
         orderBy: { createdAt: 'desc' },
       });
@@ -209,7 +208,7 @@ export class AuthService {
         throw new UnauthorizedException('Session expired or revoked');
       }
 
-      // If this session is not already revoked, revoke it now (Token Rotation)
+      // Rotation preserves the original absolute lifetime.
       const secondsRemaining = Math.floor((validSession.expiresAt.getTime() - Date.now()) / 1000);
       if (secondsRemaining <= 0) throw new UnauthorizedException('Session expired');
       const daysRemaining = secondsRemaining / 86400;

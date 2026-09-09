@@ -68,12 +68,13 @@ jobs:
           cd backend
           corepack pnpm exec prisma generate
           corepack pnpm run typecheck
-          corepack pnpm test -- --runInBand
+          NODE_ENV=test corepack pnpm test -- --runInBand
           corepack pnpm run build
           # Fail before restarting if production authentication settings are unsafe.
           node -r dotenv/config -e "require('./dist/common/security/http-security').validateSecurityEnvironment(); const s=require('./dist/modules/auth/auth-secrets'); s.getJwtAccessSecret(); s.getJwtRefreshSecret();"
           # Existing db-push installations must be baselined before enabling migrations.
           corepack pnpm exec prisma migrate deploy
+          node scripts/check-production.cjs
           cd ../frontend
           corepack pnpm run build
           test -f .next/BUILD_ID

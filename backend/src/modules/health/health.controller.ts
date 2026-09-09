@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Public } from '../../common/decorators/public.decorator';
 
@@ -9,11 +9,11 @@ export class HealthController {
   @Public()
   @Get()
   async check() {
-    let dbStatus = 'healthy';
     try {
       await this.prisma.$queryRaw`SELECT 1`;
+      await this.prisma.session.findFirst({ select: { id: true, lastSeenAt: true } });
     } catch (e) {
-      dbStatus = 'unreachable';
+      throw new ServiceUnavailableException('Service temporarily unavailable');
     }
 
     return {
@@ -21,7 +21,7 @@ export class HealthController {
       timestamp: new Date().toISOString(),
       service: 'futurex-portal-api',
       version: '1.0.0',
-      database: dbStatus,
+      database: 'healthy',
       uptime: process.uptime(),
     };
   }

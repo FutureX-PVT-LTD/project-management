@@ -22,7 +22,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let message: string | string[] = 'Internal server error';
     let error = 'Internal Server Error';
 
-    if (exception instanceof HttpException) {
+    if (exception && typeof exception === 'object' && 'code' in exception && exception.code === 'P2034') {
+      status = HttpStatus.CONFLICT;
+      message = 'This record changed during your request. Refresh and try again.';
+      error = 'Conflict';
+    } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const res = exception.getResponse();
       if (typeof res === 'string') {

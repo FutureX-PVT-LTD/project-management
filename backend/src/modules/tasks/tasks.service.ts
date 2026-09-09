@@ -440,7 +440,7 @@ export class TasksService implements OnModuleInit {
           select: { id: true, humanId: true, title: true },
         },
         subtasks: {
-          where: { deletedAt: null },
+          where: { deletedAt: null, ...(actorRole === UserRole.TEAM_MEMBER ? { assigneeId: actorId } : {}) },
           include: {
             assignee: {
               select: {
@@ -618,6 +618,11 @@ export class TasksService implements OnModuleInit {
     if (!project) {
       throw new NotFoundException("Project not found");
     }
+    if (project.deletedAt) throw new NotFoundException('Project not found');
+    if (dto.progress || (dto.status && [TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.DONE].includes(dto.status))) {
+      throw new BadRequestException('New tasks must start in a planning state');
+    }
+    await this.validateReferences(dto.projectId, dto);
 
     if (dto.assigneeId) {
       const assignee = await this.prisma.user.findFirst({
@@ -839,6 +844,9 @@ export class TasksService implements OnModuleInit {
 
     if (!task) {
       throw new NotFoundException("Task not found");
+    }
+    if (actorRole === UserRole.ADMIN || actorRole === UserRole.OWNER) {
+      await this.validateReferences(task.projectId, dto, id);
     }
 
     // Subtask indicator
@@ -1770,6 +1778,29 @@ export class TasksService implements OnModuleInit {
     await this.updateRollups(task.projectId, task.milestoneId);
 
     return { success: true, message: "Task archived/deleted" };
+  }
+
+  private async validateReferences(projectId: string, dto: CreateTaskDto | UpdateTaskDto, taskId?: string) {
+    if (dto.milestoneId && !await this.prisma.milestone.findFirst({ where: { id: dto.milestoneId, projectId } })) {
+      throw new BadRequestException('Milestone must belong to this project');
+    }
+    const userIds = [...new Set([dto.assigneeId, ...(dto.collaboratorIds || [])].filter(Boolean))];
+    if (userIds.length) {
+      const eligible = await this.prisma.user.count({ where: {
+        id: { in: userIds }, globalRole: UserRole.TEAM_MEMBER, isActive: true, deletedAt: null,
+        projectMemberships: { some: { projectId } },
+      } });
+      if (eligible !== userIds.length) throw new BadRequestException('Assignees and collaborators must be active project members');
+    }
+    let parentId = dto.parentTaskId;
+    const visited = new Set<string>(taskId ? [taskId] : []);
+    while (parentId) {
+      if (visited.has(parentId) || visited.size > 100) throw new BadRequestException('Invalid parent task hierarchy');
+      visited.add(parentId);
+      const parent = await this.prisma.task.findFirst({ where: { id: parentId, projectId, deletedAt: null }, select: { parentTaskId: true } });
+      if (!parent) throw new BadRequestException('Parent task must belong to this project');
+      parentId = parent.parentTaskId;
+    }
   }
 
   private async updateRollups(projectId: string, milestoneId?: string | null) {

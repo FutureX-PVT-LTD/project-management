@@ -134,6 +134,7 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     await db.task.update({ where: { id: tasks.a.id }, data: { status: 'IN_REVIEW', progress: 20 } });
     const responses = await Promise.all([1, 2].map(() => post(`/tasks/${tasks.a.id}/review`, 'admin').send({ status: 'APPROVED', completeTask: false })));
     expect(responses.filter((res) => res.status < 300)).toHaveLength(1);
+    expect(responses.every((res) => [200, 201, 400, 409].includes(res.status))).toBe(true);
     const task = await db.task.findUniqueOrThrow({ where: { id: tasks.a.id } });
     expect(task.progress).toBe(20); expect(task.status).toBe('IN_PROGRESS');
     expect(await db.taskReview.count({ where: { taskId: task.id } })).toBe(1);
@@ -189,5 +190,38 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     await login('b');
     expect((await post('/auth/change-password', 'b').send({ currentPassword: password, newPassword: randomBytes(20).toString('hex') })).status).toBe(200);
     expect((await get('/auth/me', 'b')).status).toBe(401);
+  });
+  it('rejects cross-project planning references', async () => {
+    const res = await request(app.getHttpServer()).patch(`/api/v1/tasks/${tasks.a.id}`).set('Cookie', cookies.admin)
+      .set('X-Requested-With', 'FutureX').send({ assigneeId: users.b.id, parentTaskId: tasks.b.id });
+    expect(res.status).toBe(400);
+  });
+  it('rejects active content uploads and mismatched signatures', async () => {
+    for (const name of ['payload.html', 'image.png']) {
+      const res = await post('/files/upload', 'a').field('projectId', projects.a.id).field('taskId', tasks.a.id)
+        .attach('file', Buffer.from('<script>alert(1)</script>'), name);
+      expect(res.status).toBe(400);
+    }
+  });
+  it('applies secure authentication cookie settings', async () => {
+    const previous = process.env.COOKIE_SECURE;
+    process.env.COOKIE_SECURE = 'true';
+    try {
+      const res = await login('a');
+      expect(([] as string[]).concat(res.headers['set-cookie']).every((value) => value.includes('; Secure') && value.includes('; HttpOnly'))).toBe(true);
+    } finally { process.env.COOKIE_SECURE = previous; }
+  });
+  it('revokes existing sessions after a role change', async () => {
+    const res = await request(app.getHttpServer()).patch(`/api/v1/users/${users.a.id}`).set('Cookie', cookies.owner)
+      .set('X-Requested-With', 'FutureX').send({ globalRole: 'ADMIN' });
+    expect(res.status).toBe(200);
+    expect((await get('/auth/me', 'a')).status).toBe(401);
+  });
+  it('allows only Owner to delete projects', async () => {
+    const call = (key: string) => request(app.getHttpServer()).delete(`/api/v1/projects/${projects.b.id}`)
+      .set('Cookie', cookies[key]).set('X-Requested-With', 'FutureX');
+    expect((await call('admin')).status).toBe(403);
+    expect((await call('owner')).status).toBe(200);
+    expect((await get(`/projects/${projects.b.id}`, 'owner')).status).toBe(404);
   });
 });
