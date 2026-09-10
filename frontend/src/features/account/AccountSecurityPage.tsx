@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { api, ApiError } from '@/lib/api-client';
 import { useAuth } from '@/features/auth/AuthContext';
+import Link from 'next/link';
 
 export function AccountSecurityPage() {
   const { user } = useAuth();
@@ -50,8 +51,16 @@ export function AccountSecurityPage() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('New password must be at least 8 characters long.');
+    if (
+      newPassword.length < 12 ||
+      !/[A-Z]/.test(newPassword) ||
+      !/[a-z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword) ||
+      !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword)
+    ) {
+      setError(
+        'New password must be at least 12 characters long and include uppercase, lowercase, numbers, and special characters.',
+      );
       return;
     }
 
@@ -72,6 +81,7 @@ export function AccountSecurityPage() {
 
   return (
     <AppShell>
+      <Link href="/account/login-history" className="mb-4 inline-block text-sm text-blue-600">My Login History</Link>
       <div className="max-w-3xl space-y-5">
         <div className="flex flex-col gap-1">
           <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-fx-text-primary">
@@ -125,7 +135,7 @@ export function AccountSecurityPage() {
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
-                placeholder="Minimum 8 characters"
+                placeholder="Minimum 12 chars (upper, lower, digit, symbol)"
               />
             </div>
 

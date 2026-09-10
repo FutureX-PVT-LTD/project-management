@@ -15,6 +15,8 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { SearchModule } from './modules/search/search.module';
 import { HealthModule } from './modules/health/health.module';
+import { AdditionalWorkModule } from './modules/additional-work/additional-work.module';
+import { EventsModule } from './modules/events/events.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -39,6 +41,8 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
     AuditModule,
     SearchModule,
     HealthModule,
+    AdditionalWorkModule,
+    EventsModule,
   ],
   providers: [
     {

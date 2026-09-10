@@ -35,34 +35,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const tabId = React.useMemo(() => Math.random().toString(36).substring(2), []);
+  const channelRef = React.useRef<BroadcastChannel | null>(null);
   const isInitialized = React.useRef(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
     const channel = new BroadcastChannel('futurex-auth');
-    channel.onmessage = () => {
+    channelRef.current = channel;
+
+    channel.onmessage = (event: MessageEvent) => {
+      // Ignore auth change notifications originating from this tab
+      if (event.data?.sender === tabId) return;
+
       queryClient.clear();
       window.location.reload();
     };
-    return () => channel.close();
-  }, [queryClient]);
 
-  const notifyAuthChange = () => {
-    const channel = new BroadcastChannel('futurex-auth');
-    channel.postMessage('changed');
-    channel.close();
-  };
+    return () => {
+      channel.close();
+      channelRef.current = null;
+    };
+  }, [queryClient, tabId]);
+
+  const notifyAuthChange = useCallback(() => {
+    const payload = { type: 'changed', sender: tabId };
+    if (channelRef.current) {
+      channelRef.current.postMessage(payload);
+    } else if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      const channel = new BroadcastChannel('futurex-auth');
+      channel.postMessage(payload);
+      channel.close();
+    }
+  }, [tabId]);
 
   useEffect(() => {
-    if (pathname === '/login' || pathname === '/forgot-password' || pathname === '/reset-password') {
-      setIsLoading(false);
-      return;
-    }
-
     if (!isInitialized.current) {
       isInitialized.current = true;
       refreshUser();
     }
-  }, [pathname, refreshUser]);
+  }, [refreshUser]);
 
   const login = async (
     email: string,

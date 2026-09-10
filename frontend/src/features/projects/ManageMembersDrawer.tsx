@@ -32,8 +32,8 @@ export function ManageMembersDrawer({
 
   // Fetch all active TEAM_MEMBER users
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', 'team-members'],
-    queryFn: () => api.get('/users?role=TEAM_MEMBER&isActive=true'),
+    queryKey: ['users', 'eligible-members'],
+    queryFn: () => api.get('/users?isActive=true'),
     enabled: !!projectId && open,
   });
 
@@ -43,7 +43,6 @@ export function ManageMembersDrawer({
 
   const availableUsers = ((usersData as any[]) || []).filter(
     (u) =>
-      u.globalRole === UserRole.TEAM_MEMBER &&
       u.isActive !== false &&
       !currentMemberUserIds.includes(u.id),
   );

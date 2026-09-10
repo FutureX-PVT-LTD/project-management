@@ -21,6 +21,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AuthUser } from '@futurex/shared';
+import { getAuthCookieOptions, getAuthCookieNames } from '../../common/security/http-security';
 
 @Controller('auth')
 export class AuthController {
@@ -40,20 +41,16 @@ export class AuthController {
     const result = await this.authService.login(loginDto, ipAddress, userAgent);
 
     // Set secure HTTP-only cookies
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAMESITE === 'strict' ? 'strict' as const : 'lax' as const,
-      path: '/',
-    };
+    const cookieOptions = getAuthCookieOptions();
+    const cookieNames = getAuthCookieNames();
 
-    res.cookie('access_token', result.accessToken, {
+    res.cookie(cookieNames.accessToken, result.accessToken, {
       ...cookieOptions,
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     const refreshDays = result.refreshExpiresInDays || (result.rememberMe ? 30 : 7);
-    res.cookie('refresh_token', result.refreshToken, {
+    res.cookie(cookieNames.refreshToken, result.refreshToken, {
       ...cookieOptions,
       maxAge: refreshDays * 24 * 60 * 60 * 1000,
     });
@@ -71,23 +68,19 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
     @Body('refreshToken') bodyToken?: string,
   ) {
-    const token = req.cookies?.refresh_token || bodyToken;
+    const cookieNames = getAuthCookieNames();
+    const token = req.cookies?.[cookieNames.refreshToken] || bodyToken;
     const result = await this.authService.refreshToken(token);
 
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAMESITE === 'strict' ? 'strict' as const : 'lax' as const,
-      path: '/',
-    };
+    const cookieOptions = getAuthCookieOptions();
 
-    res.cookie('access_token', result.accessToken, {
+    res.cookie(cookieNames.accessToken, result.accessToken, {
       ...cookieOptions,
       maxAge: 15 * 60 * 1000,
     });
 
     const refreshDays = result.refreshExpiresInDays || 7;
-    res.cookie('refresh_token', result.refreshToken, {
+    res.cookie(cookieNames.refreshToken, result.refreshToken, {
       ...cookieOptions,
       maxAge: refreshDays * 24 * 60 * 60 * 1000,
     });
@@ -106,15 +99,11 @@ export class AuthController {
   ) {
     await this.authService.logout(userId);
 
-    const clearOptions = {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.COOKIE_SECURE === 'true',
-      sameSite: process.env.COOKIE_SAMESITE === 'strict' ? 'strict' as const : 'lax' as const,
-    };
+    const clearOptions = getAuthCookieOptions();
+    const cookieNames = getAuthCookieNames();
 
-    res.clearCookie('access_token', clearOptions);
-    res.clearCookie('refresh_token', clearOptions);
+    res.clearCookie(cookieNames.accessToken, clearOptions);
+    res.clearCookie(cookieNames.refreshToken, clearOptions);
 
     return { success: true, message: 'Logged out successfully' };
   }

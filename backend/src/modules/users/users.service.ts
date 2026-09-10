@@ -4,106 +4,122 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
 import { UserRole, AuditAction } from '@futurex/shared';
-import { publicUserSelect } from '../../common/security/access-policy';
+import * as argon2 from 'argon2';
+
+export interface AuditContext {
+  ipAddress?: string;
+  userAgent?: string;
+}
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findDirectory(userId: string) {
-    const memberships = await this.prisma.projectMember.findMany({
-      where: { userId, project: { deletedAt: null } }, select: { projectId: true },
-    });
-    return this.prisma.user.findMany({
-      where: { isActive: true, deletedAt: null, OR: [
-        { id: userId }, { projectMemberships: { some: { projectId: { in: memberships.map((m) => m.projectId) } } } },
-      ] }, select: publicUserSelect, take: 200,
-    });
-  }
-
-  async findAll(params?: { search?: string; role?: UserRole; teamId?: string; isActive?: boolean }) {
+  async findAll(filter?: {
+    search?: string;
+    role?: UserRole;
+    teamId?: string;
+    isActive?: boolean;
+  }) {
     const where: any = { deletedAt: null };
 
-    if (params?.search) {
-      const search = params.search.trim();
+    if (filter?.search) {
       where.OR = [
-        { firstName: { contains: search, mode: 'insensitive' } },
-        { lastName: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-        { jobTitle: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: filter.search, mode: 'insensitive' } },
+        { lastName: { contains: filter.search, mode: 'insensitive' } },
+        { email: { contains: filter.search, mode: 'insensitive' } },
       ];
     }
 
-    if (params?.role) {
-      where.globalRole = params.role;
+    if (filter?.role) {
+      where.globalRole = filter.role;
     }
 
-    if (params?.isActive !== undefined) {
-      where.isActive = params.isActive;
+    if (filter?.isActive !== undefined) {
+      where.isActive = filter.isActive;
     }
 
-    if (params?.teamId) {
+    if (filter?.teamId) {
       where.teamMemberships = {
-        some: { teamId: params.teamId },
+        some: { teamId: filter.teamId },
       };
     }
 
     const users = await this.prisma.user.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        jobTitle: true,
+        avatarUrl: true,
+        globalRole: true,
+        isActive: true,
+        lastLoginAt: true,
+        createdAt: true,
         teamMemberships: {
-          include: { team: true },
-        },
-        projectMemberships: true,
-        assignedTasks: {
-          where: {
-            deletedAt: null,
-            status: { notIn: ['DONE', 'CANCELED'] },
-          },
           select: {
-            id: true,
-            status: true,
-            estimatedHours: true,
+            team: {
+              select: { id: true, name: true },
+            },
+          },
+        },
+        _count: {
+          select: {
+            assignedTasks: {
+              where: { status: { notIn: ['DONE', 'CANCELED'] } },
+            },
           },
         },
       },
-      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
 
-    return users.map((u) => {
-      const activeTasksCount = u.assignedTasks.length;
-      const blockedTasksCount = u.assignedTasks.filter((t) => t.status === 'BLOCKED').length;
-      const estimatedWorkloadHours = u.assignedTasks.reduce(
-        (sum, t) => sum + (t.estimatedHours || 0),
-        0,
-      );
+    return users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      jobTitle: u.jobTitle,
+      avatarUrl: u.avatarUrl,
+      globalRole: u.globalRole as UserRole,
+      isActive: u.isActive,
+      lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+      createdAt: u.createdAt.toISOString(),
+      teams: u.teamMemberships.map((tm) => tm.team),
+      activeTasksCount: u._count.assignedTasks,
+    }));
+  }
 
-      return {
-        id: u.id,
-        email: u.email,
-        firstName: u.firstName,
-        lastName: u.lastName,
-        jobTitle: u.jobTitle,
-        avatarUrl: u.avatarUrl,
-        globalRole: u.globalRole as UserRole,
-        isActive: u.isActive,
-        lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
-        createdAt: u.createdAt.toISOString(),
-        updatedAt: u.updatedAt.toISOString(),
-        teams: u.teamMemberships.map((tm) => ({
-          id: tm.team.id,
-          name: tm.team.name,
-        })),
-        assignedProjectsCount: u.projectMemberships.length,
-        activeTasksCount,
-        blockedTasksCount,
-        estimatedWorkloadHours,
-      };
+  async findDirectory(actorId: string) {
+    const users = await this.prisma.user.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        jobTitle: true,
+        avatarUrl: true,
+        globalRole: true,
+      },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
     });
+
+    return users.map((u) => ({
+      id: u.id,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      jobTitle: u.jobTitle,
+      avatarUrl: u.avatarUrl,
+      globalRole: u.globalRole as UserRole,
+      isActive: true,
+      teams: [],
+      activeTasksCount: 0,
+    }));
   }
 
   async findById(id: string) {
@@ -167,7 +183,68 @@ export class UsersService {
     };
   }
 
-  async create(dto: CreateUserDto, actorId: string, actorRole: UserRole) {
+  async getSecurity(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id, deletedAt: null },
+      select: { id: true, firstName: true, lastName: true, email: true, globalRole: true, isActive: true, lastLoginAt: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const [sessions, loginHistory] = await Promise.all([
+      this.prisma.session.findMany({
+        where: { userId: id },
+        select: { id: true, createdAt: true, lastSeenAt: true, expiresAt: true, isRevoked: true },
+        orderBy: { lastSeenAt: 'desc' },
+        take: 100,
+      }),
+      this.prisma.auditLog.findMany({
+        where: { actorId: id, action: { in: ['USER_LOGIN', 'USER_LOGIN_FAILED', 'USER_LOGOUT', 'SESSION_REVOKED'] } },
+        select: { id: true, action: true, createdAt: true, ipAddress: true, userAgent: true },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      }),
+    ]);
+    return { user, sessions, loginHistory };
+  }
+
+  async revokeSession(userId: string, sessionId: string, actorId: string, auditContext?: AuditContext) {
+    const result = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.session.updateMany({
+        where: { id: sessionId, userId, isRevoked: false },
+        data: { isRevoked: true },
+      });
+      if (!updated.count) throw new NotFoundException('Active session not found');
+      await tx.auditLog.create({ data: {
+        actorId, action: AuditAction.SESSION_REVOKED, entityType: 'Session', entityId: sessionId,
+        ipAddress: auditContext?.ipAddress, userAgent: auditContext?.userAgent,
+        detailsJson: JSON.stringify({ affectedUserId: userId, scope: 'single' }),
+      } });
+      return updated.count;
+    });
+    return { success: true, revokedCount: result };
+  }
+
+  async revokeAllSessions(userId: string, actorId: string, auditContext?: AuditContext) {
+    const exists = await this.prisma.user.count({ where: { id: userId, deletedAt: null } });
+    if (!exists) throw new NotFoundException('User not found');
+    const count = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.session.updateMany({ where: { userId, isRevoked: false }, data: { isRevoked: true } });
+      await tx.auditLog.create({ data: {
+        actorId, action: AuditAction.SESSION_REVOKED, entityType: 'User', entityId: userId,
+        ipAddress: auditContext?.ipAddress, userAgent: auditContext?.userAgent,
+        detailsJson: JSON.stringify({ affectedUserId: userId, scope: 'all', revokedCount: updated.count }),
+      } });
+      return updated.count;
+    });
+    return { success: true, revokedCount: count };
+  }
+
+  async create(
+    dto: CreateUserDto,
+    actorId: string,
+    actorRole: UserRole,
+    auditContext?: AuditContext,
+  ) {
     if (dto.globalRole === UserRole.OWNER && actorRole !== UserRole.OWNER) {
       throw new ForbiddenException('Only a Super Admin can create another Super Admin');
     }
@@ -206,15 +283,28 @@ export class UsersService {
       },
     });
 
-    await this.recordAudit(actorId, AuditAction.USER_CREATED, 'User', user.id, {
-      email: user.email,
-      role: user.globalRole,
-    });
+    await this.recordAudit(
+      actorId,
+      AuditAction.USER_CREATED,
+      'User',
+      user.id,
+      {
+        email: user.email,
+        role: user.globalRole,
+      },
+      auditContext,
+    );
 
     return this.findById(user.id);
   }
 
-  async update(id: string, dto: UpdateUserDto, actorId: string, actorRole: UserRole) {
+  async update(
+    id: string,
+    dto: UpdateUserDto,
+    actorId: string,
+    actorRole: UserRole,
+    auditContext?: AuditContext,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -256,16 +346,16 @@ export class UsersService {
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.user.update({
-      where: { id },
-      data: {
-        firstName: dto.firstName !== undefined ? dto.firstName.trim() : undefined,
-        lastName: dto.lastName !== undefined ? dto.lastName.trim() : undefined,
-        jobTitle: dto.jobTitle !== undefined ? dto.jobTitle?.trim() : undefined,
-        avatarUrl: dto.avatarUrl !== undefined ? dto.avatarUrl?.trim() : undefined,
-        globalRole: dto.globalRole !== undefined ? dto.globalRole : undefined,
-        isActive: dto.isActive !== undefined ? dto.isActive : undefined,
-      },
-    });
+        where: { id },
+        data: {
+          firstName: dto.firstName !== undefined ? dto.firstName.trim() : undefined,
+          lastName: dto.lastName !== undefined ? dto.lastName.trim() : undefined,
+          jobTitle: dto.jobTitle !== undefined ? dto.jobTitle?.trim() : undefined,
+          avatarUrl: dto.avatarUrl !== undefined ? dto.avatarUrl?.trim() : undefined,
+          globalRole: dto.globalRole !== undefined ? dto.globalRole : undefined,
+          isActive: dto.isActive !== undefined ? dto.isActive : undefined,
+        },
+      });
 
       if (dto.globalRole !== undefined || dto.isActive !== undefined) {
         await tx.session.updateMany({ where: { userId: id }, data: { isRevoked: true } });
@@ -273,12 +363,18 @@ export class UsersService {
       return result;
     });
 
-    await this.recordAudit(actorId, AuditAction.USER_UPDATED, 'User', id, dto);
+    await this.recordAudit(actorId, AuditAction.USER_UPDATED, 'User', id, dto, auditContext);
 
     return this.findById(updated.id);
   }
 
-  async toggleActive(id: string, isActive: boolean, actorId: string, actorRole: UserRole) {
+  async toggleActive(
+    id: string,
+    isActive: boolean,
+    actorId: string,
+    actorRole: UserRole,
+    auditContext?: AuditContext,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -309,12 +405,20 @@ export class UsersService {
       isActive ? AuditAction.USER_ACTIVATED : AuditAction.USER_DEACTIVATED,
       'User',
       id,
+      undefined,
+      auditContext,
     );
 
     return { success: true, message: `User ${isActive ? 'activated' : 'deactivated'} successfully` };
   }
 
-  async resetPassword(id: string, newPassword: string, actorId: string, actorRole: UserRole) {
+  async resetPassword(
+    id: string,
+    newPassword: string,
+    actorId: string,
+    actorRole: UserRole,
+    auditContext?: AuditContext,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -329,19 +433,19 @@ export class UsersService {
     const passwordHash = await argon2.hash(newPassword);
 
     await this.prisma.$transaction(async (tx) => {
-    await tx.user.update({
-      where: { id },
-      data: { passwordHash, resetPasswordToken: null, resetPasswordExpires: null },
+      await tx.user.update({
+        where: { id },
+        data: { passwordHash, resetPasswordToken: null, resetPasswordExpires: null },
+      });
+
+      // Revoke sessions
+      await tx.session.updateMany({
+        where: { userId: id },
+        data: { isRevoked: true },
+      });
     });
 
-    // Revoke sessions
-    await tx.session.updateMany({
-      where: { userId: id },
-      data: { isRevoked: true },
-    });
-    });
-
-    await this.recordAudit(actorId, AuditAction.PASSWORD_RESET, 'User', id);
+    await this.recordAudit(actorId, AuditAction.PASSWORD_RESET, 'User', id, undefined, auditContext);
 
     return { success: true, message: 'Password reset successfully' };
   }
@@ -352,6 +456,7 @@ export class UsersService {
     entityType: string,
     entityId?: string,
     details?: Record<string, any>,
+    auditContext?: AuditContext,
   ) {
     try {
       await this.prisma.auditLog.create({
@@ -360,6 +465,8 @@ export class UsersService {
           action,
           entityType,
           entityId,
+          ipAddress: auditContext?.ipAddress,
+          userAgent: auditContext?.userAgent,
           detailsJson: details ? JSON.stringify(details) : undefined,
         },
       });

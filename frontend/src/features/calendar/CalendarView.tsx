@@ -23,8 +23,12 @@ import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { TaskPriority, TaskStatus } from '@futurex/shared';
 import { CalendarSkeleton } from '@/components/ui/Skeleton';
 import { useDebounce } from '@/hooks/useDebounce';
+import { calendarDateKey, calendarRange } from './calendar-date';
+import { CalendarYearSelect } from './CalendarYearSelect';
+import { useAuth } from '@/features/auth/AuthContext';
 
 export function CalendarView() {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -37,12 +41,12 @@ export function CalendarView() {
   const month = currentDate.getMonth();
 
   // Range-bound tasks query to current month +/- 1 month padding
-  const startDate = new Date(year, month - 1, 1).toISOString();
-  const endDate = new Date(year, month + 2, 0).toISOString();
+  const { startDate, endDate } = calendarRange(currentDate);
 
   // Fetch range-bounded tasks for calendar
   const { data: tasksData, isLoading: tasksLoading } = useQuery({
-    queryKey: ['tasks', 'calendar', year, month],
+    queryKey: ['tasks', 'calendar', user?.id, year, month],
+    enabled: !!user,
     queryFn: () => api.get(`/tasks?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}`),
     staleTime: 30000,
   });
@@ -110,7 +114,7 @@ export function CalendarView() {
 
   // Get tasks for a given date
   const getTasksForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = calendarDateKey(date);
     return tasks.filter((t) => t.dueDate && t.dueDate.startsWith(dateStr));
   };
 
@@ -215,6 +219,7 @@ export function CalendarView() {
               <span className="text-xs font-medium text-[#17191C] min-w-[120px] text-center">
                 {monthNames[month]} {year}
               </span>
+              <CalendarYearSelect value={currentDate} onChange={setCurrentDate} />
               <button
                 onClick={nextPeriod}
                 className="p-1 rounded text-[#8C939E] hover:text-[#17191C] hover:bg-white transition-colors"

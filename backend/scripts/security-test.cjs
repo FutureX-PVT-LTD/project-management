@@ -19,6 +19,11 @@ async function main() {
   let result = 0;
   try {
     execFileSync(process.execPath, [require.resolve('prisma/build/index.js'), 'db', 'push', '--skip-generate'], { env, stdio: 'inherit' });
+    execFileSync(process.execPath, [
+      require.resolve('prisma/build/index.js'), 'db', 'execute', '--file',
+      path.join('prisma', 'migrations', '202609100002_audit_log_immutability', 'migration.sql'),
+      '--schema', path.join('prisma', 'schema.prisma'),
+    ], { env, stdio: 'inherit' });
     execFileSync(process.execPath, [require.resolve('jest/bin/jest'), '--runInBand', 'security.integration.spec'], { env, stdio: 'inherit' });
   } catch { result = 1; }
   finally {

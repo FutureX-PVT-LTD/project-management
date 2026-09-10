@@ -2,9 +2,11 @@
 
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { api } from '@/services/api/api-client';
-import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -26,8 +28,16 @@ function ResetPasswordForm() {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long.');
+    if (
+      newPassword.length < 12 ||
+      !/[A-Z]/.test(newPassword) ||
+      !/[a-z]/.test(newPassword) ||
+      !/[0-9]/.test(newPassword) ||
+      !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword)
+    ) {
+      setError(
+        'Password must be at least 12 characters long and include uppercase, lowercase, numbers, and special characters.',
+      );
       return;
     }
 
@@ -45,7 +55,9 @@ function ResetPasswordForm() {
       setIsSuccess(true);
     } catch (err: any) {
       setError(
-        err?.message || 'Password reset link is invalid or has expired. Please request a new link.',
+        err?.response?.data?.message ||
+          err?.message ||
+          'Password reset link is invalid or has expired. Please request a new link.',
       );
     } finally {
       setIsLoading(false);
@@ -54,17 +66,17 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="w-full max-w-[420px] bg-white rounded-[8px] border border-fx-border p-8 shadow-sm text-center">
-        <div className="h-11 w-11 rounded-lg bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3.5">
+      <div className="w-full max-w-[420px] bg-white rounded-[18px] border border-[#E7EBF0] p-7 sm:p-9 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_6px_20px_rgba(0,0,0,0.02)] text-center animate-fxLoginFadeIn">
+        <div className="h-12 w-12 rounded-full bg-[#FEF2F2] text-[#DC2626] flex items-center justify-center mx-auto mb-4 border border-[#FEE2E2]">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h1 className="text-lg font-bold text-fx-text-primary">Invalid Reset Link</h1>
-        <p className="text-xs text-fx-text-secondary mt-1.5 mb-6">
+        <h1 className="text-[20px] font-[650] text-[#17191C]">Invalid reset link</h1>
+        <p className="text-[13px] text-[#626A73] mt-1.5 mb-6">
           No password reset token was provided or the link has expired.
         </p>
         <Link
           href="/forgot-password"
-          className="w-full h-11 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center justify-center"
+          className="w-full h-[46px] bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-[14px] font-[600] rounded-[10px] transition-colors duration-140 flex items-center justify-center"
         >
           Request new reset link
         </Link>
@@ -73,28 +85,23 @@ function ResetPasswordForm() {
   }
 
   return (
-    <div className="w-full max-w-[420px] bg-white rounded-[8px] border border-fx-border p-8 shadow-sm">
+    <div className="w-full max-w-[420px] bg-white rounded-[18px] border border-[#E7EBF0] p-7 sm:p-9 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_6px_20px_rgba(0,0,0,0.02)] animate-fxLoginFadeIn">
       {/* Brand Header */}
-      <div className="flex flex-col items-center text-center mb-7">
-        <div className="h-11 w-11 rounded-lg bg-[#2563EB] text-white flex items-center justify-center font-bold text-lg mb-3.5 shadow-sm">
-          <svg
-            className="w-6 h-6 text-white"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polygon points="12 2 2 7 12 12 22 7 12 2" />
-            <polyline points="2 17 12 22 22 17" />
-            <polyline points="2 12 12 17 22 12" />
-          </svg>
+      <div className="flex flex-col items-center text-center mb-6">
+        <div className="relative w-[148px] h-[52px] overflow-hidden mb-4">
+          <Image
+            src="/images/futurex-logo.png"
+            alt="FutureX"
+            width={148}
+            height={148}
+            priority
+            className="w-[148px] h-[148px] -mt-[48px] object-contain select-none pointer-events-none"
+          />
         </div>
-        <h1 className="text-[22px] font-bold text-fx-text-primary tracking-tight">
-          Create New Password
+        <h1 className="text-[24px] sm:text-[26px] font-[650] text-[#17191C] tracking-tight">
+          Create new password
         </h1>
-        <p className="text-sm text-fx-text-secondary mt-1.5 font-normal">
+        <p className="text-[14px] text-[#626A73] mt-1 font-normal">
           Choose a secure password for your workspace account.
         </p>
       </div>
@@ -105,17 +112,17 @@ function ResetPasswordForm() {
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-base font-semibold text-fx-text-primary">
+            <h2 className="text-base font-semibold text-[#17191C]">
               Password reset successfully
             </h2>
-            <p className="text-xs text-fx-text-secondary leading-relaxed">
+            <p className="text-xs text-[#626A73] leading-relaxed">
               Your password has been updated. You may now sign in using your new credentials.
             </p>
           </div>
           <div className="pt-3">
             <Link
               href="/login"
-              className="w-full h-11 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center justify-center"
+              className="w-full h-[46px] bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-[14px] font-[600] rounded-[10px] transition-colors duration-140 flex items-center justify-center"
             >
               Sign in to FutureX
             </Link>
@@ -126,38 +133,39 @@ function ResetPasswordForm() {
           {error && (
             <div
               role="alert"
-              className="mb-5 p-3 rounded-lg bg-red-50 border border-red-200/80 flex items-start gap-2.5 text-xs text-red-700 font-medium"
+              className="mb-5 p-3 rounded-[10px] bg-[#FEF2F2] border border-[#FEE2E2] flex items-start gap-2.5 text-[13px] text-[#991B1B] font-normal leading-snug"
             >
-              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-            <div>
+            <div className="space-y-1.5">
               <label
                 htmlFor="new-password"
-                className="block text-[13px] font-semibold text-fx-text-primary mb-1.5"
+                className="block text-[13px] font-[550] text-[#17191C]"
               >
-                New Password
+                New password
               </label>
               <div className="relative">
                 <input
                   id="new-password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
-                  placeholder="At least 8 characters"
+                  placeholder="Minimum 12 chars (upper, lower, digit, symbol)"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   disabled={isLoading}
-                  className="w-full h-11 pl-3.5 pr-11 text-sm text-fx-text-primary bg-white border border-[#E3E7EC] rounded-lg placeholder:text-fx-text-muted transition duration-150 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:cursor-not-allowed"
+                  className="w-full h-[46px] pl-3.5 pr-11 bg-white text-[14px] text-[#17191C] rounded-[10px] border border-[#DDE2E8] placeholder:text-[#9299A2] transition-colors duration-140 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15 disabled:bg-[#F8F9FB] disabled:text-[#9299A2] disabled:cursor-not-allowed"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-fx-text-muted hover:text-fx-text-primary p-1 focus:outline-none rounded"
-                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={0}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-[#626A73] hover:text-[#17191C] rounded-[6px] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/30 cursor-pointer"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -168,22 +176,22 @@ function ResetPasswordForm() {
               </div>
             </div>
 
-            <div>
+            <div className="space-y-1.5">
               <label
                 htmlFor="confirm-password"
-                className="block text-[13px] font-semibold text-fx-text-primary mb-1.5"
+                className="block text-[13px] font-[550] text-[#17191C]"
               >
-                Confirm New Password
+                Confirm new password
               </label>
               <input
                 id="confirm-password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="new-password"
-                placeholder="Re-enter your password"
+                placeholder="Re-enter your new password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={isLoading}
-                className="w-full h-11 px-3.5 text-sm text-fx-text-primary bg-white border border-[#E3E7EC] rounded-lg placeholder:text-fx-text-muted transition duration-150 focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB] disabled:bg-gray-50 disabled:cursor-not-allowed"
+                className="w-full h-[46px] px-3.5 bg-white text-[14px] text-[#17191C] rounded-[10px] border border-[#DDE2E8] placeholder:text-[#9299A2] transition-colors duration-140 focus:outline-none focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15 disabled:bg-[#F8F9FB] disabled:text-[#9299A2] disabled:cursor-not-allowed"
                 required
               />
             </div>
@@ -191,11 +199,11 @@ function ResetPasswordForm() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-11 mt-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-sm font-semibold rounded-lg transition duration-150 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1 disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+              className="w-full h-[46px] mt-2 bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white text-[14px] font-[600] rounded-[10px] transition-colors duration-140 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-2 disabled:opacity-65 disabled:cursor-not-allowed cursor-pointer shadow-none"
             >
               {isLoading ? (
                 <>
-                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Updating password…</span>
                 </>
               ) : (
@@ -211,12 +219,12 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen flex flex-col justify-between items-center px-4 py-8 sm:py-12 bg-fx-bg">
+    <div className="min-h-screen flex flex-col justify-between items-center px-4 py-8 sm:py-12 bg-[#F7F9FC] text-[#17191C] selection:bg-[#EEF4FF] selection:text-[#1D4ED8]">
       <div className="w-full" />
-      <main className="w-full flex justify-center items-center my-auto">
+      <main className="w-full flex justify-center items-center my-auto px-2 sm:px-6">
         <Suspense
           fallback={
-            <div className="flex items-center justify-center p-12">
+            <div className="min-h-[400px] flex items-center justify-center">
               <div className="h-6 w-6 border-2 border-[#2563EB] border-t-transparent rounded-full animate-spin" />
             </div>
           }
@@ -224,8 +232,8 @@ export default function ResetPasswordPage() {
           <ResetPasswordForm />
         </Suspense>
       </main>
-      <footer className="mt-8 text-center text-xs text-fx-text-muted select-none">
-        © 2026 FutureX (Pvt) Ltd.
+      <footer className="mt-8 text-center text-[12px] text-[#9299A2] select-none font-normal">
+        FutureX Internal Workspace
       </footer>
     </div>
   );

@@ -40,8 +40,10 @@ export class FilesController {
   @Get('download/:fileKey')
   async download(@Param('fileKey') fileKey: string, @CurrentUser() actor: AuthUser, @Res() res: Response) {
     const { filePath, fileName } = await this.filesService.getAuthorizedFile(fileKey, actor);
+    const safeName = fileName.replace(/["\r\n]/g, '_');
     res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
     res.setHeader('Content-Type', 'application/octet-stream');
-    return res.download(filePath, fileName);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+    return res.download(filePath, safeName);
   }
 }

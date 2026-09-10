@@ -61,7 +61,8 @@ export class TasksService implements OnModuleInit {
       const legacyAssigned = await this.prisma.task.findMany({
         where: {
           deletedAt: null,
-          OR: [{ assigneeId: userId }, { collaborators: { some: { userId } } }],
+          assigneeId: userId,
+          project: { deletedAt: null, members: { some: { userId } } },
           status: { in: ["TODO", "BACKLOG", "PLANNED"] },
         },
         include: {
@@ -283,6 +284,12 @@ export class TasksService implements OnModuleInit {
       where.parentTaskId = params.parentTaskId;
 
     if (params.startDate || params.endDate) {
+      const start = new Date(params.startDate || '');
+      const end = new Date(params.endDate || '');
+      if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) ||
+          end < start || end.getTime() - start.getTime() > 100 * 86400000) {
+        throw new BadRequestException('Provide a valid date range of at most 100 days');
+      }
       where.dueDate = {};
       if (params.startDate) where.dueDate.gte = new Date(params.startDate);
       if (params.endDate) where.dueDate.lte = new Date(params.endDate);
@@ -380,7 +387,7 @@ export class TasksService implements OnModuleInit {
           },
         },
         subtasks: {
-          where: { deletedAt: null },
+          where: { deletedAt: null, ...(actorRole === UserRole.TEAM_MEMBER ? { assigneeId: actorId } : {}) },
           select: { id: true, status: true },
         },
       },
@@ -508,6 +515,7 @@ export class TasksService implements OnModuleInit {
           },
         },
         dailyUpdates: {
+          where: actorRole === UserRole.TEAM_MEMBER ? { userId: actorId } : {},
           orderBy: { createdAt: "desc" },
           take: 14,
           include: {
@@ -547,6 +555,7 @@ export class TasksService implements OnModuleInit {
           },
         },
         attachments: {
+          where: actorRole === UserRole.TEAM_MEMBER ? { uploaderId: actorId } : {},
           orderBy: { createdAt: "desc" },
           include: {
             uploader: {
@@ -560,6 +569,7 @@ export class TasksService implements OnModuleInit {
           },
         },
         activities: {
+          where: actorRole === UserRole.TEAM_MEMBER ? { userId: actorId } : {},
           orderBy: { createdAt: "desc" },
           take: 20,
           include: {
@@ -628,7 +638,7 @@ export class TasksService implements OnModuleInit {
       const assignee = await this.prisma.user.findFirst({
         where: {
           id: dto.assigneeId,
-          globalRole: UserRole.TEAM_MEMBER,
+          globalRole: { in: [UserRole.TEAM_MEMBER, UserRole.ADMIN, UserRole.OWNER] },
           isActive: true,
           deletedAt: null,
           projectMemberships: { some: { projectId: dto.projectId } },
@@ -869,9 +879,9 @@ export class TasksService implements OnModuleInit {
     }
 
     // Role-based operational boundaries
-    if (isOwnerOrAdmin) {
+    if (isOwnerOrAdmin && !isAssignee) {
       // ADMIN MUST NOT manually update employee task progress
-      if (dto.progress !== undefined) {
+      if (dto.progress !== undefined || dto.actualHours !== undefined || dto.isManualBlocked !== undefined || dto.manualBlockReason !== undefined) {
         throw new ForbiddenException({
           statusCode: 403,
           code: "TASK_PROGRESS_NOT_ALLOWED",
@@ -915,6 +925,10 @@ export class TasksService implements OnModuleInit {
         });
       }
     } else {
+      const membership = await this.prisma.projectMember.findUnique({
+        where: { projectId_userId: { projectId: task.projectId, userId: actorId } },
+      });
+      if (!membership) throw new ForbiddenException('Project membership is required to execute work');
       if (dto.progress !== undefined && (dto.progress >= 100 || dto.progress < task.progress)) {
         throw new BadRequestException('Progress must not decrease and completion requires review');
       }
@@ -946,7 +960,7 @@ export class TasksService implements OnModuleInit {
         dto.collaboratorIds !== undefined ||
         dto.parentTaskId !== undefined;
 
-      if (hasPlanningUpdates) {
+      if (hasPlanningUpdates && !isOwnerOrAdmin) {
         throw new ForbiddenException({
           statusCode: 403,
           code: "TASK_PLANNING_IMMUTABLE",
@@ -1347,16 +1361,6 @@ export class TasksService implements OnModuleInit {
       throw new NotFoundException("Task not found");
     }
 
-    // Role check: Only assigned team members can submit daily updates
-    if (actorRole !== UserRole.TEAM_MEMBER) {
-      throw new ForbiddenException({
-        statusCode: 403,
-        code: "TASK_PROGRESS_NOT_ALLOWED",
-        message:
-          "Admins cannot submit daily progress updates. Daily updates belong only to the assigned team member.",
-      });
-    }
-
     if (task.assigneeId !== userId) {
       throw new ForbiddenException({
         statusCode: 403,
@@ -1364,6 +1368,11 @@ export class TasksService implements OnModuleInit {
         message: "You can only submit daily updates for tasks assigned to you.",
       });
     }
+
+    const membership = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId: task.projectId, userId } },
+    });
+    if (!membership) throw new ForbiddenException('Project membership is required to execute work');
 
     if (task.status !== TaskStatus.IN_PROGRESS) {
       throw new ForbiddenException({
@@ -1469,6 +1478,10 @@ export class TasksService implements OnModuleInit {
         },
       });
 
+      await tx.auditLog.create({ data: {
+        actorId: userId, action: 'TASK_PROGRESS_UPDATED', entityType: 'Task', entityId: taskId,
+        detailsJson: JSON.stringify({ projectId: task.projectId, progressBefore: task.progress, progressAfter: dto.progress }),
+      } });
       const author = await tx.user.findUnique({
         where: { id: userId },
         select: { firstName: true, lastName: true },
@@ -1787,7 +1800,7 @@ export class TasksService implements OnModuleInit {
     const userIds = [...new Set([dto.assigneeId, ...(dto.collaboratorIds || [])].filter(Boolean))];
     if (userIds.length) {
       const eligible = await this.prisma.user.count({ where: {
-        id: { in: userIds }, globalRole: UserRole.TEAM_MEMBER, isActive: true, deletedAt: null,
+        id: { in: userIds }, globalRole: { in: [UserRole.TEAM_MEMBER, UserRole.ADMIN, UserRole.OWNER] }, isActive: true, deletedAt: null,
         projectMemberships: { some: { projectId } },
       } });
       if (eligible !== userIds.length) throw new BadRequestException('Assignees and collaborators must be active project members');
@@ -1875,19 +1888,13 @@ export class TasksService implements OnModuleInit {
     actionType: TaskActionType,
     description: string,
   ) {
-    try {
-      await this.prisma.taskActivity.create({
-        data: {
-          taskId,
-          projectId,
-          userId,
-          actionType,
-          description,
-        },
-      });
-    } catch (e) {
-      // ignore
-    }
+    await this.prisma.taskActivity.create({
+      data: { taskId, projectId, userId, actionType, description },
+    });
+    await this.prisma.auditLog.create({
+      data: { actorId: userId, action: `TASK_${actionType}`, entityType: 'Task', entityId: taskId,
+        detailsJson: JSON.stringify({ projectId, description }) },
+    });
   }
 
   private mapTaskToDto(t: any) {

@@ -8,6 +8,7 @@ datasource db {
 }
 
 model User {
+  additionalWork AdditionalWork[]
   id           String    @id @default(uuid())
   email        String    @unique
   passwordHash String
@@ -75,6 +76,7 @@ model TeamMember {
 }
 
 model Project {
+  additionalWork AdditionalWork[]
   id                       String    @id @default(uuid())
   key                      String    @unique // e.g. "CR", "HM", "WEB"
   name                     String
@@ -436,4 +438,24 @@ model Session {
 
   @@index([userId])
   @@index([refreshTokenHash])
+}
+
+model AdditionalWork {
+  id           String   @id @default(uuid())
+  projectId    String
+  creatorId    String
+  title        String
+  description  String
+  workDate     DateTime @db.Date
+  minutesSpent Int?
+  source       String   @default("MEMBER_ADDITIONAL_WORK")
+  countsTowardProductProgress Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  creator User @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+
+  @@index([creatorId, workDate])
+  @@index([projectId, workDate])
 }

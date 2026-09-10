@@ -38,6 +38,7 @@ export function OwnerDashboard() {
   const projects = asArray<any>(projectsData);
   const urgentTasks = asArray<any>(ownerData, 'needsAttention');
 
+
   if (isLoading && !ownerData) {
     return <DashboardSkeleton />;
   }

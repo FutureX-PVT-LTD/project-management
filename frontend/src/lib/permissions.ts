@@ -56,7 +56,7 @@ export function canUpdateTaskProgress(
 ): boolean {
   if (!user || !task) return false;
   return (
-    user.globalRole === UserRole.TEAM_MEMBER &&
+    user.isActive !== false &&
     task.assigneeId === user.id &&
     task.status === TaskStatus.IN_PROGRESS
   );
@@ -68,7 +68,7 @@ export function canStartTask(
 ): boolean {
   if (!user || !task) return false;
   return (
-    user.globalRole === UserRole.TEAM_MEMBER &&
+    user.isActive !== false &&
     task.assigneeId === user.id &&
     task.status === TaskStatus.READY
   );
@@ -80,7 +80,7 @@ export function canSubmitForReview(
 ): boolean {
   if (!user || !task) return false;
   return (
-    user.globalRole === UserRole.TEAM_MEMBER &&
+    user.isActive !== false &&
     task.assigneeId === user.id &&
     task.status === TaskStatus.IN_PROGRESS
   );
@@ -88,11 +88,12 @@ export function canSubmitForReview(
 
 export function canReviewTask(
   user?: AuthUser | null,
-  task?: { status?: TaskStatus | string } | null,
+  task?: { status?: TaskStatus | string; assigneeId?: string | null } | null,
 ): boolean {
   if (!user || !task) return false;
   return (
     (user.globalRole === UserRole.ADMIN || user.globalRole === UserRole.OWNER) &&
+    task.assigneeId !== user.id &&
     task.status === TaskStatus.IN_REVIEW
   );
 }
@@ -103,9 +104,8 @@ export function canReportBlocker(
 ): boolean {
   if (!user || !task) return false;
   return (
-    user.globalRole === UserRole.TEAM_MEMBER &&
+    user.isActive !== false &&
     task.assigneeId === user.id &&
     task.status === TaskStatus.IN_PROGRESS
   );
 }
-

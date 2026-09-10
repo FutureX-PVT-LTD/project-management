@@ -264,10 +264,11 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    // Revoke active sessions for user
-    await this.prisma.session.updateMany({
-      where: { userId, isRevoked: false },
-      data: { isRevoked: true },
+    await this.prisma.$transaction(async (tx) => {
+      const revoked = await tx.session.updateMany({ where: { userId, isRevoked: false }, data: { isRevoked: true } });
+      await tx.auditLog.create({ data: { actorId: userId, action: 'USER_LOGOUT', entityType: 'User', entityId: userId } });
+      await tx.auditLog.create({ data: { actorId: userId, action: 'SESSION_REVOKED', entityType: 'User', entityId: userId,
+        detailsJson: JSON.stringify({ reason: 'logout', count: revoked.count }) } });
     });
     return { success: true, message: 'Logged out successfully' };
   }

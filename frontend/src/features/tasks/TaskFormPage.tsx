@@ -49,7 +49,7 @@ export function TaskFormPage() {
   const projectMembers = useMemo(
     () =>
       asArray<any>(project.members).filter(
-        (m) => m.user?.globalRole === UserRole.TEAM_MEMBER && m.user?.isActive !== false,
+        (m) => m.user?.isActive !== false,
       ),
     [project.members],
   );

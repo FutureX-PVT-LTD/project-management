@@ -104,7 +104,7 @@ export class FilesService {
     await requireProject(this.prisma, projectId, actor);
     const attachments = await this.prisma.taskAttachment.findMany({
       where: { projectId, ...(actor.globalRole === UserRole.TEAM_MEMBER
-        ? { OR: [{ taskId: null }, { task: taskScope(actor) }] } : {}) },
+        ? { OR: [{ taskId: null }, { task: taskScope(actor), uploaderId: actor.id }] } : {}) },
       include: {
         uploader: {
           select: { id: true, firstName: true, lastName: true, avatarUrl: true },
@@ -138,6 +138,9 @@ export class FilesService {
     if (!attachment) throw new NotFoundException('File not found');
     await requireProject(this.prisma, attachment.projectId, actor);
     if (attachment.taskId) await requireTask(this.prisma, attachment.taskId, actor);
+    if (attachment.taskId && actor.globalRole === UserRole.TEAM_MEMBER && attachment.uploaderId !== actor.id) {
+      throw new NotFoundException('File not found');
+    }
     const uploadDir = path.resolve(process.cwd(), 'uploads');
     const filePath = path.resolve(uploadDir, fileKey);
     if (path.dirname(filePath) !== uploadDir) throw new NotFoundException('File not found');

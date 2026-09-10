@@ -37,7 +37,9 @@ export class MilestonesService {
     }));
   }
 
-  async create(dto: CreateMilestoneDto) {
+  async create(dto: CreateMilestoneDto, actor: Actor) {
+    await requireProject(this.prisma, dto.projectId, actor);
+
     const milestone = await this.prisma.milestone.create({
       data: {
         projectId: dto.projectId,
@@ -52,9 +54,11 @@ export class MilestonesService {
     return milestone;
   }
 
-  async update(id: string, dto: UpdateMilestoneDto) {
+  async update(id: string, dto: UpdateMilestoneDto, actor: Actor) {
     const milestone = await this.prisma.milestone.findUnique({ where: { id } });
     if (!milestone) throw new NotFoundException('Milestone not found');
+
+    await requireProject(this.prisma, milestone.projectId, actor);
 
     return this.prisma.milestone.update({
       where: { id },
@@ -68,11 +72,25 @@ export class MilestonesService {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: string, actor: Actor) {
     const milestone = await this.prisma.milestone.findUnique({ where: { id } });
     if (!milestone) throw new NotFoundException('Milestone not found');
 
-    await this.prisma.milestone.delete({ where: { id } });
+    await requireProject(this.prisma, milestone.projectId, actor);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.milestone.delete({ where: { id } });
+      await tx.auditLog.create({
+        data: {
+          actorId: actor.id,
+          action: 'MILESTONE_DELETED',
+          entityType: 'Milestone',
+          entityId: id,
+          detailsJson: JSON.stringify({ projectId: milestone.projectId, name: milestone.name }),
+        },
+      });
+    });
+
     return { success: true, message: 'Milestone deleted' };
   }
 

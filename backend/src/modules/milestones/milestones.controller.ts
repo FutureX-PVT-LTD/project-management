@@ -28,20 +28,23 @@ export class MilestonesController {
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post()
-  async create(@Body() dto: CreateMilestoneDto) {
-    return this.milestonesService.create(dto);
+  async create(@Body() dto: CreateMilestoneDto, @CurrentUser() actor: AuthUser) {
+    return this.milestonesService.create(dto, actor);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateMilestoneDto) {
-    return this.milestonesService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateMilestoneDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.milestonesService.update(id, dto, actor);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    return this.milestonesService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() actor: AuthUser) {
+    return this.milestonesService.delete(id, actor);
   }
-
 }

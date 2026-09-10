@@ -1,5 +1,115 @@
 # FutureX Security Audit and Deployment Verification
 
+## Current Pre-Launch Review: 2026-09-10
+
+**Release recommendation: NOT READY. The application is ready for continued staging security testing, but the production launch gate is not complete.**
+
+This section supersedes the September 9 snapshot below. The latest request contains 85 security, privacy and functional requirements. Confirmed local boundary failures were fixed and the HTTP/PostgreSQL suite was expanded. No production deployment, production password use, live employee attack testing, production backup restore or four-browser verification was performed. The only newly supplied app URL was `http://localhost:3000/login`, not a production origin. Browser automation was rejected by the tool's usage-limit approval check; it was not bypassed.
+
+### Executive Summary and Role Model
+
+- Existing `OWNER` is the Super Admin; no duplicate role was added. OWNER alone reads the full System Audit Log and deletes projects.
+- Existing ADMIN management scope remains workspace-wide. There is no manager-specific product ACL in this application. That policy must be explicitly accepted before launch; if Admins should manage only designated products, this remains an authorization design gap.
+- Execution now requires the actual assignee AND explicit project membership, for MEMBER, ADMIN and OWNER alike. Managers cannot modify someone else's progress, hours or blocker fields through the task update endpoint. Existing review checks reject self-review. No manager is automatically added as an execution member; management UI now permits explicitly selecting one.
+- TEAM_MEMBER project discovery and task reads are backend-scoped. Shared project membership does not authorize all employees' tasks. Team listing no longer returns other employees' workload metrics or email. Reassigned-task daily updates, personal activity and private attachments are restricted.
+- Additional Work uses a separate model, not Task. Creation stamps the authenticated creator, `MEMBER_ADDITIONAL_WORK`, and `countsTowardProductProgress=false`. Only its creator can edit permitted fields while still a project member. There is no deletion, reassignment or official-scope conversion endpoint. Admin/Owner can read logs under the existing management scope, not edit another creator's work.
+
+### Current Findings
+
+| ID | Severity | Evidence / disposition |
+| --- | --- | --- |
+| P01 | HIGH | `audit.controller.ts` allowed ADMIN to read global authentication/security audit. Now OWNER-only, with separate own-login-history and own-session metadata routes. HTTP role and ID-tampering tests pass. |
+| P02 | HIGH | `teams.service.ts` exposed each teammate's workload counts/hours and email to members. Added a query-level minimal directory response for members; test checks the response JSON. |
+| P03 | HIGH | `tasks.service.ts` returned prior assignee daily updates/activity and attachment metadata on reassigned tasks. Added identity filters and matching download checks; HTTP tests exclude private IDs and reject download. Project manager updates/health notes and foreign milestone task counts are also withheld/scoped. |
+| P04 | HIGH | Deployment workflow used unverified `ssh-keyscan`, interpolated secrets into scripts, allowed all dependency builds, rewrote environment/workspace settings, used `prisma db push` and ignored failing health checks. Replaced with verified-known-hosts input, restricted workflow permissions, serialized deployments, frozen dependency install, reviewed migrations and failing upstream checks. Not run on a VPS. |
+| P05 | MEDIUM | Assignee workflow was role-gated to TEAM_MEMBER, preventing assigned Admin/Owner work. Now assignment/membership-based; tests cover task creation, start, daily progress, review submission, self-review rejection, other-review approval and preserved 20% progress. |
+| P06 | MEDIUM | Additional Work, own login-history UI and year selection were absent. Implemented with restrictive DTOs, separate storage, immutable provenance, audit entries, bounded reads, and no product-progress mutation. |
+| P07 | MEDIUM | Calendar local-midnight cells were converted to UTC date keys, shifting dates in Asia/Colombo. Calendar keys now preserve the calendar date; inclusive date ranges include the final day. Backend rejects invalid, reversed or >100-day ranges. |
+| P08 | MEDIUM | Task activity helper silently swallowed audit failures and did not append System Audit Log entries. It now records both; daily progress and logout/session-revocation events append audit rows inside their transactions. Comprehensive all-operation transactional auditing remains unfinished. |
+| P09 | HIGH, OPEN | `deepmerge-ts@7.1.5` through Prisma configuration remains affected by recursive-object stack exhaustion. The patched release is major 8. Plain JSON cannot form the recursive graph; no request handler calling this dependency was found. This is a reachability assessment, not a vulnerability waiver. An approved compatible Prisma/tooling update or documented risk decision is required. |
+| P10 | MEDIUM, OPEN | Two `file-type` advisories and one `@nestjs/core` advisory remain. No forced Nest major upgrade or incompatible file-type override was applied. See dependency review. |
+| P11 | HIGH release-control gap, OPEN | Actual HTTPS/Nginx/firewall/PM2 environment, production migration baseline, backup and restore, and browser isolation are unverified. Local results cannot close this gate. |
+| P12 | MEDIUM, OPEN | Auth bootstrap/notification code changed concurrently during this review. Those edits were preserved. Browser login redirect behavior and account-switch rendering have not been verified; no exact production redirect-loop root cause is claimed. |
+| P13 | LOW | Existing frontend lint warnings remain. New screens are typechecked and compile, but mobile/desktop visual QA is still pending. |
+| P14 | MEDIUM | Owner security visibility was incomplete. Added an Owner-only Audit Log navigation item, recent system activity and quiet sign-in/session counts on the Owner dashboard, plus an Owner-only user security page with server-side single/all-session revocation. Role boundaries, response-field minimization and revocation attribution pass HTTP tests. |
+| P15 | MEDIUM | Audit immutability was previously installed with runtime startup DDL that swallowed failures. Removed startup DDL and made the reviewed migration authoritative. The isolated test harness now applies that migration and verifies both UPDATE and DELETE are rejected by PostgreSQL. Production migration application remains a server action. |
+
+No new critical application finding was established in the tested scenarios. This does not establish the absence of critical issues elsewhere.
+
+### Architecture, Authentication and Sessions
+
+The browser uses the existing centralized API client and HttpOnly `access_token` / `refresh_token` cookies. All login, profile, refresh and logout fetches include credentials. The default/public API base is `/api/v1`; Next rewrites to the internal API. The deployment build now explicitly selects `http://127.0.0.1:5040` for that internal rewrite and retains public same-origin `/api/v1`. No localStorage/sessionStorage auth scheme or Next middleware cookie-name check was found.
+
+PostgreSQL Session is authoritative, not an in-memory session map. Access JWT validation checks session ID, user ID, revocation, expiry, idle timeout and active/nondeleted user. Refresh validates the stored hash and atomically rotates it. Login issues a fresh session ID. Password/role/status changes revoke sessions. Passwords use Argon2; reset/session credentials are not stored as plaintext. Current cookie helpers require HttpOnly, Path=/, lax/strict SameSite, and Secure in production. No Domain attribute is set. Production CORS requires configured HTTPS origins; mutations require the custom header and exact origin validation. Backend trust proxy remains loopback-only when configured.
+
+These properties were reviewed in source and selected behavior was exercised over HTTP. Actual production cookie storage/transmission, HTTPS termination, time skew, consistent process secrets, instance count and restarts were not inspected. The repository PM2 ecosystem describes one backend entry, but does not prove the running instance count. Do not weaken cookie/CORS/CSRF/guards to diagnose localhost.
+
+### Authorization Matrix and Tested Boundaries
+
+| Surface | MEMBER-A / MEMBER-B | ADMIN | OWNER | Evidence |
+| --- | --- | --- | --- | --- |
+| Task read/update | Own assigned work + membership | Workspace management; own execution only | Workspace management; own execution only | Foreign IDs and foreign progress attempts rejected |
+| Daily updates/activity | Own permitted history | Management read; own updates | Management read; own updates | Reassignment history test, spoofed userId rejection |
+| Additional Work | Own create/read/edit; no delete | Management read, own create/edit | Management read, own create/edit | Foreign read/edit, projectId/creator/source/progress tampering and DELETE tested |
+| Projects/checklist | Member product and assigned checklist | Existing workspace management | Workspace management/delete | Unrelated product lookup denied; generation/bulk workflow not fully retested |
+| Private task file | Authorized task + own uploader identity | Authorized management | Authorized management | Foreign task and previous-assignee download denied |
+| Project-only shared file | Explicitly shared project file under membership | Management | Management | This remains shared product context, not a private employee attachment |
+| Search | Backend-scoped task/product results | Management scope | Management scope | Unrelated confidential title absent |
+| Calendar | Own assigned tasks in requested range | Management scope | Management scope | Foreign due-date task excluded; invalid/wide ranges denied |
+| Notifications | Own rows and mark-read only | Own | Own | Foreign mark-read leaves DB row unchanged |
+| Global audit/security history | Denied | Denied | Allowed | 403 for members/Admin; Owner dashboard summary and filtered log return 200 |
+| User security/session revocation | Denied | Denied | Allowed | Owner-only detail response excludes credential hashes; revocation audit actor comes from authenticated session |
+| Personal login/session metadata | Own | Own | Own | Injected foreign actor/user ID cannot change result scope; hashes absent |
+| Reports and management actions | Denied | Existing workspace management | Allowed | Direct report/create/review/user-management requests tested |
+
+Read minimization does not rely on React filtering. New DTOs reject unknown creator, performer, assignee, source, status and official-progress fields. Only selected safe user fields are returned in member directory responses. Existing task comments/review outcomes remain task-shared context; a dedicated confidential manager-note classification/redaction policy has not been implemented. Minimal prerequisite labels/status are retained for task readiness. Parent/dependent task labels need an additional property-level policy review.
+
+### Measured Verification
+
+- `backend`: `npm run test:security` passed **43/43** real HTTP integration tests using OWNER, ADMIN, MEMBER-A and MEMBER-B cookie jars and a new isolated local PostgreSQL schema. The harness creates random test credentials and removes only its generated schema; no live employee passwords are used. It also applies the audit immutability migration inside that disposable schema. Expected denial responses in test console logs are intentional.
+- ID/payload attacks include foreign task/project/file/comment/notification/work-log IDs, arbitrary assignee/creator/role/progress/source fields, invalid date ranges and oversized audit limits. Positive checks accompany representative negative boundaries. This is not yet an attack replay for every endpoint in the 85-point request.
+- `backend`: existing unit tests **15/15** pass; 42 integration cases are intentionally skipped by the ordinary unit command and run separately through `test:security`. Production build passes.
+- `frontend`: production build passes and routes include Additional Work, Login History, calendar and audit. Typecheck passes. Existing lint warnings remain; no lint-suppression setting was added.
+- `frontend`: `npm run test:calendar` passes **15 assertions** across Asia/Colombo, America/Los_Angeles and UTC, including December/January navigation and inclusive range endpoints.
+- Workflow YAML parsed and all four shell steps passed `bash -n`. Remote commands were not executed. Shell syntax is not a deployment simulation.
+- Bundle scan inspected **53 generated JS files** against configured local backend secret values (minimum 12 characters): **0 value matches**. This does not cover unknown production secrets or prove all bundle contents are safe.
+- Git-history pattern scan checked **22 reachable commits** for private-key blocks, AWS access-key IDs and classic GitHub PAT patterns: **0 candidate files**. This is not an entropy-based or comprehensive secret scan; other credential formats and inaccessible refs remain outside coverage.
+- Source scan found no active frontend localStorage/sessionStorage auth or `unstable_cache` use. The fixed layout script still uses `dangerouslySetInnerHTML`; user-authored descriptions are rendered as React text. An old WebSocket gateway file exists but is not registered in AppModule; no live real-time authorization claim is made.
+- Browser four-profile testing, screenshots, actual Network/Cookie inspection, logout/account-switch visual cache testing, mobile calendar layout and production end-to-end flows were **not run** because browser tool access was rejected. Existing local ports 3000/4000 are listening; this is not proof of browser functionality.
+
+### Database, Migration and Additional Work
+
+`202609100001_additional_work/migration.sql` adds only the separate AdditionalWork table, indexes, foreign keys and constraints. The SQL forbids official-product-progress inclusion and noncanonical source values. It does not change Task or product rollup calculations. `202609100002_audit_log_immutability/migration.sql` adds the PostgreSQL trigger that rejects updates and deletes on AuditLog. The reviewed Additional Work SQL was applied directly to the existing **local** database after checking loopback hostname and table absence; a table query then succeeded. Existing records were not reset or deleted. The audit trigger was verified in disposable integration schemas; its production application is not verified. Test schemas use `db push` for tables followed by the explicit trigger migration, not as a production deployment strategy.
+
+Production must run reviewed migrations after a verified backup and migration-baseline review. Prior environments created with `db push` may not have valid migration history; do not mark migrations applied without checking schema equivalence. Local direct SQL application does not establish a production migration baseline. Windows Prisma generation hit a locked engine DLL; generated client types and integration queries worked with the installed engine, but a clean `prisma generate` after stopping the backend is still required.
+
+Current local `npx prisma migrate status` found all five repository migrations unrecorded, including the Additional Work and AuditLog immutability migrations. This confirms a baseline mismatch; running `migrate deploy` blindly against this populated schema was intentionally avoided. Compare each migration with the live schema, back up first, then establish the migration baseline using Prisma's documented process before deployment.
+
+### Dependency Review
+
+Full-workspace `pnpm audit` initially reported 0 critical, 5 high, 5 moderate, 3 low. Bounded overrides patched glob 10, tmp 0.2.7, picomatch 4, js-yaml 3, webpack 5 and ajv 8, retaining the existing framework major versions and lockfile. Dependencies were installed without lifecycle scripts during this review. Latest audit: **0 critical, 1 high, 3 moderate, 0 low**. No `audit fix --force` was used.
+
+Remaining references: [Deepmerge recursive graph advisory](https://github.com/advisories/GHSA-ggr8-5vv4-36mx), [Nest core advisory](https://github.com/advisories/GHSA-36xv-jgw5-4q75), [file-type ASF parser](https://github.com/advisories/GHSA-5v7r-6r5c-r473), [file-type ZIP parser](https://github.com/advisories/GHSA-j47w-4g3g-c36v). `pnpm why deepmerge-ts --recursive` traced the high finding through `@prisma/config@6.19.3`. The API upload handler currently performs its own restricted basic-signature checks, not these file-type parsers. File scanning remains incomplete; do not treat signature checking as malware detection.
+
+### Remaining Launch Work and Production Verification
+
+1. Resolve or formally review the remaining dependency findings. Re-run compatibility, negative auth and full workflow tests after any major framework/tooling upgrade.
+2. Obtain the real staging/production HTTPS URL and sanitized Nginx/PM2 configuration. Verify external HTTP->HTTPS redirect, secure cookie metadata and transmission, `/auth/me`, refresh, logout, CSRF, exact CORS origin and proxy protocol. Do not include cookie values, passwords or signing secrets in evidence.
+3. Verify DB/Redis/app ports are private, the app DB role is not a superuser, proxy trust is limited, and the runtime actually uses the ecosystem config and stable secrets. Confirm VPS_KNOWN_HOSTS independently, provision the protected GitHub production environment, and set HTTPS/CORS/cookie variables on the host. The workflow no longer manufactures insecure environment defaults.
+4. Implement and verify backup operations: proposed minimum is encrypted daily DB backups plus uploads, 30-day retention in restricted off-host storage, separate restore credentials, and a monthly restore drill. These are **proposed requirements, not configured or tested facts**. Restore into a disposable database, verify row counts/constraints and file downloads, and record recovery time and recovery point before launch.
+5. Complete all-endpoint ID/property attack replay, same-project A/B search and dependency-label tests, concurrent membership removal/reassignment tests, and four isolated browser sessions with cache/account-switch observations. Several legacy query keys lack identity components; protected cache clearing exists but race-free visual isolation is unproven.
+6. Review exact allowed shared product fields and confidential notes. Project progress/health and prerequisite labels remain shared context. Dedicated manager-private comment/review notes and narrowly scoped Admin product ACLs need an explicit business policy.
+7. Finish event-by-event System Audit Log coverage and durable transactional logging for all mutations, including dependencies, checklist bulk assignment, membership removal, password/status changes and stage gates. No application API edits/deletes audit rows, but DB-level append-only permissions/retention are not verified. Search/date/actor/entity/outcome filters and own-login history are implemented; absent historical events cannot be reconstructed.
+8. Finish pagination across legacy unbounded lists, load/rate-limit tests, upload malware/archive handling, and nonce-based CSP work with browser compatibility checks. HSTS must be verified on the real TLS endpoint. Password-reset email delivery remains unverified/incomplete.
+9. Run normal functional acceptance for project create/edit/team, checklist generation and phase assignment, dependency unlock, admin execution, Additional Work, daily progress, review, stage gates, dashboards, calendar, notifications, audit/history/search and expiry. Automated tests cover portions only; stage-gate semantics and complete browser workflows are not signed off.
+10. Stop/restart the local backend, run clean Prisma generation, then visually test the new Audit Log, Owner dashboard security summary and User Security screens at the existing local frontend. No deployment or commit was performed by this review. Concurrent user-authored auth/cookie changes were preserved.
+
+**Bottom line: NOT READY.** The tested backend boundaries now pass the expanded local suite, but unresolved dependency advisories, unverified production controls and blocked browser/profile testing prevent production approval. Do not use this report as production security certification.
+
+---
+
+## Historical Snapshot: September 9
+
 Date: 2026-09-09. Status: **hardening implemented and locally tested; production gate NOT passed**.
 
 This is an evidence-based review against relevant OWASP ASVS 5.0 areas, not an ASVS certification or a claim that every vulnerability has been found. The reported production login shows Bad Gateway. The production URL, PM2 logs, Nginx configuration, database migration state and host/network controls have not been inspected. Do not treat the local test results as production sign-off.

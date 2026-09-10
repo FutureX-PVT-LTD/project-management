@@ -50,7 +50,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       error,
       message,
       timestamp: new Date().toISOString(),
-      path: request.route?.path || 'unmatched',
+      path: request.path || '/',
     };
 
     response.status(status).json(errorResponse);

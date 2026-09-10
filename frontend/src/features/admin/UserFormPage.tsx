@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ShieldCheck } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asRecord } from '@/lib/api-data';
 import { UserRole } from '@futurex/shared';
@@ -107,6 +107,11 @@ export function UserFormPage({ mode }: UserFormPageProps) {
           ]}
           footer={
             <>
+              {mode === 'edit' && userId && currentUser?.globalRole === UserRole.OWNER && (
+                <Link href={`/admin/users/${userId}/security`}>
+                  <Button type="button" variant="secondary" leftIcon={<ShieldCheck className="h-3.5 w-3.5" />}>Security</Button>
+                </Link>
+              )}
               <Link href="/admin/users">
                 <Button type="button" variant="secondary">Cancel</Button>
               </Link>

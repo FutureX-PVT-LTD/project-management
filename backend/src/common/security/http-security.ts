@@ -30,6 +30,33 @@ export function validateSecurityEnvironment() {
   }
 }
 
+export interface AuthCookieOptions {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'lax' | 'strict';
+  path: string;
+}
+
+export function getAuthCookieOptions(): AuthCookieOptions {
+  const isProd = process.env.NODE_ENV === 'production';
+  const secure = isProd || process.env.COOKIE_SECURE === 'true';
+  const sameSite = (process.env.COOKIE_SAMESITE === 'strict' ? 'strict' : 'lax') as 'lax' | 'strict';
+
+  return {
+    httpOnly: true,
+    secure,
+    sameSite,
+    path: '/',
+  };
+}
+
+export function getAuthCookieNames() {
+  return {
+    accessToken: 'access_token',
+    refreshToken: 'refresh_token',
+  };
+}
+
 // A custom header makes browser mutations non-simple requests; exact origin checking
 // also protects same-site sibling origins and applies before multipart parsing.
 export function csrfProtection(req: Request, res: Response, next: NextFunction) {

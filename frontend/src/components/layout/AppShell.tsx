@@ -21,6 +21,7 @@ import {
   X,
   ChevronDown,
   MoreVertical,
+  ShieldCheck,
 } from 'lucide-react';
 
 import { ProfilePopover } from '@/components/ui/ProfilePopover';
@@ -80,6 +81,7 @@ export function AppShell({
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'My Work', href: '/my-work', icon: CheckSquare },
+        { name: 'Additional Work', href: '/additional-work', icon: Plus },
         { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
         { name: 'Team', href: '/team', icon: Users },
         { name: 'Timeline', href: '/timeline', icon: GanttChartSquare },
@@ -89,6 +91,7 @@ export function AppShell({
     : [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'My Work', href: '/my-work', icon: CheckSquare },
+        { name: 'Additional Work', href: '/additional-work', icon: Plus },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
         { name: 'Timeline', href: '/timeline', icon: GanttChartSquare },
@@ -97,6 +100,7 @@ export function AppShell({
 
   const adminNav = [
     { name: 'User Directory', href: '/admin/users', icon: Users },
+    ...(isOwner ? [{ name: 'Audit Log', href: '/admin/audit', icon: ShieldCheck }] : []),
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
 

@@ -2,199 +2,106 @@ name: Deploy Project Management
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: futurex-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    environment: production
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
 
-      - name: Debug repository structure
+      - name: Configure verified SSH
+        shell: bash
         run: |
-          echo "Current directory:"
-          pwd
-          ls -la
-          echo "Backend:"
-          ls -la backend
-          echo "Frontend:"
-          ls -la frontend
-
-      - name: Configure SSH
-        run: |
-          set -e
-
-          SSH_PORT="${{ secrets.VPS_PORT }}"
-          if [ -z "$SSH_PORT" ]; then SSH_PORT=22; fi
-
+          set -euo pipefail
+          : "${VPS_HOST:?Missing VPS_HOST}"
+          : "${VPS_USER:?Missing VPS_USER}"
+          : "${VPS_SSH_KEY:?Missing VPS_SSH_KEY}"
+          : "${VPS_KNOWN_HOSTS:?Set independently verified VPS_KNOWN_HOSTS}"
+          [[ "$VPS_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$VPS_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]]
+          [[ "${VPS_PORT:-22}" =~ ^[0-9]{1,5}$ ]]
           mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy_key ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p "${VPS_PORT:-22}" \
+            "$VPS_USER@$VPS_HOST" 'test -d /var/www/project-management'
 
-          ssh-keyscan -H -p "$SSH_PORT" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Test SSH connection
+      - name: Upload source
+        shell: bash
         run: |
-          set -e
-
-          SSH_PORT="${{ secrets.VPS_PORT }}"
-          if [ -z "$SSH_PORT" ]; then SSH_PORT=22; fi
-
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
-            "echo SSH connected && ls -la /var/www/project-management"
-
-      - name: Upload source to VPS
-        run: |
-          set -e
-
-          SSH_PORT="${{ secrets.VPS_PORT }}"
-          if [ -z "$SSH_PORT" ]; then SSH_PORT=22; fi
-
+          set -euo pipefail
           rsync -az --delete \
-            -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" \
-            --exclude=".git" \
-            --exclude=".github" \
-            --exclude="node_modules" \
-            --exclude="backend/node_modules" \
-            --exclude="frontend/node_modules" \
-            --exclude="frontend/.next" \
-            --exclude=".env" \
-            --exclude="backend/.env" \
-            --exclude="frontend/.env" \
-            --exclude="frontend/.env.local" \
-            --exclude="frontend/.env.production" \
-            --exclude="uploads" \
-            --exclude="backend/uploads" \
-            --exclude="*.log" \
-            ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/project-management/
+            -e "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i $HOME/.ssh/deploy_key -p ${VPS_PORT:-22}" \
+            --exclude='.git' --exclude='.github' --exclude='node_modules' \
+            --exclude='.next' --exclude='.next-dev' --exclude='dist' \
+            --exclude='.env*' --exclude='uploads' --exclude='logs' --exclude='scratch' --exclude='*.log' \
+            ./ "$VPS_USER@$VPS_HOST:/var/www/project-management/"
 
-      - name: Install build restart
+      - name: Validate build migrate and restart
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/deploy_key -p "${VPS_PORT:-22}" "$VPS_USER@$VPS_HOST" 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          cd /var/www/project-management
+          test -f backend/.env
+          test -f frontend/.env.production
+          node -v
+          corepack prepare pnpm@11.19.0 --activate
+          export NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+          corepack pnpm install --frozen-lockfile --prod=false
+          cd backend
+          corepack pnpm exec prisma generate
+          corepack pnpm run typecheck
+          NODE_ENV=test corepack pnpm run test --runInBand
+          corepack pnpm run build
+          node -r dotenv/config -e "require('./dist/common/security/http-security').validateSecurityEnvironment(); const s=require('./dist/modules/auth/auth-secrets'); s.getJwtAccessSecret(); s.getJwtRefreshSecret();"
+          cd ../frontend
+          corepack pnpm run test:calendar
+          export API_URL=http://127.0.0.1:5040 NEXT_PUBLIC_API_URL=/api/v1
+          export NODE_OPTIONS=--max-old-space-size=1024
+          corepack pnpm run build
+          test -f .next/BUILD_ID
+          unset NODE_OPTIONS
+          cd ../backend
+          # Existing databases created with db push require a reviewed migration baseline first.
+          corepack pnpm exec prisma migrate deploy
+          node scripts/check-production.cjs
+          cd ..
+          nginx -t
+          pm2 startOrReload deploy/ecosystem.config.cjs --env production --update-env
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 --max-time 5 --output /dev/null http://127.0.0.1:5040/api/v1/health
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 --max-time 5 --output /dev/null http://127.0.0.1:3040/login
+          curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 2 --max-time 5 --output /dev/null http://127.0.0.1:3040/api/v1/health
+          pm2 save
+          systemctl reload nginx
+          echo 'Build, migration and upstream checks passed; external HTTPS checks remain required.'
+          REMOTE
 
-          SSH_PORT="${{ secrets.VPS_PORT }}"
-          if [ -z "$SSH_PORT" ]; then SSH_PORT=22; fi
-
-          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            set -e
-
-            echo "Runtime versions..."
-            node -v
-            npm -v
-
-            corepack enable
-            corepack prepare pnpm@latest --activate
-            pnpm -v
-
-            cd /var/www/project-management
-
-            echo "Fix pnpm workspace..."
-            cat > pnpm-workspace.yaml <<'PNPMEOF'
-            packages:
-              - "."
-              - "backend"
-              - "frontend"
-
-            onlyBuiltDependencies:
-              - "@nestjs/core"
-              - "@prisma/client"
-              - "@prisma/engines"
-              - "@scarf/scarf"
-              - "argon2"
-              - "prisma"
-              - "esbuild"
-              - "sharp"
-              - "unrs-resolver"
-
-            dangerouslyAllowAllBuilds: true
-            PNPMEOF
-
-            cat > .npmrc <<'NPMEOF'
-            dangerously-allow-all-builds=true
-            ignore-scripts=false
-            NPMEOF
-
-            echo "Check backend env..."
-            if [ ! -f /var/www/project-management/backend/.env ]; then
-              echo "ERROR: backend/.env missing"
-              exit 1
-            fi
-
-            echo "Backend deploy..."
-            cd /var/www/project-management/backend
-
-            grep -q '^COOKIE_SECURE=' .env || echo 'COOKIE_SECURE=false' >> .env
-            grep -q '^COOKIE_SAME_SITE=' .env || echo 'COOKIE_SAME_SITE=lax' >> .env
-            grep -q '^COOKIE_DOMAIN=' .env || echo 'COOKIE_DOMAIN=' >> .env
-
-            sed -i "s/secure: process.env.NODE_ENV === 'production'/secure: process.env.COOKIE_SECURE === 'true'/g" src/modules/auth/auth.controller.ts || true
-
-            cd /var/www/project-management
-            pnpm install
-
-            cd /var/www/project-management/backend
-            pnpm exec prisma generate
-            pnpm exec prisma db push
-            pnpm run build
-
-            pm2 delete project-management-api 2>/dev/null || true
-            pm2 start dist/main.js \
-              --name project-management-api \
-              --cwd /var/www/project-management/backend
-
-            echo "Frontend env..."
-            cd /var/www/project-management/frontend
-
-            cat > .env.production <<'FEOF'
-            API_URL=http://127.0.0.1:5040
-            NEXT_PUBLIC_API_BASE_URL=/api/v1
-            NEXT_PUBLIC_API_URL=/api/v1
-            NEXT_PUBLIC_BACKEND_URL=/api/v1
-            NEXT_PUBLIC_APP_URL=http://159.65.128.70:8094
-            FEOF
-
-            echo "Frontend build..."
-            cd /var/www/project-management/frontend
-
-            rm -rf .next
-            export API_URL=http://127.0.0.1:5040
-            export NEXT_PUBLIC_API_BASE_URL=/api/v1
-            export NEXT_PUBLIC_API_URL=/api/v1
-            export NEXT_PUBLIC_BACKEND_URL=/api/v1
-            export NEXT_PUBLIC_APP_URL=http://159.65.128.70:8094
-            export NEXT_TELEMETRY_DISABLED=1
-            export NODE_OPTIONS="--max-old-space-size=1024"
-
-            pnpm run build
-
-            if [ ! -f .next/BUILD_ID ]; then
-              echo "ERROR: Next.js build failed"
-              exit 1
-            fi
-
-            pm2 delete project-management-frontend 2>/dev/null || true
-            API_URL=http://127.0.0.1:5040 pm2 start /var/www/project-management/frontend/node_modules/next/dist/bin/next \
-              --name project-management-frontend \
-              --cwd /var/www/project-management/frontend \
-              -- start -p 3040 -H 127.0.0.1
-
-            pm2 save
-
-            nginx -t
-            systemctl reload nginx
-
-            echo "Check deployment..."
-            pm2 list
-            curl -i http://127.0.0.1:5040/api/v1/health || true
-            curl -I http://127.0.0.1:3040 || true
-            curl -I http://127.0.0.1:8094 || true
-
-            echo "Deployment completed."
-          EOF
+      - name: Remove temporary SSH key
+        if: always()
+        shell: bash
+        run: rm -f ~/.ssh/deploy_key

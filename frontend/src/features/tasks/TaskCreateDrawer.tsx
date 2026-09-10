@@ -76,7 +76,7 @@ export function TaskCreateDrawer({
   });
 
   const projectMembers = ((currentProject as any)?.members || []).filter(
-    (m: any) => m.user?.globalRole === UserRole.TEAM_MEMBER,
+    (m: any) => m.user?.isActive !== false,
   );
 
   const createTaskMutation = useMutation({

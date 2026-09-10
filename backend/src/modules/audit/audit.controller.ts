@@ -3,30 +3,35 @@ import { AuditService } from './audit.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole, AuditAction } from '@futurex/shared';
+import { UserRole } from '@futurex/shared';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuditQueryDto } from './audit-query.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.OWNER, UserRole.ADMIN)
+@Roles(UserRole.OWNER)
 @Controller('audit-logs')
 export class AuditController {
   constructor(private auditService: AuditService) {}
 
   @Get()
-  async findAll(
-    @Query('action') action?: AuditAction,
-    @Query('actorId') actorId?: string,
-    @Query('entityType') entityType?: string,
-    @Query('search') search?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
-  ) {
-    return this.auditService.findAll({
-      action,
-      actorId,
-      entityType,
-      search,
-      limit: limit ? parseInt(limit, 10) : 50,
-      offset: offset ? parseInt(offset, 10) : 0,
-    });
+  async findAll(@Query() query: AuditQueryDto) {
+    return this.auditService.findAll(query);
+  }
+
+  @Get('dashboard-summary')
+  async dashboardSummary() {
+    return this.auditService.dashboardSummary();
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TEAM_MEMBER)
+  @Get('my-login-history')
+  async ownLoginHistory(@CurrentUser('id') userId: string) {
+    return this.auditService.ownLoginHistory(userId);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN, UserRole.TEAM_MEMBER)
+  @Get('my-sessions')
+  async ownSessions(@CurrentUser('id') userId: string) {
+    return this.auditService.ownSessions(userId);
   }
 }

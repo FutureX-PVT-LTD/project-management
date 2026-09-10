@@ -8,8 +8,13 @@ import {
   IsArray,
   IsBoolean,
   MaxLength,
+  Matches,
 } from 'class-validator';
 import { UserRole } from '@futurex/shared';
+import {
+  PASSWORD_COMPLEXITY_REGEX,
+  PASSWORD_COMPLEXITY_MESSAGE,
+} from '../../auth/dto/login.dto';
 
 export class CreateUserDto {
   @IsEmail({}, { message: 'Must be a valid email' })
@@ -38,8 +43,9 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8, { message: 'Password must be at least 8 characters' })
+  @MinLength(12, { message: 'Password must be at least 12 characters' })
   @MaxLength(128)
+  @Matches(PASSWORD_COMPLEXITY_REGEX, { message: PASSWORD_COMPLEXITY_MESSAGE })
   password: string;
 
   @IsArray()
@@ -79,8 +85,9 @@ export class UpdateUserDto {
 
 export class ResetUserPasswordDto {
   @IsString()
-  @MinLength(8)
+  @MinLength(12, { message: 'Password must be at least 12 characters' })
   @MaxLength(128)
+  @Matches(PASSWORD_COMPLEXITY_REGEX, { message: PASSWORD_COMPLEXITY_MESSAGE })
   newPassword: string;
 }
 

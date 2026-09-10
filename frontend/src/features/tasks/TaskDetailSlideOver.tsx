@@ -622,7 +622,7 @@ export function TaskDetailSlideOver({
                     </div>
 
                     {/* Submission Form OR Status Notices */}
-                    {isAdminOrOwner ? (
+                    {isAdminOrOwner && !isAssignee ? (
                       /* Admin: Read-only notice, no input form */
                       null
                     ) : isAssignee ? (

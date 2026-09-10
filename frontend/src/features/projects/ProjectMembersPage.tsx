@@ -26,8 +26,8 @@ export function ProjectMembersPage() {
   });
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ['users', 'team-members'],
-    queryFn: () => api.get('/users?role=TEAM_MEMBER&isActive=true'),
+    queryKey: ['users', 'eligible-members'],
+    queryFn: () => api.get('/users?isActive=true'),
     enabled: !!projectId,
   });
 
@@ -39,7 +39,6 @@ export function ProjectMembersPage() {
     () =>
       asArray<any>(usersData).filter(
         (u) =>
-          u.globalRole === UserRole.TEAM_MEMBER &&
           u.isActive !== false &&
           !currentMemberUserIds.includes(u.id),
       ),

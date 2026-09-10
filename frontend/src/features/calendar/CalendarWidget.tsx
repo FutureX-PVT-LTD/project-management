@@ -13,6 +13,8 @@ import { cn, formatDate } from '@/lib/utils';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
 import Link from 'next/link';
+import { calendarDateKey } from './calendar-date';
+import { CalendarYearSelect } from './CalendarYearSelect';
 
 interface CalendarWidgetProps {
   tasks?: any[];
@@ -110,7 +112,7 @@ export function CalendarWidget({
   }, [tasks, milestones, projects]);
 
   const getDeliverablesForDate = (date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = calendarDateKey(date);
     return deliverablesMap.get(dateStr) || { tasks: [], milestones: [], projects: [], totalCount: 0 };
   };
 
@@ -122,7 +124,7 @@ export function CalendarWidget({
     for (let i = firstDayIndex - 1; i >= 0; i--) {
       const dayNum = daysInPrevMonth - i;
       const date = new Date(year, month - 1, dayNum);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = calendarDateKey(date);
       days.push({
         date,
         dayNum,
@@ -135,7 +137,7 @@ export function CalendarWidget({
     for (let i = 1; i <= daysInMonth; i++) {
       const dayNum = i;
       const date = new Date(year, month, dayNum);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = calendarDateKey(date);
       days.push({
         date,
         dayNum,
@@ -149,7 +151,7 @@ export function CalendarWidget({
     for (let i = 1; i <= remainingCells; i++) {
       const dayNum = i;
       const date = new Date(year, month + 1, dayNum);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = calendarDateKey(date);
       days.push({
         date,
         dayNum,
@@ -172,7 +174,7 @@ export function CalendarWidget({
   return (
     <div className={containerClasses}>
       {/* Widget Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap gap-2 items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div>
             {title && (
@@ -190,6 +192,7 @@ export function CalendarWidget({
         </div>
 
         <div className="flex items-center gap-1.5">
+          <CalendarYearSelect value={currentDate} onChange={setCurrentDate} />
           <button
             type="button"
             onClick={prevMonth}

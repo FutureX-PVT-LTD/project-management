@@ -10,7 +10,9 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto, ResetUserPasswordDto, ToggleUserActiveDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -37,6 +39,39 @@ export class UsersController {
     return this.usersService.findAll({ search, role, teamId, isActive: activeBool });
   }
 
+  @Roles(UserRole.OWNER)
+  @Get(':id/security')
+  async getSecurity(@Param('id') id: string) {
+    return this.usersService.getSecurity(id);
+  }
+
+  @Roles(UserRole.OWNER)
+  @Patch(':id/sessions/:sessionId/revoke')
+  async revokeSession(
+    @Param('id') id: string,
+    @Param('sessionId') sessionId: string,
+    @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
+  ) {
+    return this.usersService.revokeSession(id, sessionId, actor.id, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  }
+
+  @Roles(UserRole.OWNER)
+  @Post(':id/sessions/revoke-all')
+  async revokeAllSessions(
+    @Param('id') id: string,
+    @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
+  ) {
+    return this.usersService.revokeAllSessions(id, actor.id, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  }
+
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Get(':id')
   async findById(@Param('id') id: string) {
@@ -49,8 +84,12 @@ export class UsersController {
   async create(
     @Body() dto: CreateUserDto,
     @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
   ) {
-    return this.usersService.create(dto, actor.id, actor.globalRole);
+    return this.usersService.create(dto, actor.id, actor.globalRole, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
   }
 
   @Roles(UserRole.ADMIN, UserRole.OWNER)
@@ -59,8 +98,12 @@ export class UsersController {
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
     @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
   ) {
-    return this.usersService.update(id, dto, actor.id, actor.globalRole);
+    return this.usersService.update(id, dto, actor.id, actor.globalRole, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
   }
 
   @Roles(UserRole.ADMIN, UserRole.OWNER)
@@ -69,8 +112,12 @@ export class UsersController {
     @Param('id') id: string,
     @Body() dto: ToggleUserActiveDto,
     @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
   ) {
-    return this.usersService.toggleActive(id, dto.isActive, actor.id, actor.globalRole);
+    return this.usersService.toggleActive(id, dto.isActive, actor.id, actor.globalRole, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
   }
 
   @Roles(UserRole.ADMIN, UserRole.OWNER)
@@ -79,7 +126,11 @@ export class UsersController {
     @Param('id') id: string,
     @Body() dto: ResetUserPasswordDto,
     @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
   ) {
-    return this.usersService.resetPassword(id, dto.newPassword, actor.id, actor.globalRole);
+    return this.usersService.resetPassword(id, dto.newPassword, actor.id, actor.globalRole, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
   }
 }

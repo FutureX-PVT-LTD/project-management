@@ -26,6 +26,7 @@ import {
   TaskActionType,
 } from "@futurex/shared";
 import { IdGeneratorUtil } from "../../common/utils/id-generator.util";
+import { projectScope } from '../../common/security/access-policy';
 
 @Injectable()
 export class ProjectsService {
@@ -57,7 +58,7 @@ export class ProjectsService {
             id: true,
             firstName: true,
             lastName: true,
-            email: true,
+            email: user.globalRole !== UserRole.TEAM_MEMBER,
             avatarUrl: true,
             jobTitle: true,
           },
@@ -80,7 +81,7 @@ export class ProjectsService {
           orderBy: { orderIndex: "asc" },
         },
         tasks: {
-          where: { deletedAt: null },
+          where: { deletedAt: null, ...(user.globalRole === UserRole.TEAM_MEMBER ? { assigneeId: user.id } : {}) },
           select: {
             id: true,
             status: true,
@@ -107,11 +108,7 @@ export class ProjectsService {
       // Find current milestone
       const currentMilestone =
         p.milestones.find((m) => m.status !== "COMPLETED") || p.milestones[0];
-      const visibleMembers = p.members.filter(
-        (m) =>
-          m.userId !== p.projectManagerId &&
-          m.user?.globalRole === UserRole.TEAM_MEMBER,
-      );
+      const visibleMembers = p.members;
 
       return {
         id: p.id,
@@ -121,7 +118,7 @@ export class ProjectsService {
         productType: (p as any).productType as ProductType,
         status: p.status as ProjectStatus,
         health: p.health as ProjectHealth,
-        healthReason: p.healthReason,
+        healthReason: user.globalRole === UserRole.TEAM_MEMBER ? undefined : p.healthReason,
         manualHealthOverride: p.manualHealthOverride,
         progress: p.progress,
         launchReadiness: (p as any).launchReadiness,
@@ -154,15 +151,15 @@ export class ProjectsService {
   }
 
   async findById(id: string, user: { id: string; globalRole: UserRole }) {
-    const project = await this.prisma.project.findUnique({
-      where: { id, deletedAt: null },
+    const project = await this.prisma.project.findFirst({
+      where: { AND: [{ id }, projectScope(user)] },
       include: {
         projectManager: {
           select: {
             id: true,
             firstName: true,
             lastName: true,
-            email: true,
+            email: user.globalRole !== UserRole.TEAM_MEMBER,
             avatarUrl: true,
             jobTitle: true,
           },
@@ -174,7 +171,7 @@ export class ProjectsService {
                 id: true,
                 firstName: true,
                 lastName: true,
-                email: true,
+                email: user.globalRole !== UserRole.TEAM_MEMBER,
                 avatarUrl: true,
                 jobTitle: true,
                 globalRole: true,
@@ -186,12 +183,13 @@ export class ProjectsService {
           orderBy: { orderIndex: "asc" },
           include: {
             tasks: {
-              where: { deletedAt: null },
+              where: { deletedAt: null, ...(user.globalRole === UserRole.TEAM_MEMBER ? { assigneeId: user.id } : {}) },
               select: { id: true, status: true },
             },
           },
         },
         updates: {
+          where: user.globalRole === UserRole.TEAM_MEMBER ? { authorId: user.id } : {},
           orderBy: { createdAt: "desc" },
           take: 5,
           include: {
@@ -206,7 +204,7 @@ export class ProjectsService {
           },
         },
         dailyUpdates: {
-          where: user.globalRole === UserRole.TEAM_MEMBER ? { userId: user.id } : {},
+          where: user.globalRole === UserRole.TEAM_MEMBER ? { userId: user.id, task: { assigneeId: user.id, deletedAt: null } } : {},
           orderBy: { createdAt: "desc" },
           take: 10,
           include: {
@@ -319,11 +317,7 @@ export class ProjectsService {
         t.status !== "DONE" &&
         t.status !== "CANCELED",
     ).length;
-    const visibleMembers = project.members.filter(
-      (m) =>
-        m.userId !== project.projectManagerId &&
-        m.user?.globalRole === UserRole.TEAM_MEMBER,
-    );
+    const visibleMembers = project.members;
     const checklistSummary = this.calculateChecklistSummary(project.tasks);
     const phaseProgress = this.calculatePhaseProgress(project.tasks);
 
@@ -335,7 +329,7 @@ export class ProjectsService {
       productType: (project as any).productType as ProductType,
       status: project.status as ProjectStatus,
       health: project.health as ProjectHealth,
-      healthReason: project.healthReason,
+      healthReason: user.globalRole === UserRole.TEAM_MEMBER ? undefined : project.healthReason,
       manualHealthOverride: project.manualHealthOverride,
       progress: project.progress,
       launchReadiness: (project as any).launchReadiness,
@@ -483,7 +477,7 @@ export class ProjectsService {
         ? await this.prisma.user.findMany({
             where: {
               id: { in: rawMemberIds },
-              globalRole: UserRole.TEAM_MEMBER,
+              globalRole: { in: [UserRole.TEAM_MEMBER, UserRole.ADMIN, UserRole.OWNER] },
               isActive: true,
               deletedAt: null,
             },
@@ -783,7 +777,7 @@ export class ProjectsService {
     if (!targetUser || !targetUser.isActive) {
       throw new BadRequestException("Target user is not an active user");
     }
-    if (targetUser.globalRole !== UserRole.TEAM_MEMBER) {
+    if (![UserRole.TEAM_MEMBER, UserRole.ADMIN, UserRole.OWNER].includes(targetUser.globalRole as UserRole)) {
       throw new BadRequestException(
         "Only TEAM_MEMBER users can be assigned as project members",
       );
@@ -1357,7 +1351,7 @@ export class ProjectsService {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
-        globalRole: UserRole.TEAM_MEMBER,
+        globalRole: { in: [UserRole.TEAM_MEMBER, UserRole.ADMIN, UserRole.OWNER] },
         isActive: true,
         deletedAt: null,
         projectMemberships: { some: { projectId } },

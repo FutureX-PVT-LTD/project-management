@@ -1,4 +1,19 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsOptional,
+  IsBoolean,
+  Matches,
+} from 'class-validator';
+
+export const PASSWORD_COMPLEXITY_REGEX =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]).{12,}$/;
+
+export const PASSWORD_COMPLEXITY_MESSAGE =
+  'Password must be at least 12 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character';
 
 export class LoginDto {
   @IsEmail({}, { message: 'Please provide a valid work email address' })
@@ -23,8 +38,9 @@ export class ChangePasswordDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8, { message: 'New password must be at least 8 characters long' })
+  @MinLength(12, { message: 'New password must be at least 12 characters long' })
   @MaxLength(128)
+  @Matches(PASSWORD_COMPLEXITY_REGEX, { message: PASSWORD_COMPLEXITY_MESSAGE })
   newPassword: string;
 }
 
@@ -41,7 +57,8 @@ export class ResetPasswordDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(8, { message: 'New password must be at least 8 characters long' })
+  @MinLength(12, { message: 'New password must be at least 12 characters long' })
   @MaxLength(128)
+  @Matches(PASSWORD_COMPLEXITY_REGEX, { message: PASSWORD_COMPLEXITY_MESSAGE })
   newPassword: string;
 }

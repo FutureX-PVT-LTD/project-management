@@ -13,6 +13,7 @@ import {
   NotificationType,
   UserRole,
 } from '@futurex/shared';
+import { requireProject } from '../../common/security/access-policy';
 
 @Injectable()
 export class DependenciesService {
@@ -46,9 +47,13 @@ export class DependenciesService {
       throw new BadRequestException('Tasks must belong to the same project');
     }
 
+    await requireProject(this.prisma, predTask.projectId, {
+      id: actorId,
+      globalRole: actorRole || UserRole.TEAM_MEMBER,
+    });
+
     // Check duplicate
     const existing = await this.prisma.taskDependency.findUnique({
-
       where: {
         predecessorTaskId_dependentTaskId: {
           predecessorTaskId: dto.predecessorTaskId,
@@ -136,6 +141,20 @@ export class DependenciesService {
       },
     });
 
+    await this.prisma.auditLog.create({
+      data: {
+        actorId,
+        action: 'DEPENDENCY_ADDED',
+        entityType: 'TaskDependency',
+        entityId: dependency.id,
+        detailsJson: JSON.stringify({
+          predecessorTaskId: dto.predecessorTaskId,
+          dependentTaskId: dto.dependentTaskId,
+          projectId: predTask.projectId,
+        }),
+      },
+    });
+
     return dependency;
   }
 
@@ -163,8 +182,27 @@ export class DependenciesService {
       throw new NotFoundException('Dependency not found');
     }
 
-    await this.prisma.taskDependency.delete({ where: { id } });
+    await requireProject(this.prisma, dependency.dependentTask.projectId, {
+      id: actorId,
+      globalRole: actorRole || UserRole.TEAM_MEMBER,
+    });
 
+    await this.prisma.$transaction(async (tx) => {
+      await tx.taskDependency.delete({ where: { id } });
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: 'DEPENDENCY_REMOVED',
+          entityType: 'TaskDependency',
+          entityId: id,
+          detailsJson: JSON.stringify({
+            predecessorTaskId: dependency.predecessorTaskId,
+            dependentTaskId: dependency.dependentTaskId,
+            projectId: dependency.dependentTask.projectId,
+          }),
+        },
+      });
+    });
 
     // Check if dependent task has any remaining incomplete predecessors
     const remainingDeps = dependency.dependentTask.blockedBy.filter(

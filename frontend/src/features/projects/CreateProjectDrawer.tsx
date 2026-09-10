@@ -47,13 +47,13 @@ export function CreateProjectDrawer({
 
   // Fetch only active TEAM_MEMBER users (exclude Admin/Owner)
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ["users", "team-members"],
-    queryFn: () => api.get("/users?role=TEAM_MEMBER&isActive=true"),
+    queryKey: ["users", "eligible-members"],
+    queryFn: () => api.get("/users?isActive=true"),
     enabled: open,
   });
 
   const availableEmployees = ((usersData as any[]) || []).filter(
-    (u) => u.globalRole === UserRole.TEAM_MEMBER && u.isActive !== false,
+    (u) => u.isActive !== false,
   );
 
   const filteredEmployees = availableEmployees.filter((u) => {

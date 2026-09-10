@@ -78,7 +78,7 @@ export class CommentsService {
 
   async update(id: string, dto: UpdateCommentDto, userId: string, userRole: UserRole) {
     const comment = await this.prisma.taskComment.findUnique({ where: { id } });
-    if (!comment) throw new NotFoundException('Comment not found');
+    if (!comment || comment.deletedAt) throw new NotFoundException('Comment not found');
     await requireTask(this.prisma, comment.taskId, { id: userId, globalRole: userRole });
 
     if (comment.authorId !== userId && userRole !== UserRole.OWNER && userRole !== UserRole.ADMIN) {
@@ -118,14 +118,46 @@ export class CommentsService {
 
   async delete(id: string, userId: string, userRole: UserRole) {
     const comment = await this.prisma.taskComment.findUnique({ where: { id } });
-    if (!comment) throw new NotFoundException('Comment not found');
+    if (!comment || comment.deletedAt) throw new NotFoundException('Comment not found');
     await requireTask(this.prisma, comment.taskId, { id: userId, globalRole: userRole });
 
     if (comment.authorId !== userId && userRole !== UserRole.OWNER && userRole !== UserRole.ADMIN) {
       throw new ForbiddenException('You can only delete your own comments');
     }
 
-    await this.prisma.taskComment.delete({ where: { id } });
+    await this.prisma.$transaction(async (tx) => {
+      await tx.taskComment.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+
+      await tx.auditLog.create({
+        data: {
+          actorId: userId,
+          action: 'COMMENT_DELETED',
+          entityType: 'TaskComment',
+          entityId: id,
+          detailsJson: JSON.stringify({ taskId: comment.taskId }),
+        },
+      });
+
+      const task = await tx.task.findUnique({
+        where: { id: comment.taskId },
+        select: { projectId: true },
+      });
+
+      if (task) {
+        await tx.taskActivity.create({
+          data: {
+            taskId: comment.taskId,
+            projectId: task.projectId,
+            userId,
+            actionType: TaskActionType.UPDATED,
+            description: 'Deleted a comment',
+          },
+        });
+      }
+    });
 
     return { success: true, message: 'Comment deleted' };
   }

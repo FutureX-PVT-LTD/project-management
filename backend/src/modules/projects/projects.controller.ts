@@ -48,6 +48,7 @@ export class ProjectsController {
     return this.projectsService.getDevelopmentChecklist(id, user);
   }
 
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Get('development-template/items')
   async getDevelopmentTemplate(@Query('productType') productType?: ProductType) {
     return this.projectsService.getDevelopmentTemplate(productType);

@@ -44,14 +44,14 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
   const project = asRecord(projectData);
 
   const { data: usersData, isLoading: usersLoading } = useQuery({
-    queryKey: ["users", "team-members"],
-    queryFn: () => api.get("/users?role=TEAM_MEMBER&isActive=true"),
+    queryKey: ["users", "eligible-members"],
+    queryFn: () => api.get("/users?isActive=true"),
   });
 
   const employees = useMemo(
     () =>
       asArray<any>(usersData).filter(
-        (u) => u.globalRole === UserRole.TEAM_MEMBER && u.isActive !== false,
+        (u) => u.isActive !== false,
       ),
     [usersData],
   );

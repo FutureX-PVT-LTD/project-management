@@ -8,6 +8,15 @@ export class TeamsService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(memberId?: string) {
+    if (memberId) {
+      const teams = await this.prisma.team.findMany({
+        where: { members: { some: { userId: memberId } } },
+        select: { id: true, name: true, description: true, leadUserId: true, createdAt: true, updatedAt: true,
+          leadUser: { select: publicUserSelect }, members: { select: { user: { select: publicUserSelect } } } },
+        orderBy: { name: 'asc' }, take: 100,
+      });
+      return teams.map((team) => ({ ...team, membersCount: team.members.length, members: team.members.map((member) => member.user) }));
+    }
     const teams = await this.prisma.team.findMany({
       where: memberId ? { members: { some: { userId: memberId } } } : {},
       include: {
