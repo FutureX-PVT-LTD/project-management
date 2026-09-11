@@ -464,6 +464,69 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     const adminRes = await get('/projects/development-template/items', 'admin');
     expect(adminRes.status).toBe(200);
   });
+  it('initializes Marketing once and enforces Product and record ownership', async () => {
+    await ensureSession('a');
+    await ensureSession('b');
+    await ensureSession('admin');
+    const marketingProject = await db.project.create({ data: {
+      key: 'MKTSEC', name: 'Marketing Security Product', projectManagerId: users.admin.id,
+      targetDate: new Date('2026-10-15T00:00:00.000Z'), members: { create: { userId: users.a.id } },
+    } });
+
+    const initialized = await post(`/projects/${marketingProject.id}/marketing/initialize`, 'admin').send({});
+    expect(initialized.status).toBe(201);
+    expect(initialized.body.data?.checklistItems ?? initialized.body.checklistItems).toBe(38);
+    expect(await db.task.count({ where: { projectId: marketingProject.id, workstream: 'MARKETING' } })).toBe(38);
+    expect(await db.marketingChannel.count({ where: { projectId: marketingProject.id } })).toBe(16);
+    expect(await db.marketingContentItem.count({ where: { projectId: marketingProject.id } })).toBe(10);
+    expect(await db.marketingBuzzActivity.count({ where: { projectId: marketingProject.id } })).toBe(7);
+    expect(await db.marketingGate.count({ where: { projectId: marketingProject.id } })).toBe(4);
+    expect(await db.marketingSignoffItem.count({ where: { projectId: marketingProject.id } })).toBe(8);
+
+    const checklistItem = await db.task.findFirstOrThrow({ where: { projectId: marketingProject.id, checklistCode: 'MI-01' } });
+    await db.task.update({ where: { id: checklistItem.id }, data: { assigneeId: users.a.id, status: 'READY', allowParallelWork: true } });
+    expect((await patch(`/tasks/${checklistItem.id}`, 'a').send({ status: 'IN_PROGRESS' })).status).toBe(200);
+    expect((await patch(`/tasks/${checklistItem.id}`, 'a').send({ status: 'IN_REVIEW', checklistEvidenceUrl: 'https://example.com/evidence', checklistNotes: 'Account ownership verified.' })).status).toBe(200);
+    expect((await patch(`/tasks/${checklistItem.id}`, 'b').send({ checklistNotes: 'spoofed' })).status).toBe(404);
+    expect((await post(`/tasks/${checklistItem.id}/review`, 'admin').send({ status: 'APPROVED', completeTask: true })).status).toBe(201);
+    const completedChecklistItem = await db.task.findUniqueOrThrow({ where: { id: checklistItem.id } });
+    expect(completedChecklistItem.status).toBe('DONE');
+    expect(completedChecklistItem.checklistEvidenceUrl).toBe('https://example.com/evidence');
+
+    const repeated = await post(`/projects/${marketingProject.id}/marketing/initialize`, 'admin').send({});
+    expect(repeated.status).toBe(201);
+    expect(repeated.body.data?.alreadyInitialized ?? repeated.body.alreadyInitialized).toBe(true);
+    expect(await db.task.count({ where: { projectId: marketingProject.id, workstream: 'MARKETING' } })).toBe(38);
+
+    expect((await get(`/projects/${marketingProject.id}/marketing/summary`, 'b')).status).toBe(404);
+    expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(403);
+    await db.project.update({ where: { id: marketingProject.id }, data: { marketingOwnerId: users.a.id } });
+    expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(200);
+
+    const content = await db.marketingContentItem.findFirstOrThrow({ where: { projectId: marketingProject.id } });
+    expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'admin').send({ ownerId: users.a.id })).status).toBe(200);
+    expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'a').send({ assetStatus: 'IN_PRODUCTION' })).status).toBe(200);
+    expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'b').send({ assetStatus: 'READY' })).status).toBe(404);
+    const gate = await db.marketingGate.findFirstOrThrow({ where: { projectId: marketingProject.id } });
+    expect((await patch(`/projects/${marketingProject.id}/marketing/gates/${gate.id}`, 'a').send({ status: 'APPROVED' })).status).toBe(403);
+    expect((await patch(`/projects/${marketingProject.id}/marketing/gates/${gate.id}`, 'admin').send({ status: 'APPROVED' })).status).toBe(400);
+
+    const completedWindow = await db.marketingBuzzActivity.findFirstOrThrow({ where: { projectId: marketingProject.id }, orderBy: { startDate: 'asc' } });
+    await db.marketingBuzzActivity.update({ where: { id: completedWindow.id }, data: { status: 'DONE' } });
+    const originalCompletedDate = completedWindow.startDate.toISOString();
+    const preview = await get(`/projects/${marketingProject.id}/marketing/reschedule-preview?targetDate=2026-11-15`, 'admin');
+    expect(preview.status).toBe(200);
+    expect((preview.body.data ?? preview.body)).toHaveLength(6);
+    expect((await patch(`/projects/${marketingProject.id}/marketing/reschedule`, 'admin').send({ targetDate: '2026-11-15' })).status).toBe(200);
+    expect((await db.marketingBuzzActivity.findUniqueOrThrow({ where: { id: completedWindow.id } })).startDate.toISOString()).toBe(originalCompletedDate);
+
+    const signoff = await db.marketingSignoffItem.findFirstOrThrow({ where: { projectId: marketingProject.id } });
+    expect((await patch(`/projects/${marketingProject.id}/marketing/signoff/${signoff.id}`, 'admin').send({ marketingCheck: 'VERIFIED' })).status).toBe(200);
+    expect((await patch(`/projects/${marketingProject.id}/marketing/signoff/${signoff.id}`, 'admin').send({ pmCheck: 'VERIFIED' })).status).toBe(200);
+    expect((await db.marketingSignoffItem.findUniqueOrThrow({ where: { id: signoff.id } })).finalStatus).toBe('READY');
+    const audit = await db.auditLog.findFirst({ where: { action: 'MARKETING_WORKSPACE_INITIALIZED', entityId: marketingProject.id } });
+    expect(audit?.actorId).toBe(users.admin.id);
+  });
   it('keeps dashboard audit and user security controls Owner-only', async () => {
     await ensureSession('owner');
     await ensureSession('admin');

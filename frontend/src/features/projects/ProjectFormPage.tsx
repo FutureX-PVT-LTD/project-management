@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Check, Search, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Code2, Megaphone, Search, X } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { asArray, asRecord } from "@/lib/api-data";
 import { ProductType, UserRole } from "@futurex/shared";
@@ -26,6 +26,8 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [targetMarket, setTargetMarket] = useState("");
+  const [targetLanguage, setTargetLanguage] = useState("");
   const [productType, setProductType] = useState<ProductType>(ProductType.GAME);
   const [startDate, setStartDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -34,6 +36,9 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [memberSearch, setMemberSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState(1);
+  const [developmentEnabled, setDevelopmentEnabled] = useState(true);
+  const [marketingEnabled, setMarketingEnabled] = useState(true);
 
   const { data: projectData } = useQuery({
     queryKey: ["project", projectId],
@@ -71,6 +76,8 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
     if (mode !== "edit" || !project?.id) return;
     setName(project.name || "");
     setDescription(project.description || "");
+    setTargetMarket(project.targetMarket || "");
+    setTargetLanguage(project.targetLanguage || "");
     setProductType(project.productType || ProductType.GAME);
     setStartDate(project.startDate ? project.startDate.split("T")[0] : "");
     setTargetDate(project.targetDate ? project.targetDate.split("T")[0] : "");
@@ -79,6 +86,8 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
     project?.id,
     project.name,
     project.description,
+    project.targetMarket,
+    project.targetLanguage,
     project.productType,
     project.startDate,
     project.targetDate,
@@ -89,10 +98,14 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
       const payload = {
         name: name.trim(),
         description: description.trim() || undefined,
+        targetMarket: targetMarket.trim() || undefined,
+        targetLanguage: targetLanguage.trim() || undefined,
         productType,
         startDate: startDate ? new Date(startDate).toISOString() : undefined,
         targetDate: targetDate ? new Date(targetDate).toISOString() : undefined,
         memberIds: selectedMemberIds,
+        developmentEnabled,
+        marketingEnabled,
       };
 
       return mode === "create"
@@ -110,7 +123,7 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["reports"] });
       if (mode === "create") {
-        router.push(`/projects/${saved.id}?created=1`);
+        router.push(`/projects/${saved.id}/setup`);
       } else {
         queryClient.invalidateQueries({ queryKey: ["project", projectId] });
         router.push(`/projects/${projectId}?updated=1`);
@@ -135,7 +148,25 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
       setError("Product name is required.");
       return;
     }
+    if (mode === "create" && marketingEnabled && !targetDate) {
+      setError("Target Launch Date is required when Marketing & Launch is enabled.");
+      setStep(1);
+      return;
+    }
     saveMutation.mutate();
+  };
+
+  const nextStep = () => {
+    setError(null);
+    if (step === 1 && !name.trim()) {
+      setError("Product name is required.");
+      return;
+    }
+    if (step === 3 && !developmentEnabled && !marketingEnabled) {
+      setError("Enable at least one Product workstream.");
+      return;
+    }
+    setStep((current) => Math.min(4, current + 1));
   };
 
   return (
@@ -173,12 +204,14 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                   Cancel
                 </Button>
               </Link>
-              <Button type="submit" loading={saveMutation.isPending}>
-                {mode === "create" ? "Create Product" : "Save Product"}
-              </Button>
+              {mode === "create" && step > 1 && <Button type="button" variant="secondary" leftIcon={<ArrowLeft className="h-3.5 w-3.5" />} onClick={() => setStep((current) => current - 1)}>Back</Button>}
+              {mode === "create" && step < 4 ? <Button type="button" rightIcon={<ArrowRight className="h-3.5 w-3.5" />} onClick={nextStep}>Continue</Button> : <Button type="submit" loading={saveMutation.isPending}>{mode === "create" ? "Create Product" : "Save Product"}</Button>}
             </>
           }
         >
+          {mode === "create" && <div className="grid grid-cols-4 border-b border-fx-border text-[11px]">
+            {["Details", "Team", "Workstreams", "Review"].map((label, index) => <div key={label} className={cn("border-b-2 px-2 py-2 text-center", step === index + 1 ? "border-[#2563EB] font-semibold text-[#245EC7]" : "border-transparent text-fx-text-muted")}>{index + 1}. {label}</div>)}
+          </div>}
           {error && (
             <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-800 flex gap-2">
               <AlertCircle className="h-4 w-4 shrink-0" />
@@ -186,7 +219,7 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
             </div>
           )}
 
-          <section className="bg-white border border-fx-border rounded-lg p-4 space-y-4">
+          {(mode === "edit" || step === 1) && <section className="bg-white border border-fx-border rounded-lg p-4 space-y-4">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">
               Product Details
             </h2>
@@ -249,6 +282,10 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                 })}
               </div>
             </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div><label className="block text-xs font-medium text-fx-text-primary mb-1">Target Market</label><Input value={targetMarket} onChange={(e) => setTargetMarket(e.target.value)} placeholder="Sri Lanka" /></div>
+              <div><label className="block text-xs font-medium text-fx-text-primary mb-1">Target Language</label><Input value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)} placeholder="English / Sinhala" /></div>
+            </div>
             <div>
               <label className="block text-xs font-medium text-fx-text-primary mb-1">
                 Description
@@ -261,9 +298,9 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                 placeholder="Scope, release target, and important production notes."
               />
             </div>
-          </section>
+          </section>}
 
-          <section className="bg-white border border-fx-border rounded-lg p-4 space-y-4">
+          {(mode === "edit" || step === 1) && <section className="bg-white border border-fx-border rounded-lg p-4 space-y-4">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">
               Schedule
             </h2>
@@ -289,9 +326,9 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                 />
               </div>
             </div>
-          </section>
+          </section>}
 
-          {mode === "create" && (
+          {mode === "create" && step === 2 && (
             <section className="bg-white border border-fx-border rounded-lg p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">
@@ -376,6 +413,16 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
               </div>
             </section>
           )}
+          {mode === "create" && step === 3 && <section className="space-y-3">
+            <button type="button" onClick={() => setDevelopmentEnabled((value) => !value)} className={cn("flex w-full items-start gap-3 rounded-lg border p-4 text-left", developmentEnabled ? "border-[#2563EB] bg-[#F7FAFF]" : "border-fx-border")}><span className={cn("mt-0.5 flex h-5 w-5 items-center justify-center rounded border", developmentEnabled && "border-[#2563EB] bg-[#2563EB] text-white")}>{developmentEnabled && <Check className="h-3.5 w-3.5" />}</span><Code2 className="h-4 w-4 text-[#60666F]" /><span><strong className="block text-sm">Development</strong><span className="mt-1 block text-xs text-fx-text-muted">FutureX Development Checklist · 46 standard items · generated unassigned</span></span></button>
+            <button type="button" onClick={() => setMarketingEnabled((value) => !value)} className={cn("flex w-full items-start gap-3 rounded-lg border p-4 text-left", marketingEnabled ? "border-[#2563EB] bg-[#F7FAFF]" : "border-fx-border")}><span className={cn("mt-0.5 flex h-5 w-5 items-center justify-center rounded border", marketingEnabled && "border-[#2563EB] bg-[#2563EB] text-white")}>{marketingEnabled && <Check className="h-3.5 w-3.5" />}</span><Megaphone className="h-4 w-4 text-[#60666F]" /><span><strong className="block text-sm">Marketing & Launch</strong><span className="mt-1 block text-xs text-fx-text-muted">Infrastructure, channels, content, buzz, gates and sign-off · generated unassigned</span></span></button>
+            {marketingEnabled && !targetDate && <p className="text-xs text-[#9A6515]">Marketing Buzz dates require a Target Launch Date. Go back and add one before creating.</p>}
+          </section>}
+          {mode === "create" && step === 4 && <section className="space-y-5 rounded-lg border border-fx-border p-4">
+            <div><h2 className="text-sm font-semibold text-fx-text-primary">{name}</h2><p className="mt-1 text-xs text-fx-text-muted">{productType.replace(/_/g, " ")} · {targetMarket || "Market not specified"} · Launch {targetDate || "not scheduled"}</p></div>
+            <div className="grid gap-4 sm:grid-cols-2"><div className="border-t border-fx-border pt-3"><p className="text-xs font-semibold">Product Team</p><p className="mt-1 text-xs text-fx-text-muted">{selectedMemberIds.length} selected members</p></div><div className="border-t border-fx-border pt-3"><p className="text-xs font-semibold">Workstreams</p><p className="mt-1 text-xs text-fx-text-muted">{[developmentEnabled && "Development", marketingEnabled && "Marketing & Launch"].filter(Boolean).join(" + ")}</p></div></div>
+            <p className="text-xs text-fx-text-secondary">Generated work starts unassigned. After creation, use Product Setup to assign responsibilities and individual items.</p>
+          </section>}
         </FormPageLayout>
       </form>
     </AppShell>

@@ -12,6 +12,7 @@ import {
   IsInt,
   MaxLength,
   ArrayMaxSize,
+  IsUrl,
 } from "class-validator";
 import { TaskStatus, TaskPriority, ReviewStatus } from "@futurex/shared";
 
@@ -199,6 +200,15 @@ export class UpdateTaskDto {
   @IsString()
   @IsOptional()
   parentTaskId?: string | null;
+
+  @IsUrl({ require_protocol: true })
+  @IsOptional()
+  checklistEvidenceUrl?: string | null;
+
+  @IsString()
+  @MaxLength(2000)
+  @IsOptional()
+  checklistNotes?: string | null;
 }
 
 export class ReviewTaskDto {

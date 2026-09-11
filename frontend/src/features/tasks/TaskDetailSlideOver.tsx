@@ -36,6 +36,10 @@ interface TaskDetailSlideOverProps {
   onSelectTask?: (id: string) => void;
 }
 
+function marketingStatusLabel(status?: string) {
+  return ({ UNASSIGNED: 'Unassigned', READY: 'Not Started', IN_PROGRESS: 'In Progress', IN_REVIEW: 'Ready for Review', BLOCKED: 'Blocked', DONE: 'Done', N_A: 'N/A' } as Record<string, string>)[status || ''] || String(status || 'Not Started').replace(/_/g, ' ');
+}
+
 export function TaskDetailSlideOver({
   taskId,
   open,
@@ -52,6 +56,8 @@ export function TaskDetailSlideOver({
   const [completedToday, setCompletedToday] = useState('');
   const [blockerNote, setBlockerNote] = useState('');
   const [nextStepNote, setNextStepNote] = useState('');
+  const [checklistEvidenceUrl, setChecklistEvidenceUrl] = useState('');
+  const [checklistNotes, setChecklistNotes] = useState('');
 
   // Review reject state
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -82,6 +88,8 @@ export function TaskDetailSlideOver({
       setUpdateProgress(currentProgress);
       setShowRejectForm(false);
       setRejectFeedback('');
+      setChecklistEvidenceUrl(task.checklistEvidenceUrl || '');
+      setChecklistNotes(task.checklistNotes || '');
     }
   }, [task?.id, currentProgress]);
 
@@ -141,6 +149,22 @@ export function TaskDetailSlideOver({
     },
   });
 
+  const checklistUpdateMutation = useMutation({
+    mutationFn: (status: TaskStatus) => api.patch(`/tasks/${taskId}`, {
+      status,
+      checklistEvidenceUrl: checklistEvidenceUrl.trim() || null,
+      checklistNotes: checklistNotes.trim() || null,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', taskId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['my-work'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['marketing'] });
+    },
+  });
+
   // Create Subtask Mutation
   const createSubtaskMutation = useMutation({
     mutationFn: (title: string) =>
@@ -183,6 +207,7 @@ export function TaskDetailSlideOver({
   const canUpdateProgress = canUpdateTaskProgress(user, task);
   const isAssignee = isTaskAssignee(user, task);
   const isAdminOrOwner = user?.globalRole === UserRole.ADMIN || user?.globalRole === UserRole.OWNER;
+  const isMarketingChecklist = task?.workstream === 'MARKETING' && task?.workType === 'STANDARD_CHECKLIST';
   const unfinishedDeps = blockedBy.filter((b: any) => b.predecessorTask?.status !== TaskStatus.DONE);
   const latestUpdate = progressUpdates[0];
 
@@ -190,6 +215,7 @@ export function TaskDetailSlideOver({
     updateStatusMutation.error ||
     reviewMutation.error ||
     progressUpdateMutation.error ||
+    checklistUpdateMutation.error ||
     createSubtaskMutation.error ||
     toggleSubtaskMutation.error;
   const mutationErrorMessage = mutationError instanceof Error ? mutationError.message : '';
@@ -235,7 +261,7 @@ export function TaskDetailSlideOver({
           <div className="px-5 py-2.5 bg-[#F8F9FB] border-b border-[#E8EBEF] flex items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="text-[#8C939E] text-[11px]">Status:</span>
-              <StatusPill status={task?.status || TaskStatus.TODO} size="sm" />
+              {isMarketingChecklist ? <span className="rounded-[5px] border border-[#D9DEE5] bg-white px-2 py-0.5 text-[10px] font-medium text-[#44505E]">{marketingStatusLabel(task?.status)}</span> : <StatusPill status={task?.status || TaskStatus.TODO} size="sm" />}
               {task?.status === TaskStatus.IN_REVIEW && canReview && (
                 <span className="px-1.5 py-0.5 rounded-[4px] bg-[#F5F1FB] text-[#6D52A3] font-medium text-[10px] border border-[#E4D7F5]">
                   Review Required
@@ -253,7 +279,7 @@ export function TaskDetailSlideOver({
                   onClick={() => updateStatusMutation.mutate(TaskStatus.IN_PROGRESS)}
                   leftIcon={<Play className="w-3 h-3 fill-white" />}
                 >
-                  Start Work
+                  {isMarketingChecklist ? 'Start Checklist' : 'Start Work'}
                 </Button>
               )}
 
@@ -265,13 +291,13 @@ export function TaskDetailSlideOver({
                   onClick={() => updateStatusMutation.mutate(TaskStatus.IN_REVIEW)}
                   leftIcon={<Send className="w-3 h-3" />}
                 >
-                  Submit Progress Review
+                  {isMarketingChecklist ? 'Submit Ready for Review' : 'Submit Progress Review'}
                 </Button>
               )}
 
               {canReview && (
                 <>
-                  <Button
+                  {!isMarketingChecklist && <Button
                     size="xs"
                     variant="primary"
                     loading={reviewMutation.isPending}
@@ -284,7 +310,7 @@ export function TaskDetailSlideOver({
                     leftIcon={<CheckCircle2 className="w-3 h-3" />}
                   >
                     Approve Progress
-                  </Button>
+                  </Button>}
                   <Button
                     size="xs"
                     variant="secondary"
@@ -297,7 +323,7 @@ export function TaskDetailSlideOver({
                     }
                     leftIcon={<CheckCircle2 className="w-3 h-3" />}
                   >
-                    Approve & Complete
+                    {isMarketingChecklist ? 'Approve Checklist' : 'Approve & Complete'}
                   </Button>
                   <Button
                     size="xs"
@@ -371,7 +397,7 @@ export function TaskDetailSlideOver({
           <div className="px-5 border-b border-[#E8EBEF] flex items-center gap-5 text-xs font-medium bg-white">
             {[
               { id: 'overview', label: 'Overview' },
-              { id: 'updates', label: 'Daily Updates' },
+              { id: 'updates', label: isMarketingChecklist ? 'Status & Evidence' : 'Daily Updates' },
               { id: 'subtasks', label: `Subtasks (${subtasks.length})` },
               { id: 'activity', label: 'Activity' },
             ].map((tab) => (
@@ -415,7 +441,7 @@ export function TaskDetailSlideOver({
                       </div>
 
                       {/* Read-Only Progress Display */}
-                      <div className="px-3.5 py-3 space-y-2">
+                      {!isMarketingChecklist && <div className="px-3.5 py-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <span className="text-[#60666F] text-[11px] font-medium">Progress</span>
                           <span className="font-mono font-semibold text-xs text-[#17191C]">{task?.progress || 0}%</span>
@@ -437,7 +463,21 @@ export function TaskDetailSlideOver({
                             <span className="font-mono text-[10px]">{formatDate(latestUpdate.createdAt)}</span>
                           </div>
                         )}
-                      </div>
+                      </div>}
+
+                      {isMarketingChecklist && (
+                        <>
+                          <div className="px-3.5 py-2.5 flex items-center justify-between gap-4">
+                            <span className="text-[#60666F] text-[11px] font-medium">Timing</span>
+                            <span className="text-right text-[#17191C]">{task?.checklistStage || 'Not specified'}</span>
+                          </div>
+                          <div className="px-3.5 py-2.5 flex items-center justify-between gap-4">
+                            <span className="text-[#60666F] text-[11px] font-medium">Evidence</span>
+                            {task?.checklistEvidenceUrl ? <a href={task.checklistEvidenceUrl} target="_blank" rel="noreferrer" className="max-w-64 truncate font-medium text-[#245EC7]">Open evidence</a> : <span className="text-[#8C939E]">Not added</span>}
+                          </div>
+                          {task?.checklistNotes && <div className="px-3.5 py-2.5"><span className="text-[#60666F] text-[11px] font-medium">Operational note</span><p className="mt-1 whitespace-pre-wrap text-[#17191C]">{task.checklistNotes}</p></div>}
+                        </>
+                      )}
 
                       <div className="px-3.5 py-2.5 flex items-center justify-between">
                         <span className="text-[#60666F] text-[11px] font-medium">Due Date</span>
@@ -605,7 +645,33 @@ export function TaskDetailSlideOver({
                 )}
 
                 {/* TAB 2: DAILY UPDATES */}
-                {activeTab === 'updates' && (
+                {activeTab === 'updates' && (isMarketingChecklist ? (
+                  <div className="space-y-4">
+                    <div className="border-b border-[#E8EBEF] pb-3">
+                      <h4 className="text-xs font-semibold text-[#17191C]">Checklist Status</h4>
+                      <p className="mt-1 text-[11px] text-[#60666F]">Record evidence or a short operational note, then submit the completed item to Admin for review.</p>
+                    </div>
+                    {(task?.status === TaskStatus.IN_PROGRESS || task?.status === TaskStatus.BLOCKED) && isAssignee ? (
+                      <div className="space-y-3 rounded-[8px] border border-[#E8EBEF] p-4">
+                        <label className="grid gap-1 text-[11px] font-medium text-[#60666F]">Evidence URL (optional)<input type="url" placeholder="https://..." value={checklistEvidenceUrl} onChange={(event) => setChecklistEvidenceUrl(event.target.value)} className="h-9 rounded-[6px] border border-[#D9DEE5] px-2.5 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none" /></label>
+                        <label className="grid gap-1 text-[11px] font-medium text-[#60666F]">Operational note<textarea rows={3} placeholder="What was completed, or what is blocking this item?" value={checklistNotes} onChange={(event) => setChecklistNotes(event.target.value)} className="rounded-[6px] border border-[#D9DEE5] p-2.5 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none" /></label>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {task.status === TaskStatus.BLOCKED ? <Button size="xs" variant="secondary" loading={checklistUpdateMutation.isPending} onClick={() => checklistUpdateMutation.mutate(TaskStatus.IN_PROGRESS)}>Resume</Button> : <Button size="xs" variant="secondary" disabled={!checklistNotes.trim()} loading={checklistUpdateMutation.isPending} onClick={() => checklistUpdateMutation.mutate(TaskStatus.BLOCKED)}>Mark Blocked</Button>}
+                          <Button size="xs" loading={checklistUpdateMutation.isPending} disabled={!checklistEvidenceUrl.trim() && !checklistNotes.trim()} onClick={() => checklistUpdateMutation.mutate(TaskStatus.IN_REVIEW)} leftIcon={<Send className="h-3 w-3" />}>Submit Ready for Review</Button>
+                        </div>
+                      </div>
+                    ) : task?.status === TaskStatus.READY && isAssignee ? (
+                      <div className="flex items-center justify-between gap-3 rounded-[8px] border border-[#D0E1FD] bg-[#EEF4FF] p-4"><p className="text-[11px] text-[#60666F]">This checklist item is ready to begin.</p><Button size="xs" onClick={() => updateStatusMutation.mutate(TaskStatus.IN_PROGRESS)} leftIcon={<Play className="h-3 w-3" />}>Start Checklist</Button></div>
+                    ) : task?.status === TaskStatus.IN_REVIEW ? (
+                      <div className="rounded-[8px] border border-[#E4D7F5] bg-[#F5F1FB] p-4 text-[11px] text-[#594285]">Submitted to Admin. The item becomes Done only after approval.</div>
+                    ) : task?.status === TaskStatus.DONE ? (
+                      <div className="rounded-[8px] border border-[#C6E6D6] bg-[#EDF7F2] p-4 text-[11px] text-[#1E5947]">This checklist item has been reviewed and completed.</div>
+                    ) : (
+                      <div className="rounded-[8px] border border-[#E8EBEF] bg-[#F8F9FB] p-4 text-[11px] text-[#60666F]">Status and evidence are read-only for this item.</div>
+                    )}
+                    {(task?.checklistEvidenceUrl || task?.checklistNotes) && <div className="space-y-2 border-t border-[#E8EBEF] pt-4"><h4 className="text-[11px] font-medium uppercase text-[#8C939E]">Latest Submission</h4>{task.checklistEvidenceUrl && <a href={task.checklistEvidenceUrl} target="_blank" rel="noreferrer" className="block truncate text-xs font-medium text-[#245EC7]">{task.checklistEvidenceUrl}</a>}{task.checklistNotes && <p className="whitespace-pre-wrap text-xs text-[#60666F]">{task.checklistNotes}</p>}</div>}
+                  </div>
+                ) : (
                   <div className="space-y-6">
                     {/* Header Copy */}
                     <div className="pb-1 border-b border-[#E8EBEF] flex items-center justify-between">
@@ -816,7 +882,7 @@ export function TaskDetailSlideOver({
                       )}
                     </div>
                   </div>
-                )}
+                ))}
 
 
                 {/* TAB 3: SUBTASKS */}

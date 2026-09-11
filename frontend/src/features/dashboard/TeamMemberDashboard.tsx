@@ -24,6 +24,7 @@ import { CalendarWidget } from '@/features/calendar/CalendarWidget';
 import { formatDate, formatTimeAgo, formatTaskId, cn } from '@/lib/utils';
 import { canStartTask } from '@/lib/permissions';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
+import { DashboardGreeting } from './DashboardGreeting';
 import Link from 'next/link';
 
 export function TeamMemberDashboard() {
@@ -111,6 +112,11 @@ export function TeamMemberDashboard() {
 
       if (a.dueDate && b.dueDate) {
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      }
+      if (a.workstream === 'MARKETING' && b.workstream === 'MARKETING') {
+        const aOrder = Number(String(a.checklistCode || '').match(/(\d+)$/)?.[1]) || Number.MAX_SAFE_INTEGER;
+        const bOrder = Number(String(b.checklistCode || '').match(/(\d+)$/)?.[1]) || Number.MAX_SAFE_INTEGER;
+        return aOrder - bOrder;
       }
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
@@ -205,13 +211,13 @@ export function TeamMemberDashboard() {
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
           <div>
             <h1 className="fx-page-title">
-              Good morning, {firstName}
+              <DashboardGreeting userName={firstName} />
             </h1>
             <p className="text-[13px] text-[#60666F] mt-1">
               {getGreetingSubtitle()}
             </p>
           </div>
-          <span className="text-[12px] text-[#8B929B] font-medium shrink-0">
+          <span className="text-[12px] text-[#8B929B] font-medium shrink-0" suppressHydrationWarning>
             {now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
           </span>
         </div>
@@ -323,13 +329,13 @@ export function TeamMemberDashboard() {
                 </div>
               </div>
 
-              <div className="space-y-1.5 pt-1">
+              {heroTask.workstream !== 'MARKETING' && <div className="space-y-1.5 pt-1">
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-[#60666F]">Execution Progress</span>
                   <span className="font-mono font-semibold text-[#2463EB]">{heroTask.progress}% complete</span>
                 </div>
                 <Progress value={heroTask.progress} showLabel={false} size="sm" />
-              </div>
+              </div>}
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-[#E8EBEF]">
                 <div className="flex flex-wrap items-center gap-3 text-xs text-[#60666F]">
@@ -358,7 +364,7 @@ export function TeamMemberDashboard() {
                   rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                   className="w-full sm:w-auto"
                 >
-                  {heroTask.status === TaskStatus.IN_REVIEW ? 'View Submission' : 'Update Progress'}
+                  {heroTask.status === TaskStatus.IN_REVIEW ? 'View Submission' : heroTask.workstream === 'MARKETING' ? 'Update Status' : 'Update Progress'}
                 </Button>
               </div>
             </div>
@@ -426,7 +432,7 @@ export function TeamMemberDashboard() {
                       leftIcon={<Play className="w-3.5 h-3.5 fill-white" />}
                       className="w-full sm:w-auto"
                     >
-                      Start Work
+                      {heroTask.workstream === 'MARKETING' ? 'Start Checklist' : 'Start Work'}
                     </Button>
                   )}
                   <Button
@@ -633,7 +639,7 @@ export function TeamMemberDashboard() {
                             }}
                             leftIcon={<Play className="w-3 h-3 text-[#2463EB] fill-[#2463EB]" />}
                           >
-                            Start Work
+                            {task.workstream === 'MARKETING' ? 'Start Checklist' : 'Start Work'}
                           </Button>
                         )}
                       </div>

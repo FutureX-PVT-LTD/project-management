@@ -8,6 +8,7 @@
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "test:calendar": "node scripts/test-calendar.cjs",
+    "test:greeting": "node scripts/test-greeting.cjs",
     "lint": "next lint"
   },
   "dependencies": {

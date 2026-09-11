@@ -19,6 +19,8 @@ import { Button } from '@/components/ui/Button';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { CalendarWidget } from '@/features/calendar/CalendarWidget';
 import { formatDate, formatTimeAgo, formatProjectKey, formatTaskId, getInitials, cn } from '@/lib/utils';
+import { useAuth } from '@/features/auth/AuthContext';
+import { DashboardGreeting } from './DashboardGreeting';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import Link from 'next/link';
 
@@ -41,6 +43,7 @@ function formatTimelineDate(date: Date): string {
 }
 
 export function PMDashboard() {
+  const { user } = useAuth();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [timeScope, setTimeScope] = useState<'today' | 'week' | 'month'>('week');
 
@@ -128,10 +131,10 @@ export function PMDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 pb-4 border-b border-[#E8ECF1]">
         <div>
           <h1 className="text-2xl sm:text-[30px] font-semibold text-[#17191C] tracking-tight">
-            Project Delivery
+            <DashboardGreeting userName={user?.firstName} />
           </h1>
           <p className="text-[13.5px] text-[#626A73] mt-1">
-            Track product execution, reviews and upcoming releases.
+            Project Delivery · Track product execution, reviews and upcoming releases.
           </p>
           <div className="flex items-center gap-2 text-[12.5px] text-[#626A73] mt-1.5 font-medium">
             <span>{activeProjectsCount} active {activeProjectsCount === 1 ? 'product' : 'products'}</span>

@@ -16,6 +16,7 @@ import {
   ListChecks,
   Wand2,
   Users,
+  Megaphone,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { TaskStatus, ProjectHealth } from '@futurex/shared';
@@ -51,6 +52,13 @@ function compactAssignments(assignments: Record<string, string>) {
   );
 }
 
+function checklistPosition(task: any) {
+  const codeNumber = Number(String(task.checklistCode || '').match(/(\d+)$/)?.[1]);
+  if (Number.isFinite(codeNumber) && codeNumber > 0) return codeNumber;
+  const storedOrder = Number(task.checklistOrder);
+  return Number.isFinite(storedOrder) && storedOrder > 0 ? storedOrder : Number.MAX_SAFE_INTEGER;
+}
+
 export function ProjectDetailsPage({
   projectId: propProjectId,
 }: ProjectDetailsPageProps = {}) {
@@ -74,6 +82,12 @@ export function ProjectDetailsPage({
   const { data: projectData, isLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => api.get(`/projects/${projectId}`),
+    enabled: !!projectId,
+    staleTime: 20000,
+  });
+  const { data: marketingSummaryData } = useQuery({
+    queryKey: ['marketing', projectId, 'summary'],
+    queryFn: () => api.get(`/projects/${projectId}/marketing/summary`),
     enabled: !!projectId,
     staleTime: 20000,
   });
@@ -161,11 +175,15 @@ export function ProjectDetailsPage({
   const project = projectData as any;
   const tasks = (project?.tasks || []) as any[];
   const checklistTasks = [...tasks]
-    .filter((task) => task.workType === 'STANDARD_CHECKLIST')
-    .sort((a, b) => (a.checklistOrder || 0) - (b.checklistOrder || 0));
+    .filter((task) => task.workType === 'STANDARD_CHECKLIST' && (task.workstream || 'DEVELOPMENT') === 'DEVELOPMENT')
+    .sort((a, b) => checklistPosition(a) - checklistPosition(b));
   const milestones = (project?.milestones || []) as any[];
   const members = (project?.members || []) as any[];
   const checklistSummary = project?.checklistSummary;
+  const marketingSummary = marketingSummaryData as any;
+  const developmentReadiness = Math.round(project?.launchReadiness || checklistSummary?.completionPercent || 0);
+  const marketingEnabled = (project?.workstreams || []).some((row: any) => row.workstream === 'MARKETING');
+  const productLaunchReady = developmentReadiness === 100 && (!marketingEnabled || marketingSummary?.marketingReadiness === 'READY');
   const phaseProgress = (project?.phaseProgress || []) as any[];
   const checklistPhases = Array.from(
     new Set(checklistTasks.map((task) => task.checklistPhase).filter(Boolean)),
@@ -314,13 +332,10 @@ export function ProjectDetailsPage({
                 </div>
                 <div>
                   <span className="text-[#8B929B]">Launch Readiness:</span>{' '}
-                  <span className="font-mono font-semibold text-[#17191C]">
-                    {Math.round(
-                      project?.launchReadiness ||
-                        checklistSummary?.completionPercent ||
-                        0,
-                    )}%
+                  <span className={cn('font-semibold', productLaunchReady ? 'text-[#237A57]' : 'text-[#9A6515]')}>
+                    {productLaunchReady ? 'Ready' : 'Not ready'}
                   </span>
+                  <span className="ml-2 text-[11px] text-[#8B929B]">Dev {developmentReadiness}%{marketingEnabled ? ` · Marketing ${marketingSummary?.marketingReadiness === 'READY' ? 'Ready' : 'Not ready'}` : ''}</span>
                 </div>
               </div>
 
@@ -373,6 +388,9 @@ export function ProjectDetailsPage({
               </button>
             );
           })}
+          <Link href={`/projects/${projectId}/marketing`} className="px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] fx-transition">
+            <Megaphone className="h-3.5 w-3.5 text-[#8B929B]" /> Marketing
+          </Link>
         </div>
 
         {/* 29. TAB 1: PRODUCT OVERVIEW */}
@@ -1044,7 +1062,8 @@ export function ProjectDetailsPage({
         {/* TAB 5: CALENDAR */}
         {activeTab === 'calendar' && (
           <div className="divide-y divide-[#E8EBEF]">
-            {[...tasks]
+          {[...tasks]
+              .filter((task) => (task.workstream || 'DEVELOPMENT') === 'DEVELOPMENT')
               .filter((task) => task.dueDate)
               .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
               .map((task) => (

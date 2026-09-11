@@ -24,13 +24,15 @@ import {
   AuditAction,
   NotificationType,
   TaskActionType,
+  AuthUser,
 } from "@futurex/shared";
 import { IdGeneratorUtil } from "../../common/utils/id-generator.util";
 import { projectScope } from '../../common/security/access-policy';
+import { MarketingService } from '../marketing/marketing.service';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private marketing: MarketingService) {}
 
   async findAll(
     user: { id: string; globalRole: UserRole },
@@ -63,6 +65,7 @@ export class ProjectsService {
             jobTitle: true,
           },
         },
+        workstreams: true,
         members: {
           include: {
             user: {
@@ -122,6 +125,9 @@ export class ProjectsService {
         manualHealthOverride: p.manualHealthOverride,
         progress: p.progress,
         launchReadiness: (p as any).launchReadiness,
+        targetMarket: p.targetMarket,
+        targetLanguage: p.targetLanguage,
+        workstreams: p.workstreams,
         currentPhase: (p as any).currentPhase,
         checklistGeneratedAt: (p as any).checklistGeneratedAt
           ? (p as any).checklistGeneratedAt.toISOString()
@@ -164,6 +170,8 @@ export class ProjectsService {
             jobTitle: true,
           },
         },
+        marketingOwner: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, jobTitle: true } },
+        workstreams: true,
         members: {
           include: {
             user: {
@@ -236,6 +244,7 @@ export class ProjectsService {
             title: true,
             description: true,
             workType: true,
+            workstream: true,
             checklistTemplateItemId: true,
             checklistCode: true,
             checklistPhase: true,
@@ -318,14 +327,17 @@ export class ProjectsService {
         t.status !== "CANCELED",
     ).length;
     const visibleMembers = project.members;
-    const checklistSummary = this.calculateChecklistSummary(project.tasks);
-    const phaseProgress = this.calculatePhaseProgress(project.tasks);
+    const developmentTasks = project.tasks.filter((task) => task.workstream === "DEVELOPMENT");
+    const checklistSummary = this.calculateChecklistSummary(developmentTasks);
+    const phaseProgress = this.calculatePhaseProgress(developmentTasks);
 
     return {
       id: project.id,
       key: project.key,
       name: project.name,
       description: project.description,
+      targetMarket: project.targetMarket,
+      targetLanguage: project.targetLanguage,
       productType: (project as any).productType as ProductType,
       status: project.status as ProjectStatus,
       health: project.health as ProjectHealth,
@@ -345,6 +357,9 @@ export class ProjectsService {
         : null,
       projectManagerId: project.projectManagerId,
       projectManager: project.projectManager,
+      marketingOwnerId: project.marketingOwnerId,
+      marketingOwner: project.marketingOwner,
+      workstreams: project.workstreams,
       members: visibleMembers.map((m) => ({
         id: m.id,
         projectId: m.projectId,
@@ -396,6 +411,7 @@ export class ProjectsService {
         title: t.title,
         description: t.description,
         workType: (t as any).workType,
+        workstream: t.workstream,
         checklistTemplateItemId: (t as any).checklistTemplateItemId,
         checklistCode: (t as any).checklistCode,
         checklistPhase: (t as any).checklistPhase,
@@ -432,7 +448,7 @@ export class ProjectsService {
     };
   }
 
-  async create(dto: CreateProjectDto, actorId: string, actorRole?: UserRole) {
+  async create(dto: CreateProjectDto, actorId: string, actorRole: UserRole) {
     if (actorRole === UserRole.TEAM_MEMBER) {
       throw new ForbiddenException(
         "Team members are not permitted to create projects.",
@@ -470,7 +486,7 @@ export class ProjectsService {
     // Filter and validate assigned team members (strictly active TEAM_MEMBER users)
     const rawMemberIds = (dto.memberIds || [])
       .map((m: any) => (typeof m === "string" ? m : m.userId))
-      .filter((uid: string) => Boolean(uid) && uid !== actorId);
+      .filter((uid: string) => Boolean(uid));
 
     const eligibleMembers =
       rawMemberIds.length > 0
@@ -490,6 +506,8 @@ export class ProjectsService {
         key: cleanKey,
         name: dto.name.trim(),
         description: dto.description?.trim(),
+        targetMarket: dto.targetMarket?.trim(),
+        targetLanguage: dto.targetLanguage?.trim(),
         productType: dto.productType || ProductType.GAME,
         status: dto.status || ProjectStatus.ACTIVE,
         health: dto.health || ProjectHealth.ON_TRACK,
@@ -505,34 +523,42 @@ export class ProjectsService {
       },
     });
 
-    // Notify assigned members
+    const setup: Record<string, any> = {};
+    try {
+      if (dto.developmentEnabled !== false) {
+        setup.development = await this.generateDevelopmentChecklist(project.id, actorId, actorRole, {});
+      }
+      if (dto.marketingEnabled !== false) {
+        setup.marketing = await this.marketing.initialize(project.id, { id: actorId, globalRole: actorRole } as AuthUser);
+      }
+    } catch (error) {
+      // Workstream records cascade with this just-created Product, avoiding a visible partial setup.
+      await this.prisma.project.delete({ where: { id: project.id } });
+      throw error;
+    }
+
     for (const member of eligibleMembers) {
       await this.prisma.notification.create({
         data: {
           userId: member.id,
           type: NotificationType.PROJECT_MEMBER_ADDED,
-          title: "Assigned to Project",
-          message: `You were added to project ${project.name} (${project.key})`,
+          title: "Assigned to Product",
+          message: `You were added to Product ${project.name} (${project.key})`,
           linkUrl: `/projects/${project.id}`,
         },
       });
     }
 
-    await this.recordAudit(
-      actorId,
-      AuditAction.PROJECT_CREATED,
-      "Project",
-      project.id,
-      {
-        key: project.key,
-        name: project.name,
-      },
-    );
+    await this.recordAudit(actorId, AuditAction.PROJECT_CREATED, "Project", project.id, {
+      key: project.key,
+      name: project.name,
+      workstreams: Object.keys(setup),
+    });
 
-    return this.findById(project.id, {
+    return { ...(await this.findById(project.id, {
       id: actorId,
       globalRole: UserRole.OWNER,
-    });
+    })), setup };
   }
 
   async update(
@@ -555,18 +581,35 @@ export class ProjectsService {
       throw new NotFoundException("Project not found");
     }
 
+    let directTargetDate = dto.targetDate ? new Date(dto.targetDate) : undefined;
+    if (directTargetDate && directTargetDate.getTime() !== project.targetDate?.getTime()) {
+      const marketing = await this.prisma.projectWorkstream.findUnique({
+        where: { projectId_workstream: { projectId: id, workstream: "MARKETING" } },
+        select: { generatedAt: true },
+      });
+      if (marketing?.generatedAt) {
+        await this.marketing.reschedule(id, dto.targetDate!, {
+          id: actorId,
+          globalRole: actorRole!,
+        } as AuthUser);
+        directTargetDate = undefined;
+      }
+    }
+
     const updated = await this.prisma.project.update({
       where: { id },
       data: {
         name: dto.name?.trim(),
         description: dto.description?.trim(),
+        targetMarket: dto.targetMarket?.trim(),
+        targetLanguage: dto.targetLanguage?.trim(),
         productType: dto.productType,
         status: dto.status,
         health: dto.health,
         healthReason: dto.healthReason,
         manualHealthOverride: dto.manualHealthOverride,
         startDate: dto.startDate ? new Date(dto.startDate) : undefined,
-        targetDate: dto.targetDate ? new Date(dto.targetDate) : undefined,
+        targetDate: directTargetDate,
       },
     });
 
@@ -591,7 +634,7 @@ export class ProjectsService {
    */
   async calculateProjectProgress(projectId: string): Promise<number> {
     const tasks = await this.prisma.task.findMany({
-      where: { projectId, deletedAt: null, status: { notIn: ["CANCELED"] } },
+      where: { projectId, workstream: "DEVELOPMENT", deletedAt: null, status: { notIn: ["CANCELED"] } },
       select: {
         status: true,
         progress: true,
@@ -855,6 +898,7 @@ export class ProjectsService {
     return this.prisma.checklistTemplateItem.findMany({
       where: {
         isActive: true,
+        workstream: "DEVELOPMENT",
         applicableTypes: { has: type },
       },
       orderBy: { defaultOrder: "asc" },
@@ -876,7 +920,7 @@ export class ProjectsService {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId, deletedAt: null },
       include: {
-        tasks: { where: { deletedAt: null, workType: "STANDARD_CHECKLIST" } },
+        tasks: { where: { deletedAt: null, workType: "STANDARD_CHECKLIST", workstream: "DEVELOPMENT" } },
       },
     });
     if (!project) throw new NotFoundException("Product not found");
@@ -926,6 +970,7 @@ export class ProjectsService {
             creatorId: actorId,
             assigneeId: null,
             workType: "STANDARD_CHECKLIST",
+            workstream: "DEVELOPMENT",
             checklistTemplateItemId: item.id,
             checklistCode: item.code,
             checklistPhase: item.phase,
@@ -984,6 +1029,11 @@ export class ProjectsService {
           currentPhase: templateItems[0]?.phase || null,
         },
       });
+      await tx.projectWorkstream.upsert({
+        where: { projectId_workstream: { projectId, workstream: "DEVELOPMENT" } },
+        update: { templateVersion, status: "SETUP", generatedAt: new Date() },
+        create: { projectId, workstream: "DEVELOPMENT", templateVersion, status: "SETUP", generatedAt: new Date() },
+      });
 
       await tx.taskActivity.create({
         data: {
@@ -1030,6 +1080,7 @@ export class ProjectsService {
       projectId,
       deletedAt: null,
       workType: "STANDARD_CHECKLIST",
+      workstream: "DEVELOPMENT",
     };
 
     if (user.globalRole === UserRole.TEAM_MEMBER) {
@@ -1093,6 +1144,7 @@ export class ProjectsService {
         projectId,
         deletedAt: null,
         workType: "STANDARD_CHECKLIST",
+        workstream: "DEVELOPMENT",
       },
       include: {
         blockedBy: {
@@ -1173,7 +1225,7 @@ export class ProjectsService {
     }
 
     const checklistItems = await this.prisma.task.findMany({
-      where: { projectId, deletedAt: null, workType: "STANDARD_CHECKLIST" },
+      where: { projectId, deletedAt: null, workType: "STANDARD_CHECKLIST", workstream: "DEVELOPMENT" },
       select: {
         id: true,
         checklistOwnerRole: true,
@@ -1522,11 +1574,12 @@ export class ProjectsService {
 
   private async recalculateProductDelivery(projectId: string) {
     const tasks = await this.prisma.task.findMany({
-      where: { projectId, deletedAt: null },
+      where: { projectId, workstream: "DEVELOPMENT", deletedAt: null },
       select: {
         status: true,
         progress: true,
         workType: true,
+        workstream: true,
         checklistOrder: true,
         checklistPhase: true,
         checklistStage: true,

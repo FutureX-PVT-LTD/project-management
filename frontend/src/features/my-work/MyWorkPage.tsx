@@ -87,7 +87,14 @@ function MyWorkContent() {
   });
 
   const allProjects = asArray<any>(projectsData);
-  const allTasks = asArray<any>(tasksData);
+  const allTasks = [...asArray<any>(tasksData)].sort((a, b) => {
+    if (a.workstream === 'MARKETING' && b.workstream === 'MARKETING') {
+      const aOrder = Number(String(a.checklistCode || '').match(/(\d+)$/)?.[1]) || Number.MAX_SAFE_INTEGER;
+      const bOrder = Number(String(b.checklistCode || '').match(/(\d+)$/)?.[1]) || Number.MAX_SAFE_INTEGER;
+      return aOrder - bOrder;
+    }
+    return 0;
+  });
 
   // Canonical default grouping: NEEDS ATTENTION -> IN PROGRESS -> READY TO START -> WAITING -> UPCOMING -> COMPLETED
   const groupedTasks = useMemo(() => {
@@ -252,7 +259,7 @@ function MyWorkContent() {
               }}
               leftIcon={<Play className="w-3 h-3 fill-white" />}
             >
-              Start Work
+              {task.workstream === 'MARKETING' ? 'Start Checklist' : 'Start Work'}
             </Button>
           );
         }
@@ -278,7 +285,7 @@ function MyWorkContent() {
               setSelectedTaskId(task.id);
             }}
           >
-            {canUpdateTaskProgress(user, task) ? 'Update Progress' : 'View Progress'}
+            {task.workstream === 'MARKETING' ? 'Update Status' : canUpdateTaskProgress(user, task) ? 'Update Progress' : 'View Progress'}
           </Button>
         );
       case TaskStatus.IN_REVIEW:
@@ -372,11 +379,11 @@ function MyWorkContent() {
             {task.title}
           </p>
           <p className="text-[11px] text-[#60666F] truncate">
-            {task.project?.name || 'Project'}
+            {task.project?.name || 'Project'} · {(task.workstream || 'DEVELOPMENT') === 'MARKETING' ? 'Marketing' : 'Development'}
           </p>
         </div>
 
-        {(task.status === TaskStatus.IN_PROGRESS || task.status === TaskStatus.IN_REVIEW) && (
+        {task.workstream !== 'MARKETING' && (task.status === TaskStatus.IN_PROGRESS || task.status === TaskStatus.IN_REVIEW) && (
           <Progress value={progressValue} showLabel size="xs" />
         )}
 

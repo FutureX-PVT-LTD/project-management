@@ -11,6 +11,7 @@ import { calendarDateKey } from '@/features/calendar/calendar-date';
 type WorkLog = {
   id: string; projectId: string; creatorId: string; title: string; description: string;
   workDate: string; minutesSpent: number | null; createdAt: string;
+  workstream: 'DEVELOPMENT' | 'MARKETING';
   project: { name: string }; creator: { firstName: string; lastName: string };
 };
 type MemberProject = { id: string; name: string; members: { userId: string }[] };
@@ -46,7 +47,7 @@ export default function AdditionalWorkPage() {
       event.preventDefault(); setError('');
       const fields = new FormData(event.currentTarget);
       save.mutate({ ...(editing ? {} : { projectId: fields.get('projectId') }), title: fields.get('title'),
-        description: fields.get('description'), workDate: fields.get('workDate'),
+        description: fields.get('description'), workDate: fields.get('workDate'), workstream: fields.get('workstream'),
         ...(fields.get('minutesSpent') ? { minutesSpent: Number(fields.get('minutesSpent')) } : {}),
       });
     }}>
@@ -57,6 +58,7 @@ export default function AdditionalWorkPage() {
         <option value="" disabled>Select project</option>{eligibleProjects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
       </select></label>
       <label className="grid gap-1 text-sm">Title<input name="title" required maxLength={200} defaultValue={editing?.title} className={inputClass} /></label>
+      <label className="grid gap-1 text-sm">Workstream<select name="workstream" required defaultValue={editing?.workstream || 'DEVELOPMENT'} className={inputClass}><option value="DEVELOPMENT">Development</option><option value="MARKETING">Marketing</option></select></label>
       <label className="grid gap-1 text-sm">Work completed<textarea name="description" required maxLength={5000} rows={3} defaultValue={editing?.description} className={inputClass} /></label>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="grid gap-1 text-sm">Work date<input type="date" name="workDate" required defaultValue={editing?.workDate.slice(0, 10) || calendarDateKey(new Date())} className={inputClass} /></label>
@@ -67,7 +69,7 @@ export default function AdditionalWorkPage() {
     {isLoading ? <p className="py-6 text-sm">Loading work logs...</p> : isError ? <p role="alert" className="py-6 text-sm text-red-700">Unable to load work logs.</p> : !logs.length ? <p className="py-6 text-sm text-fx-text-secondary">No additional work recorded.</p> :
       <div className="divide-y divide-fx-border">{logs.map((log) => <article key={log.id} className="flex gap-4 py-4">
         <div className="min-w-0 flex-1"><h2 className="break-words text-sm font-semibold">{log.title}</h2>
-          <p className="mt-1 text-xs text-fx-text-secondary">{log.project.name} · {log.workDate.slice(0, 10)}{log.minutesSpent ? ` · ${log.minutesSpent} min` : ''}</p>
+          <p className="mt-1 text-xs text-fx-text-secondary">{log.project.name} · {log.workstream === 'MARKETING' ? 'Marketing' : 'Development'} · {log.workDate.slice(0, 10)}{log.minutesSpent ? ` · ${log.minutesSpent} min` : ''}</p>
           <p className="mt-2 whitespace-pre-wrap break-words text-sm">{log.description}</p>
           <p className="mt-2 text-xs text-fx-text-secondary">Logged by {log.creator.firstName} {log.creator.lastName} · {new Date(log.createdAt).toLocaleString()}</p>
         </div>

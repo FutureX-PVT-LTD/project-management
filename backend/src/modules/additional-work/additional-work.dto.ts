@@ -1,4 +1,4 @@
-import { IsDateString, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsDateString, IsIn, IsInt, IsOptional, IsString, IsUUID, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 
 export class EditAdditionalWorkDto {
   @IsString() @MinLength(1) @MaxLength(200) @Matches(/\S/)
@@ -12,6 +12,9 @@ export class EditAdditionalWorkDto {
 
   @IsOptional() @IsInt() @Min(1) @Max(1440)
   minutesSpent?: number;
+
+  @IsIn(['DEVELOPMENT', 'MARKETING']) @IsOptional()
+  workstream?: string;
 }
 
 export class CreateAdditionalWorkDto extends EditAdditionalWorkDto {

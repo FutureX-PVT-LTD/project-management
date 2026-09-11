@@ -7,7 +7,7 @@ import { CreateAdditionalWorkDto, EditAdditionalWorkDto } from './additional-wor
 
 const selection = {
   id: true, projectId: true, creatorId: true, title: true, description: true,
-  workDate: true, minutesSpent: true, source: true, countsTowardProductProgress: true,
+  workDate: true, minutesSpent: true, workstream: true, source: true, countsTowardProductProgress: true,
   createdAt: true, updatedAt: true,
   project: { select: { id: true, name: true } }, creator: { select: publicUserSelect },
 } as const;
@@ -44,7 +44,7 @@ export class AdditionalWorkService {
     return this.prisma.$transaction(async (tx) => {
       const log = await tx.additionalWork.create({ data: {
         projectId: dto.projectId, creatorId: actor.id, title: dto.title.trim(),
-        description: dto.description.trim(), workDate: new Date(dto.workDate), minutesSpent: dto.minutesSpent,
+        description: dto.description.trim(), workDate: new Date(dto.workDate), minutesSpent: dto.minutesSpent, workstream: dto.workstream || 'DEVELOPMENT',
         source: 'MEMBER_ADDITIONAL_WORK', countsTowardProductProgress: false,
       }, select: selection });
       await tx.auditLog.create({ data: { actorId: actor.id, action: 'ADDITIONAL_WORK_LOGGED', entityType: 'AdditionalWork', entityId: log.id } });
@@ -58,7 +58,7 @@ export class AdditionalWorkService {
     await this.requireParticipation(existing.projectId, actor);
     return this.prisma.$transaction(async (tx) => {
       const log = await tx.additionalWork.update({ where: { id, creatorId: actor.id }, data: {
-        title: dto.title.trim(), description: dto.description.trim(), workDate: new Date(dto.workDate), minutesSpent: dto.minutesSpent ?? null,
+        title: dto.title.trim(), description: dto.description.trim(), workDate: new Date(dto.workDate), minutesSpent: dto.minutesSpent ?? null, workstream: dto.workstream || existing.workstream,
       }, select: selection });
       await tx.auditLog.create({ data: { actorId: actor.id, action: 'ADDITIONAL_WORK_UPDATED', entityType: 'AdditionalWork', entityId: id } });
       return log;

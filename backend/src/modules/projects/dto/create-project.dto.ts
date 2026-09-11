@@ -32,6 +32,14 @@ export class CreateProjectDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  targetMarket?: string;
+
+  @IsString()
+  @IsOptional()
+  targetLanguage?: string;
+
   @IsEnum(ProductType)
   @IsOptional()
   productType?: ProductType;
@@ -59,6 +67,14 @@ export class CreateProjectDto {
   @IsArray()
   @IsOptional()
   memberIds?: { userId: string; role: ProjectMemberRole }[];
+
+  @IsBoolean()
+  @IsOptional()
+  developmentEnabled?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  marketingEnabled?: boolean;
 }
 
 export class UpdateProjectDto {
@@ -69,6 +85,14 @@ export class UpdateProjectDto {
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsString()
+  @IsOptional()
+  targetMarket?: string;
+
+  @IsString()
+  @IsOptional()
+  targetLanguage?: string;
 
   @IsEnum(ProductType)
   @IsOptional()

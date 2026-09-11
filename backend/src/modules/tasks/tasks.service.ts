@@ -589,7 +589,6 @@ export class TasksService implements OnModuleInit {
     if (!task) {
       throw new NotFoundException("Task not found");
     }
-
     // Role-based access validation
     if (
       actorRole &&
@@ -854,6 +853,12 @@ export class TasksService implements OnModuleInit {
 
     if (!task) {
       throw new NotFoundException("Task not found");
+    }
+    if (
+      (dto.checklistEvidenceUrl !== undefined || dto.checklistNotes !== undefined) &&
+      task.workstream !== "MARKETING"
+    ) {
+      throw new BadRequestException("Checklist evidence fields are only available for Marketing work");
     }
     if (actorRole === UserRole.ADMIN || actorRole === UserRole.OWNER) {
       await this.validateReferences(task.projectId, dto, id);
@@ -1263,6 +1268,10 @@ export class TasksService implements OnModuleInit {
         manualBlockReason,
         parentTaskId:
           dto.parentTaskId !== undefined ? dto.parentTaskId : undefined,
+        checklistEvidenceUrl:
+          dto.checklistEvidenceUrl !== undefined ? dto.checklistEvidenceUrl || null : undefined,
+        checklistNotes:
+          dto.checklistNotes !== undefined ? dto.checklistNotes?.trim() || null : undefined,
       },
     });
 
@@ -1922,12 +1931,15 @@ export class TasksService implements OnModuleInit {
       assignee: t.assignee,
       collaborators: (t.collaborators || []).map((c: any) => c.user || c),
       workType: t.workType,
+      workstream: t.workstream,
       checklistTemplateItemId: t.checklistTemplateItemId,
       checklistCode: t.checklistCode,
       checklistPhase: t.checklistPhase,
       checklistStage: t.checklistStage,
       checklistOwnerRole: t.checklistOwnerRole,
       checklistDoneWhen: t.checklistDoneWhen,
+      checklistEvidenceUrl: t.checklistEvidenceUrl,
+      checklistNotes: t.checklistNotes,
       checklistMandatory: t.checklistMandatory,
       checklistOrder: t.checklistOrder,
       allowParallelWork: t.allowParallelWork,

@@ -43,6 +43,12 @@ model User {
   notifications      Notification[]
   auditLogs          AuditLog[]         @relation("ActorAuditLogs")
   sessions           Session[]
+  marketingOwnedProjects Project[] @relation("MarketingOwner")
+  marketingChannelsAsBackup MarketingChannel[] @relation("ChannelBackupAdmin")
+  marketingContentItems MarketingContentItem[] @relation("ContentOwner")
+  marketingBuzzActivities MarketingBuzzActivity[] @relation("BuzzOwner")
+  approvedMarketingGates MarketingGate[] @relation("MarketingGateApprover")
+  marketingSignoffItems MarketingSignoffItem[] @relation("SignoffOwner")
 
   @@index([email])
   @@index([globalRole])
@@ -81,6 +87,8 @@ model Project {
   key                      String    @unique // e.g. "CR", "HM", "WEB"
   name                     String
   description              String?
+  targetMarket             String?
+  targetLanguage           String?
   productType              String    @default("GAME") // APP, GAME, WEBSITE_TOOL
   status                   String    @default("ACTIVE") // PLANNED, ACTIVE, AT_RISK, COMPLETED, ARCHIVED
   health                   String    @default("ON_TRACK") // ON_TRACK, AT_RISK, OFF_TRACK, COMPLETED
@@ -95,11 +103,13 @@ model Project {
   targetDate               DateTime?
   completedDate            DateTime?
   projectManagerId         String?
+  marketingOwnerId         String?
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
   deletedAt                DateTime?
 
   projectManager  User?             @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
+  marketingOwner  User?             @relation("MarketingOwner", fields: [marketingOwnerId], references: [id], onDelete: SetNull)
   members         ProjectMember[]
   milestones      Milestone[]
   tasks           Task[]
@@ -107,18 +117,26 @@ model Project {
   taskActivities  TaskActivity[]
   dailyUpdates    TaskDailyUpdate[]
   updates         ProjectUpdate[]
+  workstreams     ProjectWorkstream[]
+  marketingChannels MarketingChannel[]
+  marketingContentItems MarketingContentItem[]
+  marketingBuzzActivities MarketingBuzzActivity[]
+  marketingGates MarketingGate[]
+  marketingSignoffItems MarketingSignoffItem[]
 
   @@index([key])
   @@index([status])
   @@index([health])
   @@index([productType])
   @@index([projectManagerId])
+  @@index([marketingOwnerId])
   @@index([targetDate])
 }
 
 model ChecklistTemplateItem {
   id                String   @id @default(uuid())
   code              String   @unique // e.g. PD-01
+  workstream        String   @default("DEVELOPMENT") // DEVELOPMENT, MARKETING
   phase             String
   stage             String?
   title             String
@@ -134,12 +152,14 @@ model ChecklistTemplateItem {
   targetOffsetDays  Int?
   templateVersion   String   @default("2026.09")
   isActive          Boolean  @default(true)
+  sourceConfirmed   Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   generatedTasks Task[]
 
   @@index([phase])
+  @@index([workstream])
   @@index([ownerRole])
   @@index([defaultOrder])
   @@index([isActive])
@@ -191,12 +211,15 @@ model Task {
   creatorId               String
   assigneeId              String?
   workType                String    @default("CUSTOM") // STANDARD_CHECKLIST, CUSTOM
+  workstream              String    @default("DEVELOPMENT") // DEVELOPMENT, MARKETING
   checklistTemplateItemId String?
   checklistCode           String?
   checklistPhase          String?
   checklistStage          String?
   checklistOwnerRole      String?
   checklistDoneWhen       String?
+  checklistEvidenceUrl    String?
+  checklistNotes          String?
   checklistMandatory      Boolean   @default(false)
   checklistOrder          Int?
   allowParallelWork       Boolean   @default(false)
@@ -237,6 +260,7 @@ model Task {
   @@index([status])
   @@index([priority])
   @@index([workType])
+  @@index([workstream])
   @@index([checklistCode])
   @@index([checklistPhase])
   @@index([checklistStage])
@@ -448,6 +472,7 @@ model AdditionalWork {
   description  String
   workDate     DateTime @db.Date
   minutesSpent Int?
+  workstream   String   @default("DEVELOPMENT") // DEVELOPMENT, MARKETING
   source       String   @default("MEMBER_ADDITIONAL_WORK")
   countsTowardProductProgress Boolean @default(false)
   createdAt    DateTime @default(now())
@@ -458,4 +483,134 @@ model AdditionalWork {
 
   @@index([creatorId, workDate])
   @@index([projectId, workDate])
+}
+
+model ProjectWorkstream {
+  id              String    @id @default(uuid())
+  projectId       String
+  workstream      String
+  templateVersion String?
+  status          String    @default("SETUP") // SETUP, ACTIVE, READY, DISABLED
+  generatedAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, workstream])
+  @@index([workstream, status])
+}
+
+model MarketingChannel {
+  id               String   @id @default(uuid())
+  projectId        String
+  code             String
+  platform         String
+  requirement      String   @default("WHEN_APPLICABLE")
+  handle           String?
+  publicUrl         String?
+  adminEmail        String?
+  twoFactorEnabled Boolean  @default(false)
+  backupAdminId    String?
+  status           String   @default("NOT_CREATED")
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  backupAdmin User?   @relation("ChannelBackupAdmin", fields: [backupAdminId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, code])
+  @@index([projectId, status])
+}
+
+model MarketingContentItem {
+  id            String   @id @default(uuid())
+  projectId     String
+  code          String
+  stage         String
+  contentType   String
+  concept       String
+  platforms     String[] @default([])
+  ownerId       String?
+  assetStatus   String   @default("NOT_STARTED")
+  postStatus    String   @default("NOT_POSTED")
+  assetLink     String?
+  notes         String?
+  targetDate    DateTime?
+  scheduledDate DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   User?   @relation("ContentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, code])
+  @@index([projectId, assetStatus])
+  @@index([ownerId])
+}
+
+model MarketingBuzzActivity {
+  id              String   @id @default(uuid())
+  projectId       String
+  code            String
+  stage           String
+  objective       String
+  startOffsetDays Int
+  endOffsetDays   Int
+  startDate       DateTime
+  endDate         DateTime
+  platforms       String[] @default([])
+  ownerId         String?
+  status          String   @default("NOT_STARTED")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   User?   @relation("BuzzOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, code])
+  @@index([projectId, startDate])
+  @@index([ownerId])
+}
+
+model MarketingGate {
+  id           String    @id @default(uuid())
+  projectId    String
+  code         String
+  name         String
+  requirement  String
+  status       String    @default("NOT_READY")
+  approvedById String?
+  approvedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  approvedBy User?   @relation("MarketingGateApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, code])
+  @@index([projectId, status])
+}
+
+model MarketingSignoffItem {
+  id             String    @id @default(uuid())
+  projectId      String
+  code           String
+  checkName      String
+  requirement    String
+  marketingCheck String    @default("PENDING")
+  pmCheck        String    @default("PENDING")
+  issueGap       String?
+  ownerId        String?
+  targetFixDate  DateTime?
+  finalStatus    String    @default("PENDING")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   User?   @relation("SignoffOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, code])
+  @@index([projectId, finalStatus])
 }

@@ -17,9 +17,12 @@ import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { CalendarWidget } from '@/features/calendar/CalendarWidget';
 import { formatDate, cn } from '@/lib/utils';
 import { DashboardSkeleton } from '@/components/ui/Skeleton';
+import { useAuth } from '@/features/auth/AuthContext';
+import { DashboardGreeting } from './DashboardGreeting';
 import Link from 'next/link';
 
 export function OwnerDashboard() {
+  const { user } = useAuth();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Fetch Owner Portfolio metrics
@@ -61,10 +64,10 @@ export function OwnerDashboard() {
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-[#E8EBEF] pb-6">
         <div>
           <h1 className="fx-page-title">
-            Executive Studio Overview
+            <DashboardGreeting userName={user?.firstName} />
           </h1>
           <p className="text-[13px] text-[#60666F] mt-1">
-            Portfolio health, release readiness, and strategic deliverable governance.
+            Executive Studio Overview · Portfolio health, release readiness, and strategic deliverable governance.
           </p>
         </div>
 

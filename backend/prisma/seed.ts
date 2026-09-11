@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 import { seedDevelopmentChecklist } from './development-checklist.seed';
+import { seedMarketingChecklist } from './marketing-template.seed';
 
 const prisma = new PrismaClient();
 
@@ -91,6 +92,7 @@ async function main() {
   });
 
   const checklistSeed = await seedDevelopmentChecklist(prisma);
+  const marketingSeed = await seedMarketingChecklist(prisma);
 
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('🚀 FutureX Initial Seed Completed Successfully!');
@@ -107,6 +109,10 @@ async function main() {
   console.log(`   Version: ${checklistSeed.version}`);
   console.log(`   Seeded rows: ${checklistSeed.seededCount}`);
   console.log(`   Missing source rows: ${checklistSeed.missingSourceRows}`);
+  console.log(`📣 Marketing Checklist Template:`);
+  console.log(`   Version: ${marketingSeed.version}`);
+  console.log(`   Seeded rows: ${marketingSeed.seededCount}`);
+  console.log(`   Source confirmed: ${marketingSeed.sourceConfirmed}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log('📊 Database Summary:');
   console.log('   Super Admin:      ensured');
