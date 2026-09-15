@@ -155,13 +155,17 @@ export class MarketingService {
     return this.prisma.$transaction(async (tx: any) => {
       let assignedCount = 0;
       let teamIndex = 0;
+      const teamPhases = new Map<string, string>();
       if (dto.headId) await tx.project.update({ where: { id: projectId }, data: { marketingOwnerId: dto.headId } });
       for (const task of tasks) {
-        if (task.assigneeId) continue;
+        const phaseOwner = task.checklistPhase && phaseMappings[task.checklistPhase];
+        if (task.assigneeId && !phaseOwner) continue;
         const coordinationTask = ['MARKETING_LEAD', 'PROJECT_MANAGER'].includes(task.checklistOwnerRole);
-        const assigneeId = (task.checklistPhase && phaseMappings[task.checklistPhase]) || (task.checklistOwnerRole && mappings[task.checklistOwnerRole]) || (coordinationTask ? dto.headId : teamIds.length ? teamIds[teamIndex++ % teamIds.length] : undefined);
-        if (!assigneeId) continue;
-        await tx.task.update({ where: { id: task.id }, data: { assigneeId, status: TaskStatus.READY } });
+        const phase = task.checklistPhase || task.id;
+        if (!teamPhases.has(phase) && teamIds.length) teamPhases.set(phase, teamIds[teamIndex++ % teamIds.length]);
+        const assigneeId = phaseOwner || (task.checklistOwnerRole && mappings[task.checklistOwnerRole]) || (coordinationTask ? dto.headId : teamPhases.get(phase));
+        if (!assigneeId || assigneeId === task.assigneeId) continue;
+        await tx.task.update({ where: { id: task.id }, data: { assigneeId, ...(!task.assigneeId ? { status: TaskStatus.READY } : {}) } });
         await tx.notification.create({ data: { userId: assigneeId, type: NotificationType.TASK_ASSIGNED, title: 'Marketing work assigned', message: `${task.humanId}: ${task.title}`, linkUrl: `/projects/${projectId}/marketing` } });
         assignedCount++;
       }
