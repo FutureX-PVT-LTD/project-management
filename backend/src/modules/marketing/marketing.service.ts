@@ -148,14 +148,18 @@ export class MarketingService {
   async bulkAssign(projectId: string, dto: MarketingAssignmentDto, actor: AuthUser) {
     requireManager(actor.globalRole); await this.project(projectId, actor);
     const mappings = dto.mappings || {}; const phaseMappings = dto.phaseMappings || {};
-    const ids = [...Object.values(mappings), ...Object.values(phaseMappings)].filter(Boolean) as string[];
+    const teamIds = [...new Set(dto.teamIds || [])];
+    const ids = [...Object.values(mappings), ...Object.values(phaseMappings), dto.headId, ...teamIds].filter(Boolean) as string[];
     for (const id of new Set(ids)) await this.eligible(projectId, id);
     const tasks = await this.prisma.task.findMany({ where: { projectId, workstream: 'MARKETING', deletedAt: null }, select: { id: true, humanId: true, title: true, assigneeId: true, checklistOwnerRole: true, checklistPhase: true } });
     return this.prisma.$transaction(async (tx: any) => {
       let assignedCount = 0;
+      let teamIndex = 0;
+      if (dto.headId) await tx.project.update({ where: { id: projectId }, data: { marketingOwnerId: dto.headId } });
       for (const task of tasks) {
         if (task.assigneeId) continue;
-        const assigneeId = (task.checklistPhase && phaseMappings[task.checklistPhase]) || (task.checklistOwnerRole && mappings[task.checklistOwnerRole]);
+        const coordinationTask = ['MARKETING_LEAD', 'PROJECT_MANAGER'].includes(task.checklistOwnerRole);
+        const assigneeId = (task.checklistPhase && phaseMappings[task.checklistPhase]) || (task.checklistOwnerRole && mappings[task.checklistOwnerRole]) || (coordinationTask ? dto.headId : teamIds.length ? teamIds[teamIndex++ % teamIds.length] : undefined);
         if (!assigneeId) continue;
         await tx.task.update({ where: { id: task.id }, data: { assigneeId, status: TaskStatus.READY } });
         await tx.notification.create({ data: { userId: assigneeId, type: NotificationType.TASK_ASSIGNED, title: 'Marketing work assigned', message: `${task.humanId}: ${task.title}`, linkUrl: `/projects/${projectId}/marketing` } });

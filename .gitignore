@@ -6,6 +6,7 @@ node_modules/
 .next/
 frontend/.next/
 frontend/.next-dev/
+frontend/.next-dev-backup-*/
 out/
 frontend/out/
 

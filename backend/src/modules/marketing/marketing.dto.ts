@@ -3,6 +3,8 @@ import { IsArray, IsBoolean, IsDateString, IsEmail, IsIn, IsObject, IsOptional, 
 export class InitializeMarketingDto {}
 
 export class MarketingAssignmentDto {
+  @IsString() @IsOptional() headId?: string;
+  @IsArray() @IsString({ each: true }) @IsOptional() teamIds?: string[];
   @IsObject() @IsOptional() mappings?: Record<string, string | null>;
   @IsObject() @IsOptional() phaseMappings?: Record<string, string | null>;
 }

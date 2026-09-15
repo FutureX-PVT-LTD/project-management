@@ -372,8 +372,8 @@ export function AppShell({
         </header>
 
         {/* Dynamic Main Content Canvas */}
-        <main className="flex-1 bg-white p-6 sm:p-8">
-          <div className={cn('mx-auto', fullWidth ? 'w-full' : 'max-w-[1480px]')}>
+        <main className="min-w-0 flex-1 bg-white p-4 sm:p-6 lg:p-8">
+          <div className={cn('mx-auto min-w-0', fullWidth ? 'w-full' : 'max-w-[1480px]')}>
             {children}
           </div>
         </main>
