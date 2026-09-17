@@ -310,10 +310,15 @@ export function PhaseAssignments({
         </div>
 
         {!data?.members.length && (
-          <div className="border-t border-[#E8EBEF] px-3 py-4 text-xs text-[#60666F]">
-            No active Product Team members.{' '}
-            <Link className="font-medium text-[#2463EB] hover:underline" href={`/projects/${projectId}/members`}>
-              Add Product Team Member
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8EBEF] bg-[#FAFBFC] px-4 py-5">
+            <div>
+              <p className="text-sm font-medium text-[#17191C]">Add the Product Team before assigning phases</p>
+              <p className="mt-1 text-xs text-[#60666F]">You can add one or more people now and return here to assign their phases.</p>
+            </div>
+            <Link href={`/projects/${projectId}/members?returnTo=${encodeURIComponent(`/projects/${projectId}/setup`)}`}>
+              <Button size="sm" variant="secondary" leftIcon={<Plus className="h-3.5 w-3.5" />}>
+                Add Team Members
+              </Button>
             </Link>
           </div>
         )}

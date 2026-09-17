@@ -16,7 +16,13 @@ export function ProjectMembersPage() {
   const params = useParams();
   const projectId = params?.id as string;
   const queryClient = useQueryClient();
-  const requestedRoleId = useSearchParams().get('roleId');
+  const searchParams = useSearchParams();
+  const requestedRoleId = searchParams.get('roleId');
+  const requestedReturnTo = searchParams.get('returnTo');
+  const assignmentReturnTo = `/projects/${projectId}/setup`;
+  const returnTo = requestedReturnTo === assignmentReturnTo
+    ? assignmentReturnTo
+    : `/projects/${projectId}`;
   const [search, setSearch] = useState('');
   const [roleDrafts, setRoleDrafts] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +50,7 @@ export function ProjectMembersPage() {
           u.isActive !== false &&
           !currentMemberUserIds.includes(u.id) && (!requestedRoleId || u.functionalRoles?.some((role: any) => role.id === requestedRoleId)),
       ),
-    [usersData, currentMemberUserIds],
+    [usersData, currentMemberUserIds, requestedRoleId],
   );
 
   const filteredAvailable = availableUsers.filter((u) => {
@@ -57,6 +63,7 @@ export function ProjectMembersPage() {
     mutationFn: ({ userId, functionalRoleIds }: { userId: string; functionalRoleIds: string[] }) => api.post(`/projects/${projectId}/members`, { userId, functionalRoleIds }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['assignment-workspace', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -73,6 +80,7 @@ export function ProjectMembersPage() {
     mutationFn: (userId: string) => api.delete(`/projects/${projectId}/members/${userId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['assignment-workspace', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -90,8 +98,8 @@ export function ProjectMembersPage() {
           { label: 'Members' },
         ]}
         footer={
-          <Link href={`/projects/${projectId}`}>
-            <Button variant="primary">Done</Button>
+          <Link href={returnTo}>
+            <Button variant="primary">{returnTo.endsWith('/setup') ? 'Back to Assignments' : 'Done'}</Button>
           </Link>
         }
       >
@@ -172,7 +180,6 @@ export function ProjectMembersPage() {
                     size="xs"
                     variant="secondary"
                     loading={addMemberMutation.isPending}
-                    disabled={!(roleDrafts[user.id] || []).length}
                     onClick={() => addMemberMutation.mutate({ userId: user.id, functionalRoleIds: roleDrafts[user.id] || [] })}
                     leftIcon={<Plus className="h-3 w-3" />}
                   >

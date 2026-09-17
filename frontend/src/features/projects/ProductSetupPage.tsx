@@ -2,10 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import * as Tabs from '@radix-ui/react-tabs';
-import { ArrowRight, Code2, Megaphone } from 'lucide-react';
+import { ArrowRight, Code2, Megaphone, Users } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api-client';
@@ -21,14 +21,15 @@ function checklistPosition(task: any) {
 
 export function ProductSetupPage() {
   const projectId = String(useParams()?.id || '');
+  const initialWorkstream = useSearchParams().get('workstream') === 'marketing' ? 'marketing' : 'development';
   const { data: projectData } = useQuery({ queryKey: ['project', projectId], queryFn: () => api.get(`/projects/${projectId}`), enabled: !!projectId });
   const project = asRecord(projectData);
   const development = (Array.isArray(project.tasks) ? project.tasks : []).filter((task: any) => task.workType === 'STANDARD_CHECKLIST' && (task.workstream || 'DEVELOPMENT') === 'DEVELOPMENT').sort((a: any, b: any) => checklistPosition(a) - checklistPosition(b));
   const { data: marketingData } = useQuery({ queryKey: ['marketing', projectId, 'checklist'], queryFn: () => api.get(`/projects/${projectId}/marketing/checklist`), enabled: !!projectId });
   const marketing = asArray<any>(marketingData).sort((a, b) => checklistPosition(a) - checklistPosition(b));
   return <AppShell fullWidth><div className="space-y-7">
-    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[#E8EBEF] pb-5"><div><p className="text-xs text-[#8B929B]">Product Setup</p><h1 className="mt-1 text-xl font-semibold text-[#17191C]">{project.name || 'Product'} assignments</h1></div><Link href={`/projects/${projectId}`}><Button rightIcon={<ArrowRight className="h-3.5 w-3.5" />}>Go to Product</Button></Link></header>
-    <Tabs.Root defaultValue="development" className="min-w-0">
+    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[#E8EBEF] pb-5"><div><p className="text-xs text-[#8B929B]">Product Setup</p><h1 className="mt-1 text-xl font-semibold text-[#17191C]">{project.name || 'Product'} assignments</h1></div><div className="flex flex-wrap items-center gap-2"><Link href={`/projects/${projectId}/members?returnTo=${encodeURIComponent(`/projects/${projectId}/setup`)}`}><Button variant="secondary" leftIcon={<Users className="h-3.5 w-3.5" />}>Manage Product Team</Button></Link><Link href={`/projects/${projectId}`}><Button rightIcon={<ArrowRight className="h-3.5 w-3.5" />}>Go to Product</Button></Link></div></header>
+    <Tabs.Root defaultValue={initialWorkstream} className="min-w-0">
       <Tabs.List aria-label="Assignment workstream" className="mb-6 flex gap-4 overflow-x-auto border-b border-[#E8EBEF]">
         <Tabs.Trigger value="development" className="flex shrink-0 items-center gap-2 border-b-2 border-transparent px-2 py-3 text-sm text-[#60666F] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2463EB] data-[state=active]:border-[#2463EB] data-[state=active]:text-[#2463EB]">
           <Code2 className="h-4 w-4" /> Development <span className="text-xs tabular-nums">({development.length})</span>

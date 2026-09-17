@@ -89,6 +89,10 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
   const lastSavedPayloadRef = useRef<string>("");
   const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const draftIdRef = useRef<string | null>(urlDraftId);
+  const hydratedDraftIdRef = useRef<string | null>(null);
+  const saveQueueRef = useRef<Promise<string | null>>(Promise.resolve(urlDraftId));
+  const latestSaveVersionRef = useRef(0);
 
   // Load project for edit mode
   const { data: projectData } = useQuery({
@@ -138,6 +142,15 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
     const d = asRecord(draftData);
     if (!d || !d.id) return;
 
+    // A draft created in this mounted form already has newer local state. Do not
+    // let its first GET response overwrite edits made while that request was in flight.
+    if (hydratedDraftIdRef.current === d.id) {
+      setIsHydrated(true);
+      return;
+    }
+    hydratedDraftIdRef.current = d.id;
+    draftIdRef.current = d.id;
+
     setName(d.name === "Untitled Draft" ? "" : d.name || "");
     setDescription(d.description || "");
     setTargetMarket(d.targetMarket || "");
@@ -179,6 +192,8 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
   // Handle draft loading error
   useEffect(() => {
     if (draftError && mode === "create") {
+      draftIdRef.current = null;
+      hydratedDraftIdRef.current = null;
       setDraftId(null);
       setIsHydrated(true);
       setError("This draft is unavailable or you do not have permission to open it.");
@@ -239,15 +254,18 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
 
   // Save Draft API Call
   const performSaveDraft = useCallback(
-    async (payloadToSave: typeof currentPayload, explicitDraftId?: string | null) => {
-      const activeDraftId = explicitDraftId !== undefined ? explicitDraftId : draftId;
+    (payloadToSave: typeof currentPayload, explicitDraftId?: string | null) => {
+      const saveVersion = ++latestSaveVersionRef.current;
       setSaveStatus("saving");
 
-      try {
-        if (retryTimeoutRef.current) {
-          clearTimeout(retryTimeoutRef.current);
-          retryTimeoutRef.current = null;
-        }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
+      const runSave = async () => {
+        const activeDraftId =
+          explicitDraftId !== undefined ? explicitDraftId : draftIdRef.current;
         const res = activeDraftId
           ? await api.patch(`/projects/drafts/${activeDraftId}`, payloadToSave)
           : await api.post("/projects/drafts", payloadToSave);
@@ -255,9 +273,16 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
         const saved = asRecord(res);
         const resolvedId = saved?.id || activeDraftId;
 
-        if (resolvedId && resolvedId !== draftId) {
+        if (resolvedId) {
+          const isNewLocalDraft = !activeDraftId;
+          draftIdRef.current = resolvedId;
           setDraftId(resolvedId);
-          const routeStep = getStepName(getStepNumber(String(payloadToSave.currentStep).toLowerCase()));
+          if (isNewLocalDraft) {
+            hydratedDraftIdRef.current = resolvedId;
+          }
+          const routeStep = getStepName(
+            getStepNumber(String(payloadToSave.currentStep).toLowerCase()),
+          );
           window.history.replaceState(
             null,
             "",
@@ -265,22 +290,33 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
           );
         }
 
-        lastSavedPayloadRef.current = JSON.stringify(payloadToSave);
-        setSaveStatus("saved");
-        setLastSavedTime(new Date());
+        if (saveVersion === latestSaveVersionRef.current) {
+          lastSavedPayloadRef.current = JSON.stringify(payloadToSave);
+          setSaveStatus("saved");
+          setLastSavedTime(new Date());
+        }
         queryClient.invalidateQueries({ queryKey: ["projects", "drafts"] });
         return resolvedId;
-      } catch (err) {
+      };
+
+      // Serialize all autosave, navigation, and activation writes. This prevents
+      // two initial POST requests from creating different drafts for one form.
+      const queuedSave = saveQueueRef.current.then(runSave, runSave);
+      saveQueueRef.current = queuedSave.catch(() => draftIdRef.current);
+
+      return queuedSave.catch((err) => {
         console.error("Autosave error:", err);
-        setSaveStatus("error");
-        if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
-        retryTimeoutRef.current = setTimeout(() => {
-          performSaveDraft(payloadToSave, activeDraftId);
-        }, 3000);
+        if (saveVersion === latestSaveVersionRef.current) {
+          setSaveStatus("error");
+          if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = setTimeout(() => {
+            performSaveDraft(payloadToSave, draftIdRef.current);
+          }, 3000);
+        }
         return null;
-      }
+      });
     },
-    [draftId, queryClient],
+    [queryClient],
   );
 
   useEffect(() => () => {
@@ -343,11 +379,11 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
     const newStepEnum = getStepEnum(newStep);
 
     if (mode === "create") {
-      if (draftId) {
+      if (draftIdRef.current) {
         window.history.replaceState(
           null,
           "",
-          `/projects/new?draft=${draftId}&step=${newStepName}`,
+          `/projects/new?draft=${draftIdRef.current}&step=${newStepName}`,
         );
       }
       // Flush save with updated currentStep
@@ -418,12 +454,10 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
 
     try {
       // 1. Ensure draft is up to date and we have a draftId
-      let activeDraftId = draftId;
-      if (!activeDraftId) {
-        activeDraftId = await performSaveDraft({ ...currentPayload, currentStep: "REVIEW" });
-      } else {
-        await performSaveDraft({ ...currentPayload, currentStep: "REVIEW" }, activeDraftId);
-      }
+      const activeDraftId = await performSaveDraft({
+        ...currentPayload,
+        currentStep: "REVIEW",
+      });
 
       if (!activeDraftId) {
         throw new Error("Could not save product draft before activation.");
