@@ -7,6 +7,7 @@ import {
   MinLength,
   IsArray,
   IsBoolean,
+  IsIn,
   MaxLength,
   Matches,
 } from 'class-validator';
@@ -17,6 +18,8 @@ import {
 } from '../../auth/dto/login.dto';
 
 export class CreateUserDto {
+  @IsArray() @IsString({ each: true }) @IsOptional()
+  functionalRoleIds?: string[];
   @IsEmail({}, { message: 'Must be a valid email' })
   @IsNotEmpty()
   email: string;
@@ -54,6 +57,8 @@ export class CreateUserDto {
 }
 
 export class UpdateUserDto {
+  @IsArray() @IsString({ each: true }) @IsOptional()
+  functionalRoleIds?: string[];
   @IsString()
   @IsOptional()
   firstName?: string;
@@ -94,4 +99,15 @@ export class ResetUserPasswordDto {
 export class ToggleUserActiveDto {
   @IsBoolean()
   isActive: boolean;
+}
+
+export class SaveJobRoleDto {
+  @IsString() @Matches(/^[A-Z][A-Z0-9_]{1,49}$/) @IsOptional()
+  code?: string;
+  @IsString() @MinLength(1) @MaxLength(80) @IsOptional()
+  name?: string;
+  @IsIn(['MANAGEMENT', 'ENGINEERING', 'DESIGN', 'QUALITY', 'MARKETING', 'CONTENT']) @IsOptional()
+  category?: string;
+  @IsBoolean() @IsOptional()
+  isActive?: boolean;
 }

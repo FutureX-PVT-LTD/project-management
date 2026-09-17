@@ -258,6 +258,372 @@ export class TasksService implements OnModuleInit {
     return tasks.map((t) => this.mapTaskToDto(t));
   }
 
+  async getUserDashboard(
+    userId: string,
+    actorRole: UserRole,
+    filters?: {
+      projectId?: string;
+      workstream?: string;
+    },
+  ) {
+    const now = new Date();
+
+    // 1. If projectId filter is given, verify user has membership or manager access
+    if (filters?.projectId) {
+      const isMember = await this.prisma.projectMember.findFirst({
+        where: { projectId: filters.projectId, userId },
+      });
+      const isManager = await this.prisma.project.findFirst({
+        where: { id: filters.projectId, deletedAt: null, projectManagerId: userId },
+      });
+      if (!isMember && !isManager && actorRole === UserRole.TEAM_MEMBER) {
+        throw new ForbiddenException('You do not have access to this Product');
+      }
+    }
+
+    // 2. Build where clause strictly for this user's assigned tasks
+    const where: any = {
+      deletedAt: null,
+      project: {
+        deletedAt: null,
+        OR: [
+          { projectManagerId: userId },
+          { members: { some: { userId } } },
+        ],
+      },
+      OR: [
+        { assigneeId: userId },
+        { collaborators: { some: { userId } } },
+      ],
+    };
+
+    if (filters?.projectId) {
+      where.projectId = filters.projectId;
+    }
+
+    if (filters?.workstream && filters.workstream !== 'ALL') {
+      where.workstream = filters.workstream;
+    }
+
+    // Fetch user's active tasks and completed tasks for counts
+    const userTasks = await this.prisma.task.findMany({
+      where,
+      include: {
+        project: { select: { id: true, key: true, name: true, targetDate: true } },
+        milestone: { select: { id: true, name: true } },
+        assignee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+            jobTitle: true,
+          },
+        },
+        blockedBy: {
+          include: {
+            predecessorTask: {
+              select: {
+                id: true,
+                humanId: true,
+                title: true,
+                status: true,
+                checklistCode: true,
+                assignee: {
+                  select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    avatarUrl: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        subtasks: {
+          where: { deletedAt: null },
+          select: { id: true, status: true },
+        },
+        reviews: {
+          orderBy: { reviewedAt: 'desc' },
+          take: 1,
+        },
+        dailyUpdates: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    const mappedTasks = userTasks.map((t) => this.mapTaskToDto(t));
+
+    // Phase order scoring
+    const marketingPhaseOrder: Record<string, number> = {
+      'Identity': 1,
+      'Ownership': 2,
+      'Domain & Web': 3,
+      'Social Channels': 4,
+      'Profile Setup': 5,
+      'Digital Web': 6,
+      'Content Bank': 7,
+      'Seed Channels': 8,
+      'Launch': 9,
+      'Verification': 10,
+    };
+
+    const devPhaseOrder: Record<string, number> = {
+      '1. Concept': 1,
+      'Concept': 1,
+      '2. Scope': 2,
+      'Scope': 2,
+      '3. Design': 3,
+      'Design': 3,
+      '4. Technical Setup': 4,
+      'Technical Setup': 4,
+      '5. Core Development': 5,
+      'Core Development': 5,
+      '6. QA & Testing': 6,
+      'QA': 6,
+      '7. Release Preparation': 7,
+      'Release': 7,
+      '8. Store & Compliance': 8,
+      'Store & Compliance': 8,
+      '9. Launch': 9,
+      'Launch': 9,
+    };
+
+    const priorityWeight: Record<string, number> = {
+      URGENT: 100,
+      HIGH: 80,
+      MEDIUM: 50,
+      LOW: 20,
+      NONE: 0,
+    };
+
+    const sortDeterministic = (list: any[]) =>
+      [...list].sort((a, b) => {
+        // 1. Overdue
+        const aOverdue = a.dueDate && new Date(a.dueDate) < now && a.status !== TaskStatus.DONE;
+        const bOverdue = b.dueDate && new Date(b.dueDate) < now && b.status !== TaskStatus.DONE;
+        if (aOverdue && !bOverdue) return -1;
+        if (!aOverdue && bOverdue) return 1;
+
+        // 2. Priority weight
+        const pDiff = (priorityWeight[b.priority] || 0) - (priorityWeight[a.priority] || 0);
+        if (pDiff !== 0) return pDiff;
+
+        // 3. Due date
+        if (a.dueDate && b.dueDate) {
+          const diff = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          if (diff !== 0) return diff;
+        } else if (a.dueDate && !b.dueDate) {
+          return -1;
+        } else if (!a.dueDate && b.dueDate) {
+          return 1;
+        }
+
+        // 4. Workflow phase sequence
+        const aPhaseScore = (a.workstream === 'MARKETING' ? marketingPhaseOrder[a.checklistPhase] : devPhaseOrder[a.checklistPhase]) || 50;
+        const bPhaseScore = (b.workstream === 'MARKETING' ? marketingPhaseOrder[b.checklistPhase] : devPhaseOrder[b.checklistPhase]) || 50;
+        if (aPhaseScore !== bPhaseScore) return aPhaseScore - bPhaseScore;
+
+        // 5. Checklist sequence
+        const aOrder = a.checklistOrder ?? (Number(String(a.checklistCode || '').match(/(\d+)$/)?.[1]) || 9999);
+        const bOrder = b.checklistOrder ?? (Number(String(b.checklistCode || '').match(/(\d+)$/)?.[1]) || 9999);
+        if (aOrder !== bOrder) return aOrder - bOrder;
+
+        // 6. Tiebreaker
+        return a.id.localeCompare(b.id);
+      });
+
+    const inProgressTasks = sortDeterministic(mappedTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS));
+    const readyTasks = sortDeterministic(mappedTasks.filter((t) => t.status === TaskStatus.READY));
+    const waitingTasks = sortDeterministic(mappedTasks.filter((t) => t.status === TaskStatus.WAITING));
+    const blockedTasks = sortDeterministic(
+      mappedTasks.filter((t) => t.status === TaskStatus.BLOCKED || t.isManualBlocked),
+    );
+    const reviewTasks = sortDeterministic(mappedTasks.filter((t) => t.status === TaskStatus.IN_REVIEW));
+    const completedTasks = mappedTasks.filter((t) => t.status === TaskStatus.DONE);
+
+    // Current Focus and Recommended Next
+    let currentFocus: any = null;
+    let recommendedNext: any = null;
+    let readyNext: any[] = [];
+
+    if (inProgressTasks.length > 0) {
+      currentFocus = inProgressTasks[0];
+      readyNext = readyTasks.slice(0, 5);
+    } else {
+      if (readyTasks.length > 0) {
+        recommendedNext = readyTasks[0];
+        readyNext = readyTasks.slice(1, 5);
+      }
+    }
+
+    const readyTotal = readyTasks.length;
+    const readyDisplayed = (recommendedNext ? 1 : 0) + readyNext.length;
+    const later = Math.max(0, readyTotal - readyDisplayed);
+
+    // 3. Structured My Products summary (safe, aggregated, strictly user's authorized projects)
+    const userAuthorizedProjects = await this.prisma.project.findMany({
+      where: {
+        deletedAt: null,
+        OR: [
+          { projectManagerId: userId },
+          { members: { some: { userId } } },
+        ],
+        ...(filters?.projectId ? { id: filters.projectId } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        key: true,
+        targetDate: true,
+        health: true,
+        status: true,
+        tasks: {
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            workstream: true,
+            status: true,
+            assigneeId: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    const projectSummaries = userAuthorizedProjects.map((p) => {
+      const devTasks = p.tasks.filter((t) => t.workstream === 'DEVELOPMENT' && t.status !== TaskStatus.N_A && t.status !== TaskStatus.CANCELED);
+      const devDone = devTasks.filter((t) => t.status === TaskStatus.DONE).length;
+      const devProgress = devTasks.length > 0 ? Math.round((devDone / devTasks.length) * 100) : 0;
+
+      const mktgTasks = p.tasks.filter((t) => t.workstream === 'MARKETING' && t.status !== TaskStatus.N_A && t.status !== TaskStatus.CANCELED);
+      const mktgDone = mktgTasks.filter((t) => t.status === TaskStatus.DONE).length;
+      const mktgProgress = mktgTasks.length > 0 ? Math.round((mktgDone / mktgTasks.length) * 100) : 0;
+
+      const userProjectTasks = p.tasks.filter(
+        (t) =>
+          t.assigneeId === userId &&
+          (!filters?.workstream || filters.workstream === 'ALL' || t.workstream === filters.workstream),
+      );
+
+      return {
+        id: p.id,
+        name: p.name,
+        key: p.key,
+        targetDate: p.targetDate ? p.targetDate.toISOString() : null,
+        health: p.health,
+        status: p.status,
+        devProgress,
+        mktgProgress,
+        personalWork: {
+          inProgress: userProjectTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS).length,
+          ready: userProjectTasks.filter((t) => t.status === TaskStatus.READY).length,
+          waiting: userProjectTasks.filter((t) => t.status === TaskStatus.WAITING || t.status === TaskStatus.BLOCKED).length,
+          inReview: userProjectTasks.filter((t) => t.status === TaskStatus.IN_REVIEW).length,
+        },
+      };
+    });
+
+    // 4. Quiet personal activity updates (strictly scoped to this user)
+    const [recentNotifications, recentDailyUpdates] = await Promise.all([
+      this.prisma.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          title: true,
+          message: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.taskDailyUpdate.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 3,
+        include: {
+          task: {
+            select: {
+              humanId: true,
+              title: true,
+              project: { select: { name: true } },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const recentUpdates: Array<{
+      id: string;
+      text: string;
+      projectName?: string;
+      taskHumanId?: string;
+      createdAt: string;
+    }> = [];
+
+    recentNotifications.forEach((n) => {
+      recentUpdates.push({
+        id: n.id,
+        text: n.message || n.title,
+        createdAt: n.createdAt.toISOString(),
+      });
+    });
+
+    recentDailyUpdates.forEach((u) => {
+      recentUpdates.push({
+        id: u.id,
+        text: `Submitted progress (${u.progressAfter}%) on ${u.task?.humanId || 'task'}${u.completedToday ? `: ${u.completedToday}` : ''}`,
+        projectName: u.task?.project?.name,
+        taskHumanId: u.task?.humanId,
+        createdAt: u.createdAt.toISOString(),
+      });
+    });
+
+    // Sort combined recent updates by createdAt desc
+    recentUpdates.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Up next deadlines (for the right utility column)
+    const upNextDeadlines = mappedTasks
+      .filter((t) => t.dueDate && t.status !== TaskStatus.DONE && t.status !== TaskStatus.CANCELED)
+      .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      .slice(0, 5);
+
+    // List of authorized projects for the Product filter dropdown
+    const filterProjects = userAuthorizedProjects.map((p) => ({
+      id: p.id,
+      name: p.name,
+      key: p.key,
+    }));
+
+    return {
+      counts: {
+        current: inProgressTasks.length,
+        readyTotal,
+        readyDisplayed,
+        later,
+        waiting: waitingTasks.length,
+        blocked: blockedTasks.length,
+        inReview: reviewTasks.length,
+        completed: completedTasks.length,
+      },
+      currentFocus,
+      recommendedNext,
+      readyNext,
+      blocked: blockedTasks,
+      waiting: waitingTasks,
+      inReview: reviewTasks,
+      otherInProgress: inProgressTasks.slice(1),
+      myProducts: projectSummaries,
+      recentUpdates: recentUpdates.slice(0, 5),
+      upNextDeadlines,
+      filterProjects,
+    };
+  }
+
   async findAll(
     params: {
       projectId?: string;
@@ -1042,7 +1408,11 @@ export class TasksService implements OnModuleInit {
           });
         }
 
-        if (dto.status === TaskStatus.IN_PROGRESS && !task.allowParallelWork) {
+        if (
+          dto.status === TaskStatus.IN_PROGRESS &&
+          task.workstream !== "MARKETING" &&
+          !task.allowParallelWork
+        ) {
           const activeTask = await this.prisma.task.findFirst({
             where: {
               id: { not: task.id },

@@ -18,6 +18,37 @@ export interface AuditContext {
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  jobRoles() { return this.prisma.functionalRole.findMany({ orderBy: [{ category: 'asc' }, { name: 'asc' }] }); }
+
+  async saveJobRole(id: string | undefined, dto: { code?: string; name?: string; category?: string; isActive?: boolean }, actorId: string) {
+    const name = dto.name?.trim();
+    if ((!id || dto.name !== undefined) && !name) throw new BadRequestException('Role name is required');
+    const code = dto.code?.trim() || name?.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const category = dto.category || 'ENGINEERING';
+    if (!id && !code) throw new BadRequestException('Role code is required');
+    if (id && dto.isActive === false) {
+      const [users, projectMembers, checklistItems] = await Promise.all([
+        this.prisma.userFunctionalRole.count({ where: { functionalRoleId: id, user: { isActive: true } } }),
+        this.prisma.projectMemberRoleAssignment.count({ where: { functionalRoleId: id } }),
+        this.prisma.checklistEligibleRole.count({ where: { functionalRoleId: id, checklistTemplateItem: { isActive: true } } }),
+      ]);
+      if (users || projectMembers || checklistItems) throw new BadRequestException(`Role is still used by ${users} active users, ${projectMembers} Product members and ${checklistItems} checklist responsibilities`);
+    }
+    if (name && await this.prisma.functionalRole.findFirst({ where: { name: { equals: name, mode: 'insensitive' }, category, ...(id ? { id: { not: id } } : {}) } })) throw new BadRequestException('A role with this name already exists in this category');
+    return this.prisma.$transaction(async (tx) => {
+      const role = id ? await tx.functionalRole.update({ where: { id }, data: { name, category: dto.category, isActive: dto.isActive } }) : await tx.functionalRole.create({ data: { code: code!, name: name!, category } });
+      await tx.auditLog.create({ data: { actorId, action: id ? 'FUNCTIONAL_ROLE_UPDATED' : 'FUNCTIONAL_ROLE_CREATED', entityType: 'FunctionalRole', entityId: role.id, detailsJson: JSON.stringify({ code: role.code, name: role.name, category: role.category, isActive: role.isActive }) } });
+      return role;
+    });
+  }
+
+  private async validateJobRoles(ids?: string[], userId?: string) {
+    if (ids === undefined) return;
+    if (!Array.isArray(ids) || ids.length > 30) throw new BadRequestException('Invalid job roles');
+    const unique = [...new Set(ids)];
+    if (unique.length !== ids.length || await this.prisma.functionalRole.count({ where: { id: { in: unique }, OR: [{ isActive: true }, ...(userId ? [{ users: { some: { userId } } }] : [])] } }) !== unique.length) throw new BadRequestException('Choose active functional roles');
+  }
+
   async findAll(filter?: {
     search?: string;
     role?: UserRole;
@@ -56,6 +87,7 @@ export class UsersService {
         firstName: true,
         lastName: true,
         jobTitle: true,
+        functionalRoleLinks: { include: { functionalRole: true } },
         avatarUrl: true,
         globalRole: true,
         isActive: true,
@@ -85,6 +117,7 @@ export class UsersService {
       firstName: u.firstName,
       lastName: u.lastName,
       jobTitle: u.jobTitle,
+      functionalRoles: u.functionalRoleLinks.map((link) => link.functionalRole),
       avatarUrl: u.avatarUrl,
       globalRole: u.globalRole as UserRole,
       isActive: u.isActive,
@@ -126,6 +159,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id, deletedAt: null },
       include: {
+        functionalRoleLinks: { include: { functionalRole: true } },
         teamMemberships: {
           include: { team: true },
         },
@@ -163,6 +197,7 @@ export class UsersService {
       firstName: user.firstName,
       lastName: user.lastName,
       jobTitle: user.jobTitle,
+      functionalRoles: user.functionalRoleLinks.map((link) => link.functionalRole),
       avatarUrl: user.avatarUrl,
       globalRole: user.globalRole as UserRole,
       isActive: user.isActive,
@@ -259,6 +294,7 @@ export class UsersService {
 
     if (!dto.password) throw new BadRequestException('An initial password is required');
     const defaultPassword = dto.password;
+    await this.validateJobRoles(dto.functionalRoleIds);
     const passwordHash = await argon2.hash(defaultPassword);
 
     const user = await this.prisma.user.create({
@@ -268,6 +304,7 @@ export class UsersService {
         firstName: dto.firstName.trim(),
         lastName: dto.lastName.trim(),
         jobTitle: dto.jobTitle?.trim(),
+        functionalRoleLinks: dto.functionalRoleIds ? { create: dto.functionalRoleIds.map((functionalRoleId) => ({ functionalRoleId })) } : undefined,
         avatarUrl: dto.avatarUrl?.trim(),
         globalRole: dto.globalRole,
         teamMemberships: dto.teamIds?.length
@@ -294,6 +331,9 @@ export class UsersService {
       },
       auditContext,
     );
+    for (const functionalRoleId of dto.functionalRoleIds || []) {
+      await this.recordAudit(actorId, 'USER_FUNCTIONAL_ROLE_ADDED' as AuditAction, 'User', user.id, { functionalRoleId }, auditContext);
+    }
 
     return this.findById(user.id);
   }
@@ -331,26 +371,28 @@ export class UsersService {
       throw new ForbiddenException('Super Admin cannot demote their own account');
     }
 
-    // Update team memberships if provided
+    await this.validateJobRoles(dto.functionalRoleIds, id);
+    const previousFunctionalRoleIds = dto.functionalRoleIds === undefined ? [] : (await this.prisma.userFunctionalRole.findMany({ where: { userId: id }, select: { functionalRoleId: true } })).map((row) => row.functionalRoleId);
+    const updated = await this.prisma.$transaction(async (tx) => {
     if (dto.teamIds !== undefined) {
-      await this.prisma.teamMember.deleteMany({
+      await tx.teamMember.deleteMany({
         where: { userId: id },
       });
 
       if (dto.teamIds.length > 0) {
-        await this.prisma.teamMember.createMany({
+        await tx.teamMember.createMany({
           data: dto.teamIds.map((teamId) => ({ userId: id, teamId })),
         });
       }
     }
 
-    const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.user.update({
         where: { id },
         data: {
           firstName: dto.firstName !== undefined ? dto.firstName.trim() : undefined,
           lastName: dto.lastName !== undefined ? dto.lastName.trim() : undefined,
           jobTitle: dto.jobTitle !== undefined ? dto.jobTitle?.trim() : undefined,
+          functionalRoleLinks: dto.functionalRoleIds !== undefined ? { deleteMany: {}, create: dto.functionalRoleIds.map((functionalRoleId) => ({ functionalRoleId })) } : undefined,
           avatarUrl: dto.avatarUrl !== undefined ? dto.avatarUrl?.trim() : undefined,
           globalRole: dto.globalRole !== undefined ? dto.globalRole : undefined,
           isActive: dto.isActive !== undefined ? dto.isActive : undefined,
@@ -359,6 +401,10 @@ export class UsersService {
 
       if (dto.globalRole !== undefined || dto.isActive !== undefined) {
         await tx.session.updateMany({ where: { userId: id }, data: { isRevoked: true } });
+      }
+      if (dto.functionalRoleIds !== undefined) {
+        for (const functionalRoleId of dto.functionalRoleIds.filter((roleId) => !previousFunctionalRoleIds.includes(roleId))) await tx.auditLog.create({ data: { actorId, action: 'USER_FUNCTIONAL_ROLE_ADDED', entityType: 'User', entityId: id, detailsJson: JSON.stringify({ functionalRoleId }) } });
+        for (const functionalRoleId of previousFunctionalRoleIds.filter((roleId) => !dto.functionalRoleIds!.includes(roleId))) await tx.auditLog.create({ data: { actorId, action: 'USER_FUNCTIONAL_ROLE_REMOVED', entityType: 'User', entityId: id, detailsJson: JSON.stringify({ functionalRoleId }) } });
       }
       return result;
     });

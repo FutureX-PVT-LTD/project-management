@@ -2,8 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 
 interface FormPageLayoutProps {
-  title: string;
-  description: string;
+  title: string | React.ReactNode;
+  description: string | React.ReactNode;
   breadcrumbs: { label: string; href?: string }[];
   children: React.ReactNode;
   footer: React.ReactNode;

@@ -12,6 +12,7 @@ export const publicUserSelect = {
 export function projectScope(actor: Actor): Prisma.ProjectWhereInput {
   return {
     deletedAt: null,
+    lifecycleStatus: { not: 'DRAFT' },
     ...(actor.globalRole === UserRole.TEAM_MEMBER
       ? { members: { some: { userId: actor.id } } } : {}),
   };

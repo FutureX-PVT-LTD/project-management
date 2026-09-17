@@ -7,14 +7,22 @@ import {
   IsArray,
   IsBoolean,
   IsObject,
+  IsIn,
   Matches,
+  ValidateNested,
 } from "class-validator";
+import { Type } from 'class-transformer';
 import {
   ProjectStatus,
   ProjectHealth,
   ProjectMemberRole,
   ProductType,
 } from "@futurex/shared";
+
+export class ProjectMemberSelectionDto {
+  @IsString() userId: string;
+  @IsArray() @IsString({ each: true }) functionalRoleIds: string[];
+}
 
 export class CreateProjectDto {
   @IsString()
@@ -65,8 +73,10 @@ export class CreateProjectDto {
   projectManagerId?: string;
 
   @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProjectMemberSelectionDto)
   @IsOptional()
-  memberIds?: { userId: string; role: ProjectMemberRole }[];
+  memberIds?: ProjectMemberSelectionDto[];
 
   @IsBoolean()
   @IsOptional()
@@ -149,6 +159,14 @@ export class AssignChecklistItemDto {
   @IsBoolean()
   @IsOptional()
   allowParallelWork?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  confirmReassignment?: boolean;
+
+  @IsString()
+  @IsOptional()
+  reason?: string;
 }
 
 export class BulkResponsibilityAssignmentDto {
@@ -159,6 +177,39 @@ export class BulkResponsibilityAssignmentDto {
   @IsObject()
   @IsOptional()
   phaseMappings?: Record<string, string | null>;
+
+  @IsIn(['DEVELOPMENT', 'MARKETING'])
+  @IsOptional()
+  workstream?: string;
+}
+
+export class PhaseAssignmentInputDto {
+  @IsString()
+  @IsNotEmpty()
+  phaseKey: string;
+
+  @IsString()
+  @IsOptional()
+  defaultAssigneeId?: string | null;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  additionalMemberIds?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  reassignActive?: boolean;
+}
+
+export class ApplyPhaseAssignmentsDto {
+  @IsIn(['DEVELOPMENT', 'MARKETING'])
+  workstream: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PhaseAssignmentInputDto)
+  assignments: PhaseAssignmentInputDto[];
 }
 
 export class PostProjectUpdateDto {
@@ -178,4 +229,75 @@ export class AddProjectMemberDto {
   @IsEnum(ProjectMemberRole)
   @IsOptional()
   role?: ProjectMemberRole;
+  @IsArray() @IsString({ each: true }) @IsOptional()
+  functionalRoleIds?: string[];
+}
+
+export class UpdateProjectMemberRolesDto {
+  @IsArray() @IsString({ each: true })
+  functionalRoleIds: string[];
+}
+
+export class SaveProjectDraftDto {
+  @IsString()
+  @IsOptional()
+  id?: string;
+
+  @IsString()
+  @IsOptional()
+  key?: string;
+
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  targetMarket?: string;
+
+  @IsString()
+  @IsOptional()
+  targetLanguage?: string;
+
+  @IsEnum(ProductType)
+  @IsOptional()
+  productType?: ProductType;
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  targetDate?: string;
+
+  @IsString()
+  @IsOptional()
+  projectManagerId?: string;
+
+  @IsString()
+  @IsIn(["DETAILS", "TEAM", "WORKSTREAMS", "REVIEW"])
+  @IsOptional()
+  currentStep?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  selectedMemberIds?: string[];
+
+  @IsObject()
+  @IsOptional()
+  projectRoles?: Record<string, string[]>;
+
+  @IsBoolean()
+  @IsOptional()
+  developmentEnabled?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  marketingEnabled?: boolean;
 }

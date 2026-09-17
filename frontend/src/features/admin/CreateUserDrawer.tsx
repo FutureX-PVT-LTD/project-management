@@ -10,6 +10,7 @@ import { UserRole } from '@futurex/shared';
 import { AlertCircle, Shield, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/AuthContext';
+import { JobRolePicker } from './JobRolePicker';
 
 interface CreateUserDrawerProps {
   open: boolean;
@@ -24,8 +25,9 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [jobTitle, setJobTitle] = useState('');
+  const [functionalRoleIds, setFunctionalRoleIds] = useState<string[]>([]);
   const [role, setRole] = useState<UserRole>(UserRole.TEAM_MEMBER);
-  const [password, setPassword] = useState('FutureX2026!@#');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,7 +37,8 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
       setEmail('');
       setJobTitle('');
       setRole(UserRole.TEAM_MEMBER);
-      setPassword('FutureX2026!@#');
+      setPassword('');
+      setFunctionalRoleIds([]);
       setError(null);
     }
   }, [open]);
@@ -70,6 +73,7 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
       email: email.toLowerCase().trim(),
       jobTitle: jobTitle.trim() || undefined,
       globalRole: role,
+      functionalRoleIds,
       password: password || undefined,
     });
   };
@@ -103,6 +107,7 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
       }
     >
       <form onSubmit={handleSubmit} id="create-user-form" className="space-y-5 text-xs">
+        <JobRolePicker value={functionalRoleIds} onChange={setFunctionalRoleIds} />
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2 text-xs text-fx-semantic-danger animate-fadeIn">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />

@@ -46,6 +46,18 @@ export class TasksController {
     });
   }
 
+  @Get('dashboard')
+  async getUserDashboard(
+    @CurrentUser() actor: AuthUser,
+    @Query('projectId') projectId?: string,
+    @Query('workstream') workstream?: string,
+  ) {
+    return this.tasksService.getUserDashboard(actor.id, actor.globalRole, {
+      projectId,
+      workstream,
+    });
+  }
+
   @Get()
   async findAll(
     @CurrentUser() actor: AuthUser,

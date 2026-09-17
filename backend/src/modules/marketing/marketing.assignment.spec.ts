@@ -2,7 +2,7 @@ import { MarketingService } from './marketing.service';
 import { UserRole } from '@futurex/shared';
 
 describe('Marketing team assignments', () => {
-  it('distributes execution work, assigns coordination to the head and preserves existing owners', async () => {
+  it('rejects the retired duplicate Marketing assignment endpoint', async () => {
     const tx = {
       project: { update: jest.fn() },
       task: { update: jest.fn() },
@@ -22,12 +22,7 @@ describe('Marketing team assignments', () => {
     };
     const service = new MarketingService(prisma as any);
     jest.spyOn(service as any, 'project').mockResolvedValue({ id: 'project' });
-    const result = await service.bulkAssign('project', { headId: 'lead', phaseMappings: { Identity: 'a', Ownership: 'b' } }, { id: 'admin', globalRole: UserRole.ADMIN } as any);
-    expect(result.assignedCount).toBe(4);
-    expect(tx.task.update.mock.calls.map(([args]) => [args.where.id, args.data.assigneeId])).toEqual([
-      ['one', 'a'], ['two', 'a'], ['three', 'b'], ['head', 'lead'],
-    ]);
-    expect(tx.project.update).toHaveBeenCalledWith({ where: { id: 'project' }, data: { marketingOwnerId: 'lead' } });
-    expect(tx.task.update.mock.calls[0][0].data).toEqual({ assigneeId: 'a' });
+    await expect(service.bulkAssign('project', { headId: 'lead' }, { id: 'admin', globalRole: UserRole.ADMIN } as any)).rejects.toThrow('shared Product Assignment workspace');
+    expect(tx.task.update).not.toHaveBeenCalled();
   });
 });

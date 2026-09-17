@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -16,8 +17,10 @@ import {
   PostProjectUpdateDto,
   GenerateDevelopmentChecklistDto,
   AssignChecklistItemDto,
-  BulkResponsibilityAssignmentDto,
+  ApplyPhaseAssignmentsDto,
   AddProjectMemberDto,
+  UpdateProjectMemberRolesDto,
+  SaveProjectDraftDto,
 } from './dto/create-project.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -36,6 +39,46 @@ export class ProjectsController {
     @Query('status') status?: string,
   ) {
     return this.projectsService.findAll(user, status);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Get('drafts')
+  async getDrafts(@CurrentUser() user: AuthUser) {
+    return this.projectsService.getDrafts(user.id, user.globalRole);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Get('drafts/:id')
+  async getDraft(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.projectsService.getDraft(id, user.id, user.globalRole);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Post('drafts')
+  async saveDraft(@Body() dto: SaveProjectDraftDto, @CurrentUser() user: AuthUser) {
+    return this.projectsService.saveDraft(dto, user.id, user.globalRole);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Patch('drafts/:id')
+  async updateDraft(
+    @Param('id') id: string,
+    @Body() dto: SaveProjectDraftDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.projectsService.saveDraft({ ...dto, id }, user.id, user.globalRole);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Delete('drafts/:id')
+  async discardDraft(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.projectsService.discardDraft(id, user.id, user.globalRole);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Post('drafts/:id/activate')
+  async activateDraft(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.projectsService.activateDraft(id, user.id, user.globalRole);
   }
 
   @Get(':id')
@@ -57,7 +100,11 @@ export class ProjectsController {
   @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post()
   async create(@Body() dto: CreateProjectDto, @CurrentUser() actor: AuthUser) {
-    return this.projectsService.create(dto, actor.id, actor.globalRole);
+    void dto;
+    void actor;
+    throw new BadRequestException(
+      'Create a Product draft first, then use the dedicated activation endpoint.',
+    );
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)
@@ -82,13 +129,9 @@ export class ProjectsController {
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)
-  @Post(':id/development-checklist/bulk-assign')
-  async bulkAssignChecklist(
-    @Param('id') id: string,
-    @Body() dto: BulkResponsibilityAssignmentDto,
-    @CurrentUser() actor: AuthUser,
-  ) {
-    return this.projectsService.bulkAssignChecklist(id, dto, actor.id, actor.globalRole);
+  @Patch(':id/checklist/:taskId/assignment')
+  assignWorkItem(@Param('id') id: string, @Param('taskId') taskId: string, @Body() dto: AssignChecklistItemDto, @CurrentUser() actor: AuthUser) {
+    return this.projectsService.assignChecklistItem(id, taskId, dto, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)
@@ -111,13 +154,31 @@ export class ProjectsController {
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Get(':id/assignment-workspace')
+  assignmentWorkspace(@Param('id') id: string, @Query('workstream') workstream: string, @CurrentUser() actor: AuthUser) {
+    return this.projectsService.getAssignmentWorkspace(id, workstream, actor);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Post(':id/phase-assignments/apply')
+  applyPhaseAssignments(@Param('id') id: string, @Body() dto: ApplyPhaseAssignmentsDto, @CurrentUser() actor: AuthUser) {
+    return this.projectsService.applyPhaseAssignments(id, dto, actor.id, actor.globalRole);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
   @Post(':id/members')
   async addMember(
     @Param('id') id: string,
     @Body() dto: AddProjectMemberDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    return this.projectsService.addMember(id, dto.userId, dto.role || ProjectMemberRole.MEMBER, actor.id, actor.globalRole);
+    return this.projectsService.addMember(id, dto.userId, dto.role || ProjectMemberRole.MEMBER, actor.id, actor.globalRole, dto.functionalRoleIds || []);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Patch(':id/members/:userId/roles')
+  updateMemberRoles(@Param('id') id: string, @Param('userId') userId: string, @Body() dto: UpdateProjectMemberRolesDto, @CurrentUser() actor: AuthUser) {
+    return this.projectsService.updateMemberRoles(id, userId, dto.functionalRoleIds, actor.id, actor.globalRole);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)

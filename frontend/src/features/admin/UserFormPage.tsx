@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { JobRolePicker } from './JobRolePicker';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, ShieldCheck } from 'lucide-react';
@@ -29,8 +30,9 @@ export function UserFormPage({ mode }: UserFormPageProps) {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [jobTitle, setJobTitle] = useState('');
+  const [functionalRoleIds, setFunctionalRoleIds] = useState<string[]>([]);
   const [role, setRole] = useState<UserRole>(UserRole.TEAM_MEMBER);
-  const [password, setPassword] = useState('FutureX2026!@#');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const { data: userData } = useQuery({
@@ -47,6 +49,7 @@ export function UserFormPage({ mode }: UserFormPageProps) {
     setLastName(existingUser.lastName || '');
     setEmail(existingUser.email || '');
     setJobTitle(existingUser.jobTitle || '');
+    setFunctionalRoleIds((existingUser.functionalRoles || []).map((role: { id: string }) => role.id));
     setRole(
       existingUser.globalRole === UserRole.OWNER
         ? UserRole.OWNER
@@ -64,6 +67,7 @@ export function UserFormPage({ mode }: UserFormPageProps) {
             lastName: lastName.trim(),
             email: email.toLowerCase().trim(),
             jobTitle: jobTitle.trim() || undefined,
+            functionalRoleIds,
             globalRole: role,
             password: password || undefined,
           })
@@ -71,6 +75,7 @@ export function UserFormPage({ mode }: UserFormPageProps) {
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             jobTitle: jobTitle.trim() || undefined,
+            functionalRoleIds,
             globalRole: role,
           }),
     onSuccess: () => {
@@ -150,8 +155,9 @@ export function UserFormPage({ mode }: UserFormPageProps) {
             </div>
           </section>
 
+          <JobRolePicker value={functionalRoleIds} onChange={setFunctionalRoleIds} />
           <section className="bg-white border border-fx-border rounded-lg p-4 space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">Role</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">System Access</h2>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
@@ -168,7 +174,7 @@ export function UserFormPage({ mode }: UserFormPageProps) {
           {mode === 'create' && (
             <section className="bg-white border border-fx-border rounded-lg p-4 space-y-3">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">Initial Password</h2>
-              <Input value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input type="password" required minLength={12} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </section>
           )}
         </FormPageLayout>

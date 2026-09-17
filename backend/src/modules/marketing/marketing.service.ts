@@ -57,8 +57,7 @@ export class MarketingService {
 
   async initialize(projectId: string, actor: AuthUser) {
     requireManager(actor.globalRole);
-    const project = await this.prisma.project.findFirst({ where: { id: projectId, deletedAt: null }, select: { id: true, key: true, targetDate: true } });
-    if (!project) throw new NotFoundException('Product not found');
+    const project = await this.project(projectId, actor);
     if (!project.targetDate) throw new BadRequestException('Target launch date is required to initialize Marketing');
     const existing = await this.prisma.projectWorkstream.findUnique({ where: { projectId_workstream: { projectId, workstream: 'MARKETING' } } });
     if (existing?.generatedAt) return { success: true, alreadyInitialized: true, summary: await this.summary(projectId, actor) };
@@ -113,7 +112,7 @@ export class MarketingService {
     await this.project(projectId, actor);
     const [workspace, tasks, channelRows, contentRows, buzz, gateRows, signoffRows] = await Promise.all([
       this.prisma.projectWorkstream.findUnique({ where: { projectId_workstream: { projectId, workstream: 'MARKETING' } } }),
-      this.prisma.task.findMany({ where: { projectId, workstream: 'MARKETING', deletedAt: null }, select: { status: true, progress: true, assigneeId: true, checklistTemplateItem: { select: { sourceConfirmed: true } } } }),
+      this.prisma.task.findMany({ where: { projectId, workstream: 'MARKETING', deletedAt: null }, select: { checklistPhase: true, status: true, progress: true, assigneeId: true, checklistTemplateItem: { select: { sourceConfirmed: true } } } }),
       this.prisma.marketingChannel.findMany({ where: { projectId }, select: { requirement: true, status: true } }),
       this.prisma.marketingContentItem.findMany({ where: { projectId }, select: { assetStatus: true, postStatus: true } }),
       this.prisma.marketingBuzzActivity.findMany({ where: { projectId }, orderBy: { startDate: 'asc' }, select: { stage: true, status: true, startDate: true, endDate: true } }),
@@ -128,8 +127,44 @@ export class MarketingService {
     const eligibility = await this.gateEligibility(projectId);
     const resolvedGates = gateRows.map((row) => ({ ...row, eligible: Boolean(eligibility[row.code]), status: row.status === 'APPROVED' ? row.status : eligibility[row.code] ? 'READY_FOR_REVIEW' : 'NOT_READY' }));
     const marketingReady = sourceConfirmationRequired === 0 && applicable.length > 0 && completed === applicable.length && requiredChannels.every((row) => row.status === 'READY') && contentRows.length > 0 && contentRows.every((row) => row.assetStatus === 'READY') && gateRows.every((row) => row.status === 'APPROVED') && signoffRows.every((row) => row.finalStatus === 'READY');
+
+    const marketingPhaseNames = [
+      'Identity',
+      'Ownership',
+      'Domain & Web',
+      'Social Channels',
+      'Profile Setup',
+      'Digital Web',
+      'Content Bank',
+      'Seed Channels',
+      'Launch',
+      'Verification',
+    ];
+
+    const phases = marketingPhaseNames.map((phaseName) => {
+      const pTasks = applicable.filter((t) => t.checklistPhase === phaseName);
+      const pDone = pTasks.filter((t) => t.status === TaskStatus.DONE).length;
+      const pInProgress = pTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS).length;
+      const pReady = pTasks.filter((t) => t.status === TaskStatus.READY).length;
+      const pStatus =
+        pTasks.length === 0
+          ? 'UPCOMING'
+          : pDone === pTasks.length
+            ? 'COMPLETE'
+            : pDone > 0 || pInProgress > 0 || pReady > 0
+              ? 'IN_PROGRESS'
+              : 'UPCOMING';
+      return {
+        name: phaseName,
+        total: pTasks.length,
+        completed: pDone,
+        status: pStatus,
+      };
+    });
+
     return {
       initialized: true, status: workspace.status, templateVersion: workspace.templateVersion, sourceConfirmationRequired,
+      phases,
       checklist: { totalApplicable: applicable.length, completed, inProgress: applicable.filter((t) => t.status === TaskStatus.IN_PROGRESS).length, ready: applicable.filter((t) => t.status === TaskStatus.READY).length, waiting: applicable.filter((t) => t.status === TaskStatus.WAITING).length, blocked: applicable.filter((t) => t.status === TaskStatus.BLOCKED).length, unassigned: applicable.filter((t) => !t.assigneeId).length, progress: applicable.length ? Math.round(applicable.reduce((sum, task) => sum + task.progress, 0) / applicable.length) : 0 },
       channels: { total: channelRows.length, requiredApplicable: requiredChannels.length, ready: channelRows.filter((r) => r.status === 'READY').length, blocked: channelRows.filter((r) => r.status === 'BLOCKED').length },
       contentBank: { total: contentRows.length, notStarted: contentRows.filter((r) => r.assetStatus === 'NOT_STARTED').length, inProduction: contentRows.filter((r) => r.assetStatus === 'IN_PRODUCTION').length, ready: contentRows.filter((r) => r.assetStatus === 'READY').length, blocked: contentRows.filter((r) => r.assetStatus === 'BLOCKED').length, scheduled: contentRows.filter((r) => r.postStatus === 'SCHEDULED').length, posted: contentRows.filter((r) => r.postStatus === 'POSTED').length },
@@ -146,7 +181,9 @@ export class MarketingService {
   async signoff(projectId: string, actor: AuthUser) { await this.project(projectId, actor); if (!this.isManager(actor)) throw new ForbiddenException('Sign-off details require management permission'); return this.prisma.marketingSignoffItem.findMany({ where: { projectId }, include: { owner: { select: publicUserSelect } }, orderBy: { code: 'asc' } }); }
 
   async bulkAssign(projectId: string, dto: MarketingAssignmentDto, actor: AuthUser) {
-    requireManager(actor.globalRole); await this.project(projectId, actor);
+      requireManager(actor.globalRole); await this.project(projectId, actor);
+      throw new BadRequestException('Use the shared Product Assignment workspace for Marketing work');
+      /* Legacy implementation retained below only for migration reference; this endpoint is intentionally disabled.
     const mappings = dto.mappings || {}; const phaseMappings = dto.phaseMappings || {};
     const teamIds = [...new Set(dto.teamIds || [])];
     const ids = [...Object.values(mappings), ...Object.values(phaseMappings), dto.headId, ...teamIds].filter(Boolean) as string[];
@@ -154,16 +191,12 @@ export class MarketingService {
     const tasks = await this.prisma.task.findMany({ where: { projectId, workstream: 'MARKETING', deletedAt: null }, select: { id: true, humanId: true, title: true, assigneeId: true, checklistOwnerRole: true, checklistPhase: true } });
     return this.prisma.$transaction(async (tx: any) => {
       let assignedCount = 0;
-      let teamIndex = 0;
-      const teamPhases = new Map<string, string>();
-      if (dto.headId) await tx.project.update({ where: { id: projectId }, data: { marketingOwnerId: dto.headId } });
+        if (dto.headId) await tx.project.update({ where: { id: projectId }, data: { marketingOwnerId: dto.headId } });
+        if (dto.teamIds !== undefined) await tx.project.update({ where: { id: projectId }, data: { marketingTeamIds: teamIds } });
       for (const task of tasks) {
         const phaseOwner = task.checklistPhase && phaseMappings[task.checklistPhase];
         if (task.assigneeId && !phaseOwner) continue;
-        const coordinationTask = ['MARKETING_LEAD', 'PROJECT_MANAGER'].includes(task.checklistOwnerRole);
-        const phase = task.checklistPhase || task.id;
-        if (!teamPhases.has(phase) && teamIds.length) teamPhases.set(phase, teamIds[teamIndex++ % teamIds.length]);
-        const assigneeId = phaseOwner || (task.checklistOwnerRole && mappings[task.checklistOwnerRole]) || (coordinationTask ? dto.headId : teamPhases.get(phase));
+        const assigneeId = phaseOwner || (task.checklistOwnerRole && mappings[task.checklistOwnerRole]);
         if (!assigneeId || assigneeId === task.assigneeId) continue;
         await tx.task.update({ where: { id: task.id }, data: { assigneeId, ...(!task.assigneeId ? { status: TaskStatus.READY } : {}) } });
         await tx.notification.create({ data: { userId: assigneeId, type: NotificationType.TASK_ASSIGNED, title: 'Marketing work assigned', message: `${task.humanId}: ${task.title}`, linkUrl: `/projects/${projectId}/marketing` } });
@@ -171,21 +204,25 @@ export class MarketingService {
       }
       await this.audit(tx, actor.id, 'MARKETING_ITEM_ASSIGNED', 'Project', projectId, { assignedCount });
       return { success: true, assignedCount };
-    });
-  }
+      }); */
+    }
 
   async assignItem(projectId: string, id: string, dto: AssignMarketingItemDto, actor: AuthUser) {
-    requireManager(actor.globalRole); await this.project(projectId, actor); await this.eligible(projectId, dto.assigneeId);
+      requireManager(actor.globalRole); await this.project(projectId, actor); await this.eligible(projectId, dto.assigneeId);
+      throw new BadRequestException('Use the shared Product Assignment workspace for Marketing work');
+      /* Legacy implementation retained below only for migration reference.
     const task = await this.prisma.task.findFirst({ where: { id, projectId, workstream: 'MARKETING', deletedAt: null } });
     if (!task) throw new NotFoundException('Marketing checklist item not found');
     return this.prisma.$transaction(async (tx: any) => {
       const assigneeId = dto.assigneeId || null;
-      const updated = await tx.task.update({ where: { id }, data: { assigneeId, status: assigneeId ? TaskStatus.READY : TaskStatus.UNASSIGNED, dueDate: dto.dueDate === undefined ? undefined : dto.dueDate ? new Date(dto.dueDate) : null, progress: 0 } });
+      const unstarted = [TaskStatus.UNASSIGNED, TaskStatus.READY, TaskStatus.TODO].includes(task.status as TaskStatus);
+      if (!assigneeId && !unstarted) throw new BadRequestException('Assign a new owner for work already started');
+      const updated = await tx.task.update({ where: { id }, data: { assigneeId, ...(unstarted ? { status: assigneeId ? TaskStatus.READY : TaskStatus.UNASSIGNED } : {}), dueDate: dto.dueDate === undefined ? undefined : dto.dueDate ? new Date(dto.dueDate) : null } });
       if (assigneeId) await tx.notification.create({ data: { userId: assigneeId, type: NotificationType.TASK_ASSIGNED, title: 'Marketing work assigned', message: `${task.humanId}: ${task.title}`, linkUrl: `/projects/${projectId}/marketing` } });
       await this.audit(tx, actor.id, task.assigneeId ? 'MARKETING_ITEM_REASSIGNED' : 'MARKETING_ITEM_ASSIGNED', 'Task', id, { assigneeId });
       return updated;
-    });
-  }
+      }); */
+    }
 
   async updateChannel(projectId: string, id: string, dto: UpdateChannelDto, actor: AuthUser) { const project = await this.project(projectId, actor); if (!this.isManager(actor) && project.marketingOwnerId !== actor.id) throw new ForbiddenException('Channel update permission denied'); await this.eligible(projectId, dto.backupAdminId); return this.prisma.$transaction(async (tx: any) => { const row = await tx.marketingChannel.update({ where: { id, projectId }, data: { ...dto, backupAdminId: dto.backupAdminId || null } }); await this.audit(tx, actor.id, 'CHANNEL_REGISTRY_UPDATED', 'MarketingChannel', id, { status: row.status }); return row; }); }
   async updateContent(projectId: string, id: string, dto: UpdateContentDto, actor: AuthUser) { await this.project(projectId, actor); const row = await this.prisma.marketingContentItem.findFirst({ where: { id, projectId } }); if (!row) throw new NotFoundException('Content item not found'); if (!this.isManager(actor) && row.ownerId !== actor.id) throw new ForbiddenException('Content update permission denied'); if (!this.isManager(actor) && dto.ownerId !== undefined) throw new ForbiddenException('Only management can change the owner'); await this.eligible(projectId, dto.ownerId); return this.prisma.$transaction(async (tx: any) => { const updated = await tx.marketingContentItem.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, targetDate: dto.targetDate === undefined ? undefined : dto.targetDate ? new Date(dto.targetDate) : null, scheduledDate: dto.scheduledDate === undefined ? undefined : dto.scheduledDate ? new Date(dto.scheduledDate) : null } }); await this.audit(tx, actor.id, 'CONTENT_ITEM_UPDATED', 'MarketingContentItem', id, { assetStatus: updated.assetStatus, postStatus: updated.postStatus }); return updated; }); }

@@ -38,6 +38,7 @@ function MyWorkContent() {
   const [projectFilter, setProjectFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [groupBy, setGroupBy] = useState<'workflow' | 'project' | 'priority' | 'none'>('workflow');
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const debouncedSearch = useDebounce(search, 250);
 
   // Fetch tasks with debounced search
@@ -63,6 +64,7 @@ function MyWorkContent() {
     mutationFn: (taskId: string) =>
       api.patch(`/tasks/${taskId}`, { status: TaskStatus.IN_PROGRESS }),
     onMutate: async (taskId: string) => {
+      setActionMessage(null);
       const qKey = ['my-work', selectedTab, debouncedSearch, projectFilter, priorityFilter];
       await queryClient.cancelQueries({ queryKey: qKey });
       const previousTasks = queryClient.getQueryData(qKey);
@@ -74,11 +76,13 @@ function MyWorkContent() {
       });
       return { previousTasks, qKey };
     },
-    onError: (_err, _vars, context: any) => {
+    onError: (error: any, _vars, context: any) => {
       if (context?.previousTasks && context?.qKey) {
         queryClient.setQueryData(context.qKey, context.previousTasks);
       }
+      setActionMessage({ type: 'error', text: error?.message || 'This checklist could not be started.' });
     },
+    onSuccess: () => setActionMessage({ type: 'success', text: 'Checklist started. You can update its status from Doing.' }),
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
@@ -252,7 +256,7 @@ function MyWorkContent() {
             <Button
               size="xs"
               variant="primary"
-              loading={startWorkMutation.isPending}
+              loading={startWorkMutation.isPending && startWorkMutation.variables === task.id}
               onClick={(e) => {
                 e.stopPropagation();
                 startWorkMutation.mutate(task.id);
@@ -381,6 +385,9 @@ function MyWorkContent() {
           <p className="text-[11px] text-[#60666F] truncate">
             {task.project?.name || 'Project'} · {(task.workstream || 'DEVELOPMENT') === 'MARKETING' ? 'Marketing' : 'Development'}
           </p>
+          {task.workstream === 'MARKETING' && task.checklistPhase && (
+            <p className="text-[11px] font-medium text-[#245EC7] truncate">Phase: {task.checklistPhase}</p>
+          )}
         </div>
 
         {task.workstream !== 'MARKETING' && (task.status === TaskStatus.IN_PROGRESS || task.status === TaskStatus.IN_REVIEW) && (
@@ -413,7 +420,7 @@ function MyWorkContent() {
 
   const waitingCount = allTasks.filter((t) => t.status === TaskStatus.WAITING).length;
   const inProgressCount = allTasks.filter(
-    (t) => t.status === TaskStatus.IN_PROGRESS || t.status === TaskStatus.IN_REVIEW,
+    (t) => t.status === TaskStatus.IN_PROGRESS,
   ).length;
   const readyCount = allTasks.filter((t) => t.status === TaskStatus.READY).length;
 
@@ -448,6 +455,12 @@ function MyWorkContent() {
             {subtitle}
           </p>
         </div>
+
+        {actionMessage && (
+          <div role={actionMessage.type === 'error' ? 'alert' : 'status'} className={cn('rounded-[8px] border px-3 py-2 text-xs', actionMessage.type === 'error' ? 'border-[#B54747]/25 bg-[#FFF2F2] text-[#9F3535]' : 'border-[#237A57]/25 bg-[#EFF8F3] text-[#237A57]')}>
+            {actionMessage.text}
+          </div>
+        )}
 
         {/* Status Filter Tabs */}
         <div className="border-b border-[#E8EBEF] pb-2.5 flex items-center gap-1 overflow-x-auto no-scrollbar">

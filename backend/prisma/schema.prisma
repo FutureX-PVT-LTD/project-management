@@ -8,52 +8,88 @@ datasource db {
 }
 
 model User {
-  additionalWork AdditionalWork[]
-  id           String    @id @default(uuid())
-  email        String    @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  jobTitle     String?
-  avatarUrl    String?
-  globalRole   String    @default("TEAM_MEMBER") // OWNER, ADMIN, TEAM_MEMBER
-  isActive     Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+  functionalRoleLinks UserFunctionalRole[]
+  additionalWork      AdditionalWork[]
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  jobTitle            String?
+  avatarUrl           String?
+  globalRole          String               @default("TEAM_MEMBER") // OWNER, ADMIN, TEAM_MEMBER
+  isActive            Boolean              @default(true)
+  lastLoginAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  deletedAt           DateTime?
 
   resetPasswordToken   String?
   resetPasswordExpires DateTime?
 
   // Relations
-  teamMemberships    TeamMember[]
-  ledTeams           Team[]             @relation("TeamLead")
-  managedProjects    Project[]          @relation("ProjectManager")
-  projectMemberships ProjectMember[]
-  createdTasks       Task[]             @relation("TaskCreator")
-  assignedTasks      Task[]             @relation("TaskAssignee")
-  taskCollaborations TaskCollaborator[]
-  taskComments       TaskComment[]
-  taskAttachments    TaskAttachment[]
-  taskActivities     TaskActivity[]
-  taskDailyUpdates   TaskDailyUpdate[]
-  taskReviews        TaskReview[]
-  projectUpdates     ProjectUpdate[]
-  notifications      Notification[]
-  auditLogs          AuditLog[]         @relation("ActorAuditLogs")
-  sessions           Session[]
-  marketingOwnedProjects Project[] @relation("MarketingOwner")
-  marketingChannelsAsBackup MarketingChannel[] @relation("ChannelBackupAdmin")
-  marketingContentItems MarketingContentItem[] @relation("ContentOwner")
-  marketingBuzzActivities MarketingBuzzActivity[] @relation("BuzzOwner")
-  approvedMarketingGates MarketingGate[] @relation("MarketingGateApprover")
-  marketingSignoffItems MarketingSignoffItem[] @relation("SignoffOwner")
+  teamMemberships           TeamMember[]
+  ledTeams                  Team[]                   @relation("TeamLead")
+  managedProjects           Project[]                @relation("ProjectManager")
+  projectMemberships        ProjectMember[]
+  createdTasks              Task[]                   @relation("TaskCreator")
+  assignedTasks             Task[]                   @relation("TaskAssignee")
+  taskCollaborations        TaskCollaborator[]
+  taskComments              TaskComment[]
+  taskAttachments           TaskAttachment[]
+  taskActivities            TaskActivity[]
+  taskDailyUpdates          TaskDailyUpdate[]
+  taskReviews               TaskReview[]
+  projectUpdates            ProjectUpdate[]
+  notifications             Notification[]
+  auditLogs                 AuditLog[]               @relation("ActorAuditLogs")
+  sessions                  Session[]
+  marketingOwnedProjects    Project[]                @relation("MarketingOwner")
+  marketingChannelsAsBackup MarketingChannel[]       @relation("ChannelBackupAdmin")
+  marketingContentItems     MarketingContentItem[]   @relation("ContentOwner")
+  marketingBuzzActivities   MarketingBuzzActivity[]  @relation("BuzzOwner")
+  approvedMarketingGates    MarketingGate[]          @relation("MarketingGateApprover")
+  marketingSignoffItems     MarketingSignoffItem[]   @relation("SignoffOwner")
+  assignmentHistoryFrom     TaskAssignmentHistory[]  @relation("PreviousAssignee")
+  assignmentHistoryTo       TaskAssignmentHistory[]  @relation("NewAssignee")
+  assignmentChanges         TaskAssignmentHistory[]  @relation("AssignmentChangedBy")
+  defaultPhaseAssignments   ProjectPhaseAssignment[] @relation("PhaseDefaultAssignee")
+  createdPhaseAssignments   ProjectPhaseAssignment[] @relation("PhaseAssignmentCreatedBy")
+  updatedPhaseAssignments   ProjectPhaseAssignment[] @relation("PhaseAssignmentUpdatedBy")
+  phaseMemberships          ProjectPhaseMember[]
 
   @@index([email])
   @@index([globalRole])
   @@index([isActive])
   @@index([resetPasswordToken])
+}
+
+model FunctionalRole {
+  id             String                        @id @default(uuid())
+  code           String                        @unique
+  name           String
+  category       String
+  isActive       Boolean                       @default(true)
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+  users          UserFunctionalRole[]
+  projectMembers ProjectMemberRoleAssignment[]
+  checklistItems ChecklistEligibleRole[]
+
+  @@unique([name, category])
+  @@index([category, isActive])
+  @@map("JobRole")
+}
+
+model UserFunctionalRole {
+  userId           String
+  functionalRoleId String
+  assignedAt       DateTime       @default(now())
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  functionalRole   FunctionalRole @relation(fields: [functionalRoleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, functionalRoleId])
+  @@index([functionalRoleId])
 }
 
 model Team {
@@ -82,20 +118,20 @@ model TeamMember {
 }
 
 model Project {
-  additionalWork AdditionalWork[]
-  id                       String    @id @default(uuid())
-  key                      String    @unique // e.g. "CR", "HM", "WEB"
+  additionalWork           AdditionalWork[]
+  id                       String           @id @default(uuid())
+  key                      String           @unique // e.g. "CR", "HM", "WEB"
   name                     String
   description              String?
   targetMarket             String?
   targetLanguage           String?
-  productType              String    @default("GAME") // APP, GAME, WEBSITE_TOOL
-  status                   String    @default("ACTIVE") // PLANNED, ACTIVE, AT_RISK, COMPLETED, ARCHIVED
-  health                   String    @default("ON_TRACK") // ON_TRACK, AT_RISK, OFF_TRACK, COMPLETED
+  productType              String           @default("GAME") // APP, GAME, WEBSITE_TOOL
+  status                   String           @default("ACTIVE") // PLANNED, ACTIVE, AT_RISK, COMPLETED, ARCHIVED
+  health                   String           @default("ON_TRACK") // ON_TRACK, AT_RISK, OFF_TRACK, COMPLETED
   healthReason             String?
-  manualHealthOverride     Boolean   @default(false)
-  progress                 Float     @default(0) // 0-100%
-  launchReadiness          Float     @default(0) // derived from checklist/stage readiness
+  manualHealthOverride     Boolean          @default(false)
+  progress                 Float            @default(0) // 0-100%
+  launchReadiness          Float            @default(0) // derived from checklist/stage readiness
   currentPhase             String?
   checklistGeneratedAt     DateTime?
   checklistTemplateVersion String?
@@ -104,28 +140,38 @@ model Project {
   completedDate            DateTime?
   projectManagerId         String?
   marketingOwnerId         String?
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  lifecycleStatus          String           @default("ACTIVE") // DRAFT, ACTIVE, ARCHIVED
+  currentStep              String?          @default("DETAILS") // DETAILS, TEAM, WORKSTREAMS, REVIEW
+  draftDataJson            String?
+  createdById              String?
+  updatedById              String?
+  activationStartedAt      DateTime?
+  activatedAt              DateTime?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
   deletedAt                DateTime?
 
-  projectManager  User?             @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
-  marketingOwner  User?             @relation("MarketingOwner", fields: [marketingOwnerId], references: [id], onDelete: SetNull)
-  members         ProjectMember[]
-  milestones      Milestone[]
-  tasks           Task[]
-  taskAttachments TaskAttachment[]
-  taskActivities  TaskActivity[]
-  dailyUpdates    TaskDailyUpdate[]
-  updates         ProjectUpdate[]
-  workstreams     ProjectWorkstream[]
-  marketingChannels MarketingChannel[]
-  marketingContentItems MarketingContentItem[]
+  projectManager          User?                    @relation("ProjectManager", fields: [projectManagerId], references: [id], onDelete: SetNull)
+  marketingOwner          User?                    @relation("MarketingOwner", fields: [marketingOwnerId], references: [id], onDelete: SetNull)
+  members                 ProjectMember[]
+  milestones              Milestone[]
+  tasks                   Task[]
+  taskAttachments         TaskAttachment[]
+  taskActivities          TaskActivity[]
+  dailyUpdates            TaskDailyUpdate[]
+  updates                 ProjectUpdate[]
+  workstreams             ProjectWorkstream[]
+  marketingChannels       MarketingChannel[]
+  marketingContentItems   MarketingContentItem[]
   marketingBuzzActivities MarketingBuzzActivity[]
-  marketingGates MarketingGate[]
-  marketingSignoffItems MarketingSignoffItem[]
+  marketingGates          MarketingGate[]
+  marketingSignoffItems   MarketingSignoffItem[]
+  phaseAssignments        ProjectPhaseAssignment[]
 
   @@index([key])
   @@index([status])
+  @@index([lifecycleStatus])
+  @@index([createdById])
   @@index([health])
   @@index([productType])
   @@index([projectManagerId])
@@ -157,6 +203,7 @@ model ChecklistTemplateItem {
   updatedAt         DateTime @updatedAt
 
   generatedTasks Task[]
+  eligibleRoles  ChecklistEligibleRole[]
 
   @@index([phase])
   @@index([workstream])
@@ -172,12 +219,70 @@ model ProjectMember {
   role      String   @default("MEMBER") // MANAGER, LEAD, MEMBER, VIEWER
   joinedAt  DateTime @default(now())
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project      Project                       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user         User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectRoles ProjectMemberRoleAssignment[]
 
   @@unique([projectId, userId])
   @@index([userId])
   @@index([projectId])
+}
+
+model ProjectMemberRoleAssignment {
+  projectMemberId  String
+  functionalRoleId String
+  assignedAt       DateTime       @default(now())
+  projectMember    ProjectMember  @relation(fields: [projectMemberId], references: [id], onDelete: Cascade)
+  functionalRole   FunctionalRole @relation(fields: [functionalRoleId], references: [id], onDelete: Restrict)
+
+  @@id([projectMemberId, functionalRoleId])
+  @@index([functionalRoleId])
+}
+
+model ProjectPhaseAssignment {
+  id                String   @id @default(uuid())
+  projectId         String
+  workstream        String
+  phaseKey          String
+  defaultAssigneeId String?
+  createdById       String
+  updatedById       String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  project         Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  defaultAssignee User?                @relation("PhaseDefaultAssignee", fields: [defaultAssigneeId], references: [id], onDelete: SetNull)
+  createdBy       User                 @relation("PhaseAssignmentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  updatedBy       User                 @relation("PhaseAssignmentUpdatedBy", fields: [updatedById], references: [id], onDelete: Restrict)
+  members         ProjectPhaseMember[]
+
+  @@unique([projectId, workstream, phaseKey])
+  @@index([projectId, workstream])
+  @@index([defaultAssigneeId])
+}
+
+model ProjectPhaseMember {
+  phaseAssignmentId String
+  userId            String
+  isDefault         Boolean  @default(false)
+  addedAt           DateTime @default(now())
+
+  phaseAssignment ProjectPhaseAssignment @relation(fields: [phaseAssignmentId], references: [id], onDelete: Cascade)
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([phaseAssignmentId, userId])
+  @@index([userId])
+}
+
+model ChecklistEligibleRole {
+  checklistTemplateItemId String
+  functionalRoleId        String
+  isPrimary               Boolean               @default(false)
+  checklistTemplateItem   ChecklistTemplateItem @relation(fields: [checklistTemplateItemId], references: [id], onDelete: Cascade)
+  functionalRole          FunctionalRole        @relation(fields: [functionalRoleId], references: [id], onDelete: Restrict)
+
+  @@id([checklistTemplateItemId, functionalRoleId])
+  @@index([functionalRoleId])
 }
 
 model Milestone {
@@ -239,21 +344,22 @@ model Task {
   updatedAt               DateTime  @updatedAt
   deletedAt               DateTime?
 
-  project               Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  milestone             Milestone?             @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
-  creator               User                   @relation("TaskCreator", fields: [creatorId], references: [id])
-  assignee              User?                  @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  checklistTemplateItem ChecklistTemplateItem? @relation(fields: [checklistTemplateItemId], references: [id], onDelete: SetNull)
-  parentTask            Task?                  @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
-  subtasks              Task[]                 @relation("SubTasks")
+  project               Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone             Milestone?              @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  creator               User                    @relation("TaskCreator", fields: [creatorId], references: [id])
+  assignee              User?                   @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  checklistTemplateItem ChecklistTemplateItem?  @relation(fields: [checklistTemplateItemId], references: [id], onDelete: SetNull)
+  parentTask            Task?                   @relation("SubTasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
+  subtasks              Task[]                  @relation("SubTasks")
   collaborators         TaskCollaborator[]
-  blockedBy             TaskDependency[]       @relation("DependentTasks")
-  blocking              TaskDependency[]       @relation("PredecessorTasks")
+  blockedBy             TaskDependency[]        @relation("DependentTasks")
+  blocking              TaskDependency[]        @relation("PredecessorTasks")
   reviews               TaskReview[]
   dailyUpdates          TaskDailyUpdate[]
   comments              TaskComment[]
   attachments           TaskAttachment[]
   activities            TaskActivity[]
+  assignmentHistory     TaskAssignmentHistory[]
 
   @@index([projectId])
   @@index([assigneeId])
@@ -272,6 +378,24 @@ model Task {
   @@index([projectId, status])
   @@index([assigneeId, status])
   @@index([dueDate, status])
+}
+
+model TaskAssignmentHistory {
+  id                 String   @id @default(uuid())
+  taskId             String
+  previousAssigneeId String?
+  newAssigneeId      String?
+  changedById        String
+  reason             String?
+  changedAt          DateTime @default(now())
+  task               Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  previousAssignee   User?    @relation("PreviousAssignee", fields: [previousAssigneeId], references: [id], onDelete: SetNull)
+  newAssignee        User?    @relation("NewAssignee", fields: [newAssigneeId], references: [id], onDelete: SetNull)
+  changedBy          User     @relation("AssignmentChangedBy", fields: [changedById], references: [id], onDelete: Restrict)
+
+  @@index([taskId, changedAt])
+  @@index([previousAssigneeId])
+  @@index([newAssigneeId])
 }
 
 model TaskCollaborator {
@@ -465,21 +589,21 @@ model Session {
 }
 
 model AdditionalWork {
-  id           String   @id @default(uuid())
-  projectId    String
-  creatorId    String
-  title        String
-  description  String
-  workDate     DateTime @db.Date
-  minutesSpent Int?
-  workstream   String   @default("DEVELOPMENT") // DEVELOPMENT, MARKETING
-  source       String   @default("MEMBER_ADDITIONAL_WORK")
-  countsTowardProductProgress Boolean @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                          String   @id @default(uuid())
+  projectId                   String
+  creatorId                   String
+  title                       String
+  description                 String
+  workDate                    DateTime @db.Date
+  minutesSpent                Int?
+  workstream                  String   @default("DEVELOPMENT") // DEVELOPMENT, MARKETING
+  source                      String   @default("MEMBER_ADDITIONAL_WORK")
+  countsTowardProductProgress Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  creator User @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  creator User    @relation(fields: [creatorId], references: [id], onDelete: Restrict)
 
   @@index([creatorId, workDate])
   @@index([projectId, workDate])
@@ -508,14 +632,14 @@ model MarketingChannel {
   platform         String
   requirement      String   @default("WHEN_APPLICABLE")
   handle           String?
-  publicUrl         String?
-  adminEmail        String?
+  publicUrl        String?
+  adminEmail       String?
   twoFactorEnabled Boolean  @default(false)
   backupAdminId    String?
   status           String   @default("NOT_CREATED")
-  notes             String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   backupAdmin User?   @relation("ChannelBackupAdmin", fields: [backupAdminId], references: [id], onDelete: SetNull)
@@ -525,22 +649,22 @@ model MarketingChannel {
 }
 
 model MarketingContentItem {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   projectId     String
   code          String
   stage         String
   contentType   String
   concept       String
-  platforms     String[] @default([])
+  platforms     String[]  @default([])
   ownerId       String?
-  assetStatus   String   @default("NOT_STARTED")
-  postStatus    String   @default("NOT_POSTED")
+  assetStatus   String    @default("NOT_STARTED")
+  postStatus    String    @default("NOT_POSTED")
   assetLink     String?
   notes         String?
   targetDate    DateTime?
   scheduledDate DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   owner   User?   @relation("ContentOwner", fields: [ownerId], references: [id], onDelete: SetNull)

@@ -1,5 +1,7 @@
 # FutureX Security Audit and Deployment Verification
 
+> Superseded for current release status by `CODEBASE-AUDIT-2026-09-16.md`. Historical findings below are retained as evidence; statements about the deployment workflow must not be treated as current without comparing `.github/workflows/main.yml`.
+
 ## Current Pre-Launch Review: 2026-09-10
 
 **Release recommendation: NOT READY. The application is ready for continued staging security testing, but the production launch gate is not complete.**

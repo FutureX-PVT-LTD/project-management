@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto, ResetUserPasswordDto, ToggleUserActiveDto } from './dto/create-user.dto';
+import { CreateUserDto, UpdateUserDto, ResetUserPasswordDto, ToggleUserActiveDto, SaveJobRoleDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -25,6 +25,22 @@ import { UserRole, AuthUser } from '@futurex/shared';
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
+
+  @Roles(UserRole.ADMIN, UserRole.OWNER)
+  @Get('job-roles')
+  jobRoles() { return this.usersService.jobRoles(); }
+
+  @Roles(UserRole.OWNER)
+  @Post('job-roles')
+  createJobRole(@Body() dto: SaveJobRoleDto, @CurrentUser() actor: AuthUser) {
+    return this.usersService.saveJobRole(undefined, dto, actor.id);
+  }
+
+  @Roles(UserRole.OWNER)
+  @Patch('job-roles/:roleId')
+  updateJobRole(@Param('roleId') id: string, @Body() dto: SaveJobRoleDto, @CurrentUser() actor: AuthUser) {
+    return this.usersService.saveJobRole(id, dto, actor.id);
+  }
 
   @Get()
   async findAll(

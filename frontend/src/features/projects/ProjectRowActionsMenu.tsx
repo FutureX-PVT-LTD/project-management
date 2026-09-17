@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ExternalLink, Edit3, Users, Archive, RotateCcw, Trash2 } from 'lucide-react';
+import { ExternalLink, Edit3, Users, Archive, RotateCcw, Trash2, SlidersHorizontal } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { ProjectStatus, UserRole } from '@futurex/shared';
@@ -54,6 +54,11 @@ export function ProjectRowActionsMenu({ project }: ProjectRowActionsMenuProps) {
       label: 'Manage Members',
       icon: <Users className="w-3.5 h-3.5" />,
       href: `/projects/${project.id}/members`,
+    },
+    {
+      label: 'Manage Assignments',
+      icon: <SlidersHorizontal className="w-3.5 h-3.5" />,
+      href: `/projects/${project.id}/setup`,
       dividerAfter: true,
     },
     {

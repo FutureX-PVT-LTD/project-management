@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Settings, Shield, Server, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
-import { Button } from '@/components/ui/Button';
+import { JobRolePicker } from './JobRolePicker';
 
 export function SettingsPage() {
   return (
@@ -17,6 +17,10 @@ export function SettingsPage() {
           <p className="text-xs sm:text-sm text-fx-text-secondary mt-0.5">
             System configuration, authentication policies, and core service status.
           </p>
+        </div>
+
+        <div className="bg-white border border-fx-border rounded-[8px] p-5">
+          <JobRolePicker value={[]} onChange={() => undefined} hideSelection />
         </div>
 
         {/* Studio Organization Info */}

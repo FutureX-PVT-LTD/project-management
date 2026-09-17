@@ -1,0 +1,16 @@
+CREATE TABLE "JobRole" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "isActive" BOOLEAN NOT NULL DEFAULT true,
+  CONSTRAINT "JobRole_pkey" PRIMARY KEY ("id")
+);
+ALTER TABLE "Project" ADD COLUMN "marketingTeamIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+CREATE UNIQUE INDEX "JobRole_name_key" ON "JobRole"("name");
+CREATE TABLE "_JobRoleToUser" (
+  "A" TEXT NOT NULL,
+  "B" TEXT NOT NULL,
+  CONSTRAINT "_JobRoleToUser_AB_pkey" PRIMARY KEY ("A", "B")
+);
+CREATE INDEX "_JobRoleToUser_B_index" ON "_JobRoleToUser"("B");
+ALTER TABLE "_JobRoleToUser" ADD CONSTRAINT "_JobRoleToUser_A_fkey" FOREIGN KEY ("A") REFERENCES "JobRole"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "_JobRoleToUser" ADD CONSTRAINT "_JobRoleToUser_B_fkey" FOREIGN KEY ("B") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import * as Tabs from '@radix-ui/react-tabs';
-import { ArrowRight, CheckCircle2, Code2, Megaphone } from 'lucide-react';
+import { ArrowRight, Code2, Megaphone } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api-client';
+import { PhaseAssignments } from './PhaseAssignments';
 import { asArray, asRecord } from '@/lib/api-data';
 
 function checklistPosition(task: any) {
@@ -20,27 +21,13 @@ function checklistPosition(task: any) {
 
 export function ProductSetupPage() {
   const projectId = String(useParams()?.id || '');
-  const cache = useQueryClient();
-  const [developmentMappings, setDevelopmentMappings] = useState<Record<string, string>>({});
-  const [marketingHead, setMarketingHead] = useState('');
-  const [marketingTeam, setMarketingTeam] = useState<string[]>([]);
-  const [marketingPhases, setMarketingPhases] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState('');
   const { data: projectData } = useQuery({ queryKey: ['project', projectId], queryFn: () => api.get(`/projects/${projectId}`), enabled: !!projectId });
   const project = asRecord(projectData);
-  const members = Array.isArray(project.members) ? project.members : [];
   const development = (Array.isArray(project.tasks) ? project.tasks : []).filter((task: any) => task.workType === 'STANDARD_CHECKLIST' && (task.workstream || 'DEVELOPMENT') === 'DEVELOPMENT').sort((a: any, b: any) => checklistPosition(a) - checklistPosition(b));
   const { data: marketingData } = useQuery({ queryKey: ['marketing', projectId, 'checklist'], queryFn: () => api.get(`/projects/${projectId}/marketing/checklist`), enabled: !!projectId });
   const marketing = asArray<any>(marketingData).sort((a, b) => checklistPosition(a) - checklistPosition(b));
-  const roles = (items: any[]) => Array.from(new Set(items.map((item) => item.checklistOwnerRole).filter(Boolean))) as string[];
-  const developmentRoles = useMemo(() => roles(development), [development]);
-  const saveMarketing = useMutation({ mutationFn: () => api.post(`/projects/${projectId}/marketing/assignments`, { headId: marketingHead || project.marketingOwnerId || undefined, phaseMappings: marketingPhases }), onSuccess: (result: any) => { setMessage(`${result.assignedCount || 0} items assigned.`); cache.invalidateQueries({ queryKey: ['project', projectId] }); cache.invalidateQueries({ queryKey: ['marketing', projectId] }); }, onError: (error: any) => setMessage(error.message || 'Assignments could not be saved.') });
-  const save = useMutation({ mutationFn: ({ workstream, mappings }: { workstream: 'development' | 'marketing'; mappings: Record<string, string> }) => workstream === 'development' ? api.post(`/projects/${projectId}/development-checklist/bulk-assign`, { mappings }) : api.post(`/projects/${projectId}/marketing/assignments`, { mappings }), onSuccess: (result: any) => { setMessage(`${result.assignedCount || 0} items assigned.`); cache.invalidateQueries({ queryKey: ['project', projectId] }); cache.invalidateQueries({ queryKey: ['marketing', projectId] }); }, onError: (error: any) => setMessage(error.message || 'Assignments could not be saved.') });
-  const assignOne = useMutation({ mutationFn: ({ workstream, taskId, assigneeId }: { workstream: string; taskId: string; assigneeId: string }) => workstream === 'MARKETING' ? api.patch(`/projects/${projectId}/marketing/checklist/${taskId}/assignment`, { assigneeId: assigneeId || null }) : api.patch(`/projects/${projectId}/development-checklist/${taskId}/assignment`, { assigneeId: assigneeId || null }), onSuccess: () => { cache.invalidateQueries({ queryKey: ['project', projectId] }); cache.invalidateQueries({ queryKey: ['marketing', projectId] }); } });
-
   return <AppShell fullWidth><div className="space-y-7">
-    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[#E8EBEF] pb-5"><div><p className="text-xs text-[#8B929B]">Product Setup</p><h1 className="mt-1 text-xl font-semibold text-[#17191C]">{project.name || 'Product'} assignments</h1><p className="mt-1 text-[13px] text-[#60666F]">Assign responsibilities in bulk, then override individual work where needed.</p></div><Link href={`/projects/${projectId}`}><Button rightIcon={<ArrowRight className="h-3.5 w-3.5" />}>Go to Product</Button></Link></header>
-    {message && <p className="rounded-md border border-[#E8EBEF] bg-[#F8F9FB] px-3 py-2 text-xs">{message}</p>}
+    <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[#E8EBEF] pb-5"><div><p className="text-xs text-[#8B929B]">Product Setup</p><h1 className="mt-1 text-xl font-semibold text-[#17191C]">{project.name || 'Product'} assignments</h1></div><Link href={`/projects/${projectId}`}><Button rightIcon={<ArrowRight className="h-3.5 w-3.5" />}>Go to Product</Button></Link></header>
     <Tabs.Root defaultValue="development" className="min-w-0">
       <Tabs.List aria-label="Assignment workstream" className="mb-6 flex gap-4 overflow-x-auto border-b border-[#E8EBEF]">
         <Tabs.Trigger value="development" className="flex shrink-0 items-center gap-2 border-b-2 border-transparent px-2 py-3 text-sm text-[#60666F] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#2463EB] data-[state=active]:border-[#2463EB] data-[state=active]:text-[#2463EB]">
@@ -51,31 +38,11 @@ export function ProductSetupPage() {
         </Tabs.Trigger>
       </Tabs.List>
       <Tabs.Content value="development" className="min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-[#2463EB]">
-        <SetupSection icon={<Code2 className="h-4 w-4" />} title="Development Assignment" items={development} responsibilityRoles={developmentRoles} mappings={developmentMappings} setMappings={setDevelopmentMappings} members={members} onApply={() => save.mutate({ workstream: 'development', mappings: developmentMappings })} onAssign={(taskId: string, assigneeId: string) => assignOne.mutate({ workstream: 'DEVELOPMENT', taskId, assigneeId })} />
+        <PhaseAssignments projectId={projectId} workstream="development" />
       </Tabs.Content>
       <Tabs.Content value="marketing" className="min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-[#2463EB]">
-        <div className="mb-6 grid gap-4 border-b border-[#E8EBEF] pb-5 sm:grid-cols-[240px_minmax(0,1fr)]">
-          <label className="grid content-start gap-2 text-xs"><span>Marketing Head</span><select value={marketingHead || project.marketingOwnerId || ''} onChange={(event) => setMarketingHead(event.target.value)} className="h-9 w-full rounded-md border border-[#E8EBEF] bg-white px-2"><option value="">Choose head</option>{members.map((member: any) => <option key={member.userId} value={member.userId}>{member.user?.firstName} {member.user?.lastName}</option>)}</select></label>
-          <fieldset className="min-w-0"><legend className="mb-2 text-xs">Team Members ({marketingTeam.length})</legend><div className="flex flex-wrap gap-x-5 gap-y-3">{members.map((member: any) => <label key={member.userId} className="flex items-center gap-2 text-xs"><input type="checkbox" checked={marketingTeam.includes(member.userId)} onChange={(event) => setMarketingTeam((current) => event.target.checked ? [...current, member.userId] : current.filter((id) => id !== member.userId))} className="h-4 w-4 accent-[#2463EB]" />{member.user?.firstName} {member.user?.lastName}</label>)}</div></fieldset>
-          <div className="grid gap-3 sm:col-span-2 sm:grid-cols-2 lg:grid-cols-3">{Array.from(new Set<string>(marketing.map((task) => task.checklistPhase).filter(Boolean))).map((phase) => {
-            const tasks = marketing.filter((task) => task.checklistPhase === phase);
-            const owners = Array.from(new Set<string>(tasks.map((task) => task.assigneeId || '')));
-            const currentOwner = owners.length === 1 ? owners[0] : '';
-            return <label key={phase} className="grid gap-1 text-xs"><span>{phase} <span className="text-[#8B929B]">({tasks.length})</span></span><select value={marketingPhases[phase] || currentOwner} onChange={(event) => setMarketingPhases((current) => ({ ...current, [phase]: event.target.value }))} className="h-9 w-full rounded-md border border-[#E8EBEF] bg-white px-2"><option value="">{owners.length > 1 ? 'Mixed owners - choose phase owner' : 'Choose phase owner'}</option>{members.filter((member: any) => marketingTeam.includes(member.userId) || member.userId === (marketingHead || project.marketingOwnerId) || member.userId === currentOwner).map((member: any) => <option key={member.userId} value={member.userId}>{member.user?.firstName} {member.user?.lastName}</option>)}</select></label>;
-          })}</div>
-          <Button size="sm" variant="secondary" disabled={saveMarketing.isPending || !(marketingHead || project.marketingOwnerId) || !Object.values(marketingPhases).some(Boolean)} onClick={() => saveMarketing.mutate()}>{saveMarketing.isPending ? 'Saving...' : 'Apply phase assignments'}</Button>
-        </div>
-        <SetupSection icon={<Megaphone className="h-4 w-4" />} title="Marketing Assignment" items={marketing} responsibilityRoles={[]} members={members} onAssign={undefined} />
+        <PhaseAssignments projectId={projectId} workstream="marketing" />
       </Tabs.Content>
     </Tabs.Root>
   </div></AppShell>;
-}
-
-function SetupSection({ icon, title, items, responsibilityRoles, mappings, setMappings, members, onApply, onAssign }: any) {
-  const unassigned = items.filter((item: any) => !item.assigneeId).length;
-  if (!onAssign) return <section className="min-w-0 space-y-3"><h2 className="text-sm font-semibold">{title}</h2><div className="overflow-x-auto rounded-md border border-[#E8EBEF]"><table className="w-full min-w-[640px] text-left text-xs"><thead className="bg-[#FAFBFC] text-[#60666F]"><tr><th className="px-3 py-2">ID</th><th className="px-3 py-2">Task</th><th className="px-3 py-2">Phase</th><th className="px-3 py-2">Owner</th></tr></thead><tbody className="divide-y divide-[#E8EBEF]">{items.map((item: any) => { const owner = members.find((member: any) => member.userId === item.assigneeId); return <tr key={item.id}><td className="px-3 py-3 font-mono">{item.checklistCode}</td><td className="px-3 py-3">{item.title}</td><td className="px-3 py-3">{item.checklistPhase}</td><td className="px-3 py-3">{owner ? `${owner.user?.firstName || ''} ${owner.user?.lastName || ''}` : 'Unassigned'}</td></tr>; })}</tbody></table></div></section>;
-  return <section className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E8EBEF] pb-2"><div className="flex items-center gap-2"><span className="text-[#2463EB]">{icon}</span><h2 className="text-sm font-semibold">{title}</h2><span className="text-xs text-[#8B929B]">{items.length} items · {unassigned} unassigned</span></div>{unassigned === 0 && items.length > 0 && <span className="flex items-center gap-1 text-xs text-[#237A57]"><CheckCircle2 className="h-3.5 w-3.5" /> Assigned</span>}</div>
-    {responsibilityRoles.length > 0 && <div className="flex flex-wrap items-end gap-3">{responsibilityRoles.map((role: string) => <label key={role} className="grid gap-1 text-xs"><span>{role.replace(/_/g, ' ')}</span><select value={mappings[role] || ''} onChange={(e) => setMappings((current: any) => ({ ...current, [role]: e.target.value }))} className="h-8 min-w-44 rounded-md border border-[#E8EBEF] bg-white px-2"><option value="">Choose member</option>{members.map((member: any) => <option key={member.userId} value={member.userId}>{member.user?.firstName} {member.user?.lastName}</option>)}</select></label>)}<Button size="sm" variant="secondary" onClick={onApply}>Apply assignments</Button></div>}
-    <div className="overflow-x-auto rounded-lg border border-[#E8EBEF]"><table className="w-full text-left text-xs"><thead><tr className="bg-[#FAFBFC] text-[#60666F]"><th className="px-3 py-2">ID</th><th className="px-3 py-2">Task</th><th className="px-3 py-2">Phase</th><th className="px-3 py-2">Responsibility</th><th className="px-3 py-2">Assignee</th></tr></thead><tbody className="divide-y divide-[#E8EBEF]">{items.map((item: any) => <tr key={item.id}><td className="px-3 py-2 font-mono">{item.checklistCode}</td><td className="max-w-xl px-3 py-2">{item.title}</td><td className="px-3 py-2 text-[#60666F]">{item.checklistPhase}</td><td className="px-3 py-2 text-[#60666F]">{String(item.checklistOwnerRole || '').replace(/_/g, ' ')}</td><td className="px-3 py-2"><select value={item.assigneeId || ''} onChange={(e) => onAssign(item.id, e.target.value)} className="h-8 min-w-40 rounded-md border border-[#E8EBEF] bg-white px-2"><option value="">Unassigned</option>{members.map((member: any) => <option key={member.userId} value={member.userId}>{member.user?.firstName} {member.user?.lastName}</option>)}</select></td></tr>)}</tbody></table></div>
-  </section>;
 }

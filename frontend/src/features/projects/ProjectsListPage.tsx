@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   FolderKanban,
   Search,
@@ -9,8 +9,12 @@ import {
   LayoutGrid,
   List,
   ArrowRight,
+  FileText,
+  Trash2,
+  Clock,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
+import { asArray } from '@/lib/api-data';
 import { ProjectStatus } from '@futurex/shared';
 import { useAuth } from '@/features/auth/AuthContext';
 import { canManageProjects } from '@/lib/permissions';
@@ -26,6 +30,7 @@ import { useRouter } from 'next/navigation';
 
 export function ProjectsListPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const canManage = canManageProjects(user);
 
@@ -39,6 +44,20 @@ export function ProjectsListPage() {
     queryFn: ({ signal }) =>
       api.get(`/projects?search=${encodeURIComponent(debouncedSearch)}&status=${statusFilter === 'ALL' ? '' : statusFilter}`, { signal }),
     staleTime: 30000,
+  });
+
+  const { data: draftsData } = useQuery({
+    queryKey: ['projects', 'drafts'],
+    queryFn: () => api.get('/projects/drafts'),
+    enabled: canManage,
+  });
+  const drafts = asArray<any>(draftsData);
+
+  const discardDraftMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/projects/drafts/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects', 'drafts'] });
+    },
   });
 
   const projects = ((projectsData as any[]) || []).map((p) => ({
@@ -56,6 +75,7 @@ export function ProjectsListPage() {
     { id: ProjectStatus.PLANNED, label: 'Planned' },
     { id: ProjectStatus.AT_RISK, label: 'At Risk' },
     { id: ProjectStatus.COMPLETED, label: 'Completed' },
+    { id: ProjectStatus.ARCHIVED, label: 'Archived' },
   ];
 
   return (
@@ -144,6 +164,99 @@ export function ProjectsListPage() {
             </div>
           </div>
         </div>
+
+        {/* Drafts Management Section */}
+        {canManage && drafts.length > 0 && !search && statusFilter === 'ALL' && (
+          <div className="rounded-[8px] border border-[#E8EBEF] bg-[#FAFAFC] p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-[#2563EB]" />
+                <h2 className="text-xs font-semibold text-[#17191C] uppercase tracking-wider">
+                  Draft Products ({drafts.length})
+                </h2>
+                <span className="rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[10px] font-medium text-[#2563EB]">
+                  Unpublished
+                </span>
+              </div>
+              <span className="text-[11px] text-[#8B929B]">
+                Drafts autosave continuously and do not affect active metrics
+              </span>
+            </div>
+
+            <div className="divide-y divide-[#E8EBEF] rounded-[6px] border border-[#E8EBEF] bg-white overflow-hidden shadow-xs">
+              {drafts.map((d: any) => {
+                const stepLabel =
+                  d.currentStep === 'TEAM'
+                    ? 'Step 2: Team'
+                    : d.currentStep === 'WORKSTREAMS'
+                    ? 'Step 3: Workstreams'
+                    : d.currentStep === 'REVIEW'
+                    ? 'Step 4: Review'
+                    : 'Step 1: Details';
+
+                return (
+                  <div
+                    key={d.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 text-xs hover:bg-[#F8F9FB] transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span
+                        className="font-semibold text-[#17191C] hover:text-[#2563EB] cursor-pointer"
+                        onClick={() =>
+                          router.push(
+                            `/projects/new?draft=${d.id}&step=${(d.currentStep || 'DETAILS').toLowerCase()}`,
+                          )
+                        }
+                      >
+                        {d.name || 'Untitled Draft'}
+                      </span>
+                      <span className="text-[#8B929B]">·</span>
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-[#60666F]">
+                        {stepLabel}
+                      </span>
+                      <span className="text-[#8B929B]">·</span>
+                      <span className="text-[11px] text-[#8B929B] flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-[#8B929B]" />
+                        Updated {formatDate(d.updatedAt)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="xs"
+                        variant="secondary"
+                        rightIcon={<ArrowRight className="w-3 h-3" />}
+                        onClick={() =>
+                          router.push(
+                            `/projects/new?draft=${d.id}&step=${(d.currentStep || 'DETAILS').toLowerCase()}`,
+                          )
+                        }
+                      >
+                        Continue Setup
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        className="text-[#8B929B] hover:text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Are you sure you want to discard draft "${d.name || 'Untitled Draft'}"? This action cannot be undone.`,
+                            )
+                          ) {
+                            discardDraftMutation.mutate(d.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-3 h-3 mr-1" />
+                        Discard
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Projects Content */}
         {isLoading ? (

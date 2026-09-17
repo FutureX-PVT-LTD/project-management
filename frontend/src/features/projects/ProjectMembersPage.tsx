@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Plus, Search, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api-client';
@@ -16,7 +16,9 @@ export function ProjectMembersPage() {
   const params = useParams();
   const projectId = params?.id as string;
   const queryClient = useQueryClient();
+  const requestedRoleId = useSearchParams().get('roleId');
   const [search, setSearch] = useState('');
+  const [roleDrafts, setRoleDrafts] = useState<Record<string, string[]>>({});
   const [error, setError] = useState<string | null>(null);
 
   const { data: projectData, isLoading: projectLoading } = useQuery({
@@ -40,7 +42,7 @@ export function ProjectMembersPage() {
       asArray<any>(usersData).filter(
         (u) =>
           u.isActive !== false &&
-          !currentMemberUserIds.includes(u.id),
+          !currentMemberUserIds.includes(u.id) && (!requestedRoleId || u.functionalRoles?.some((role: any) => role.id === requestedRoleId)),
       ),
     [usersData, currentMemberUserIds],
   );
@@ -52,13 +54,19 @@ export function ProjectMembersPage() {
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: (userId: string) => api.post(`/projects/${projectId}/members`, { userId }),
+    mutationFn: ({ userId, functionalRoleIds }: { userId: string; functionalRoleIds: string[] }) => api.post(`/projects/${projectId}/members`, { userId, functionalRoleIds }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
     onError: (err: any) => setError(err.message || 'Failed to add member.'),
+  });
+
+  const updateRolesMutation = useMutation({
+    mutationFn: ({ userId, functionalRoleIds }: { userId: string; functionalRoleIds: string[] }) => api.patch(`/projects/${projectId}/members/${userId}/roles`, { functionalRoleIds }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['project', projectId] }); queryClient.invalidateQueries({ queryKey: ['assignment-workspace', projectId] }); },
+    onError: (err: any) => setError(err.message || 'Project Roles could not be updated.'),
   });
 
   const removeMemberMutation = useMutation({
@@ -74,8 +82,8 @@ export function ProjectMembersPage() {
   return (
     <AppShell>
       <FormPageLayout
-        title="Manage Members"
-        description="Keep project visibility separate from task assignment. Only active team members can be added."
+        title="Product Team"
+        description="Choose who participates, then select the Functional Roles each person performs on this Product."
         breadcrumbs={[
           { label: 'Projects', href: '/projects' },
           { label: project.name || 'Project', href: `/projects/${projectId}` },
@@ -113,8 +121,10 @@ export function ProjectMembersPage() {
                       {m.user?.firstName} {m.user?.lastName}
                     </p>
                     <p className="text-[11px] text-fx-text-muted">{m.user?.jobTitle || 'Team Member'}</p>
+                    <p className="mt-1 text-[11px] text-fx-text-secondary">{m.activeAssignmentsCount || 0} active assignments</p>
+                    <div className="mt-2 flex flex-wrap gap-2">{(m.user?.functionalRoleLinks || m.user?.functionalRoles || []).map((entry: any) => { const role = entry.functionalRole || entry; const current = roleDrafts[m.userId] ?? (m.projectRoles || []).map((item: any) => item.id); return <label key={role.id} className="flex items-center gap-1 rounded border px-2 py-1 text-[11px]"><input type="checkbox" checked={current.includes(role.id)} onChange={(event) => setRoleDrafts((drafts) => ({ ...drafts, [m.userId]: event.target.checked ? [...current, role.id] : current.filter((id: string) => id !== role.id) }))} />{role.name}</label>; })}</div>
                   </div>
-                  <Button
+                  <div className="flex gap-2"><Button size="xs" variant="secondary" disabled={roleDrafts[m.userId] === undefined} loading={updateRolesMutation.isPending} onClick={() => updateRolesMutation.mutate({ userId: m.userId, functionalRoleIds: roleDrafts[m.userId] })}>Save Roles</Button><Button
                     size="xs"
                     variant="ghost"
                     className="text-red-700 hover:bg-red-50"
@@ -123,7 +133,7 @@ export function ProjectMembersPage() {
                     leftIcon={<Trash2 className="h-3 w-3" />}
                   >
                     Remove
-                  </Button>
+                  </Button></div>
                 </div>
               ))}
             </div>
@@ -156,12 +166,14 @@ export function ProjectMembersPage() {
                   <div>
                     <p className="font-semibold text-fx-text-primary">{user.firstName} {user.lastName}</p>
                     <p className="text-[11px] text-fx-text-muted">{user.jobTitle || 'Team Member'}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">{(user.functionalRoles || []).map((role: any) => { const current = roleDrafts[user.id] || []; return <label key={role.id} className="flex items-center gap-1 rounded border px-2 py-1 text-[11px]"><input type="checkbox" checked={current.includes(role.id)} onChange={(event) => setRoleDrafts((drafts) => ({ ...drafts, [user.id]: event.target.checked ? [...current, role.id] : current.filter((id: string) => id !== role.id) }))} />{role.name}</label>; })}</div>
                   </div>
                   <Button
                     size="xs"
                     variant="secondary"
                     loading={addMemberMutation.isPending}
-                    onClick={() => addMemberMutation.mutate(user.id)}
+                    disabled={!(roleDrafts[user.id] || []).length}
+                    onClick={() => addMemberMutation.mutate({ userId: user.id, functionalRoleIds: roleDrafts[user.id] || [] })}
                     leftIcon={<Plus className="h-3 w-3" />}
                   >
                     Add

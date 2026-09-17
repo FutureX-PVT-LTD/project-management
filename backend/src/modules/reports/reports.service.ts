@@ -19,7 +19,7 @@ export class ReportsService {
 
     const [projects, tasks, users] = await Promise.all([
       this.prisma.project.findMany({
-        where: { deletedAt: null },
+        where: { deletedAt: null, lifecycleStatus: { not: 'DRAFT' } },
         include: {
           projectManager: {
             select: { id: true, firstName: true, lastName: true, avatarUrl: true },
@@ -196,6 +196,7 @@ export class ReportsService {
     const managedProjects = await this.prisma.project.findMany({
       where: {
         deletedAt: null,
+        lifecycleStatus: { not: 'DRAFT' },
         OR: [{ projectManagerId: pmUserId }, { members: { some: { userId: pmUserId } } }],
       },
       include: {
@@ -428,7 +429,7 @@ export class ReportsService {
 
     const [projects, tasks, users, milestones] = await Promise.all([
       this.prisma.project.findMany({
-        where: { deletedAt: null },
+        where: { deletedAt: null, lifecycleStatus: { not: 'DRAFT' } },
         include: {
           projectManager: { select: { firstName: true, lastName: true } },
           tasks: {

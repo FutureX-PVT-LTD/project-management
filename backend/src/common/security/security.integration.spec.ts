@@ -135,6 +135,95 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect((await get('/reports/analytics', 'a')).status).toBe(403);
     expect((await get(`/users/${users.b.id}`, 'a')).status).toBe(403);
   });
+  it('keeps draft Products private and inert until an authorized activation', async () => {
+    const created = await post('/projects/drafts', 'admin').send({
+      name: 'Security Draft Product',
+      productType: 'APP',
+      currentStep: 'TEAM',
+      selectedMemberIds: [],
+      developmentEnabled: true,
+      marketingEnabled: false,
+    });
+    expect(created.status).toBe(201);
+    const draftId = created.body.data.id;
+
+    expect((await get('/projects/drafts', 'a')).status).toBe(403);
+    expect(JSON.stringify((await get('/projects', 'admin')).body)).not.toContain(draftId);
+    expect(JSON.stringify((await get('/search?q=Security%20Draft', 'admin')).body)).not.toContain(draftId);
+    expect(JSON.stringify((await get('/projects/drafts', 'owner')).body)).toContain(draftId);
+    expect(await db.task.count({ where: { projectId: draftId } })).toBe(0);
+    expect(await db.projectWorkstream.count({ where: { projectId: draftId } })).toBe(0);
+
+    const saved = await patch(`/projects/drafts/${draftId}`, 'admin').send({
+      description: 'Autosaved details',
+      currentStep: 'REVIEW',
+    });
+    expect(saved.status).toBe(200);
+    expect(saved.body.data.currentStep).toBe('REVIEW');
+
+    await db.checklistTemplateItem.create({
+      data: {
+        code: 'PD-DRAFT-SEC',
+        workstream: 'DEVELOPMENT',
+        phase: '1. Concept',
+        title: 'Draft activation smoke item',
+        ownerRole: 'PROJECT MANAGEMENT',
+        defaultOrder: 999,
+        applicableTypes: ['APP'],
+        templateVersion: 'security-test',
+      },
+    });
+
+    const activated = await post(`/projects/drafts/${draftId}/activate`, 'admin').send({});
+    expect(activated.status).toBe(201);
+    const stored = await db.project.findUniqueOrThrow({ where: { id: draftId } });
+    expect(stored.lifecycleStatus).toBe('ACTIVE');
+    expect(stored.currentStep).toBe('COMPLETED');
+    expect(stored.activatedAt).not.toBeNull();
+    expect(await db.task.count({ where: { projectId: draftId, workstream: 'DEVELOPMENT' } })).toBe(1);
+    expect(await db.projectWorkstream.count({ where: { projectId: draftId, workstream: 'DEVELOPMENT' } })).toBe(1);
+  });
+  it('restores a draft without partial work when activation setup fails', async () => {
+    const created = await post('/projects/drafts', 'admin').send({
+      name: 'Rollback Draft Product',
+      productType: 'GAME',
+      currentStep: 'REVIEW',
+      developmentEnabled: true,
+      marketingEnabled: false,
+    });
+    expect(created.status).toBe(201);
+    const draftId = created.body.data.id;
+
+    const activated = await post(`/projects/drafts/${draftId}/activate`, 'admin').send({});
+    expect(activated.status).toBe(400);
+    const stored = await db.project.findUniqueOrThrow({ where: { id: draftId } });
+    expect(stored.lifecycleStatus).toBe('DRAFT');
+    expect(stored.currentStep).toBe('REVIEW');
+    expect(stored.activatedAt).toBeNull();
+    expect(await db.task.count({ where: { projectId: draftId } })).toBe(0);
+    expect(await db.projectWorkstream.count({ where: { projectId: draftId } })).toBe(0);
+    expect(await db.auditLog.count({ where: { entityId: draftId, action: 'PROJECT_ACTIVATION_ROLLED_BACK' } })).toBe(1);
+  });
+  it('makes concurrent Create Product requests idempotent', async () => {
+    const created = await post('/projects/drafts', 'admin').send({
+      name: 'Double Click Draft',
+      productType: 'APP',
+      currentStep: 'REVIEW',
+      developmentEnabled: true,
+      marketingEnabled: false,
+    });
+    expect(created.status).toBe(201);
+    const draftId = created.body.data.id;
+
+    const responses = await Promise.all([
+      post(`/projects/drafts/${draftId}/activate`, 'admin').send({}),
+      post(`/projects/drafts/${draftId}/activate`, 'admin').send({}),
+    ]);
+    expect(responses.some((response) => response.status === 201)).toBe(true);
+    expect(responses.every((response) => [201, 400].includes(response.status))).toBe(true);
+    expect(await db.task.count({ where: { projectId: draftId, workstream: 'DEVELOPMENT' } })).toBe(1);
+    expect(await db.projectWorkstream.count({ where: { projectId: draftId, workstream: 'DEVELOPMENT' } })).toBe(1);
+  });
   it('blocks Admin resetting an Owner password or promoting themselves', async () => {
     expect((await post(`/users/${users.owner.id}/reset-password`, 'admin').send({ newPassword: password })).status).toBe(403);
     const res = await request(app.getHttpServer()).patch(`/api/v1/users/${users.admin.id}`).set('Cookie', cookies.admin)
@@ -484,8 +573,10 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect(await db.marketingSignoffItem.count({ where: { projectId: marketingProject.id } })).toBe(8);
 
     const checklistItem = await db.task.findFirstOrThrow({ where: { projectId: marketingProject.id, checklistCode: 'MI-01' } });
-    await db.task.update({ where: { id: checklistItem.id }, data: { assigneeId: users.a.id, status: 'READY', allowParallelWork: true } });
+    const secondChecklistItem = await db.task.findFirstOrThrow({ where: { projectId: marketingProject.id, checklistCode: 'MI-02' } });
+    await db.task.updateMany({ where: { id: { in: [checklistItem.id, secondChecklistItem.id] } }, data: { assigneeId: users.a.id, status: 'READY', allowParallelWork: false } });
     expect((await patch(`/tasks/${checklistItem.id}`, 'a').send({ status: 'IN_PROGRESS' })).status).toBe(200);
+    expect((await patch(`/tasks/${secondChecklistItem.id}`, 'a').send({ status: 'IN_PROGRESS' })).status).toBe(200);
     expect((await patch(`/tasks/${checklistItem.id}`, 'a').send({ status: 'IN_REVIEW', checklistEvidenceUrl: 'https://example.com/evidence', checklistNotes: 'Account ownership verified.' })).status).toBe(200);
     expect((await patch(`/tasks/${checklistItem.id}`, 'b').send({ checklistNotes: 'spoofed' })).status).toBe(404);
     expect((await post(`/tasks/${checklistItem.id}/review`, 'admin').send({ status: 'APPROVED', completeTask: true })).status).toBe(201);
@@ -608,5 +699,54 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect(res.status).toBe(404);
     expect(res.body.path).toBe('/api/v1/projects/non-existent-uuid');
     expect(res.body.path).not.toContain(':id');
+  });
+  it('keeps job roles separate from access permissions and validates membership', async () => {
+    await ensureSession('admin');
+    await ensureSession('a');
+    expect((await post('/users/job-roles', 'a').send({ name: 'Designer' })).status).toBe(403);
+    const created = await post('/users/job-roles', 'owner').send({ name: 'Designer', category: 'DESIGN' });
+    expect(created.status).toBe(201);
+    const role = created.body.data ?? created.body;
+    expect((await patch(`/users/${users.a.id}`, 'admin').send({ functionalRoleIds: [role.id] })).status).toBe(200);
+    expect((await db.user.findUniqueOrThrow({ where: { id: users.a.id } })).globalRole).toBe('TEAM_MEMBER');
+    expect((await patch(`/users/${users.a.id}`, 'admin').send({ functionalRoleIds: ['missing'] })).status).toBe(400);
+    expect((await patch(`/users/job-roles/${role.id}`, 'admin').send({ isActive: false })).status).toBe(403);
+    expect((await patch(`/users/job-roles/${role.id}`, 'owner').send({ isActive: false })).status).toBe(400);
+    expect((await patch(`/users/${users.a.id}`, 'admin').send({ functionalRoleIds: [role.id] })).status).toBe(200);
+    expect((await patch(`/users/${users.b.id}`, 'admin').send({ functionalRoleIds: [role.id] })).status).toBe(200);
+  });
+  it('preserves progress and assignment history on an eligible reassignment', async () => {
+    await ensureSession('admin');
+    const p = await db.project.create({ data: { key: 'PHASETEST', name: 'Phase test', projectManagerId: users.admin.id, members: { create: [{ userId: users.a.id }, { userId: users.b.id }] } } });
+    const role = await db.functionalRole.create({ data: { code: 'TEST_DEVELOPER', name: 'Test Developer', category: 'ENGINEERING' } });
+    const managerRole = await db.functionalRole.create({ data: { code: 'TEST_MANAGER', name: 'Test Manager', category: 'MANAGEMENT' } });
+    await db.userFunctionalRole.createMany({ data: [{ userId: users.a.id, functionalRoleId: role.id }, { userId: users.b.id, functionalRoleId: role.id }] });
+    const members = await db.projectMember.findMany({ where: { projectId: p.id } });
+    await db.projectMemberRoleAssignment.createMany({ data: members.map((member) => ({ projectMemberId: member.id, functionalRoleId: role.id })) });
+    await db.userFunctionalRole.create({ data: { userId: users.admin.id, functionalRoleId: managerRole.id } });
+    const managerMember = await db.projectMember.create({ data: { projectId: p.id, userId: users.admin.id } });
+    await db.projectMemberRoleAssignment.create({ data: { projectMemberId: managerMember.id, functionalRoleId: managerRole.id } });
+    const template = await db.checklistTemplateItem.create({ data: { code: 'TEST-PHASE', phase: 'Test', title: 'Test', ownerRole: 'TEST_DEVELOPER', defaultOrder: 999, eligibleRoles: { create: [{ functionalRoleId: role.id, isPrimary: true }, { functionalRoleId: managerRole.id }] } } });
+    const task = await db.task.create({ data: { title: 'Phase task', humanId: 'PHASETEST-101', taskNumber: 101, projectId: p.id, creatorId: users.admin.id, assigneeId: users.a.id, workstream: 'DEVELOPMENT', workType: 'STANDARD_CHECKLIST', checklistTemplateItemId: template.id, checklistPhase: 'Test', status: 'IN_PROGRESS', progress: 20 } });
+    const unassignedTask = await db.task.create({ data: { title: 'Unassigned phase task', humanId: 'PHASETEST-102', taskNumber: 102, projectId: p.id, creatorId: users.admin.id, workstream: 'DEVELOPMENT', workType: 'STANDARD_CHECKLIST', checklistTemplateItemId: template.id, checklistPhase: 'Test', status: 'UNASSIGNED' } });
+    const workspaceResponse = await get(`/projects/${p.id}/assignment-workspace?workstream=DEVELOPMENT`, 'admin');
+    expect(workspaceResponse.status).toBe(200);
+    const workspace = workspaceResponse.body.data ?? workspaceResponse.body;
+    expect(workspace.phases[0].phaseKey).toBe('Test');
+    expect(workspace.members.map((member: { id: string }) => member.id).sort()).toEqual([users.a.id, users.b.id, users.admin.id].sort());
+    expect((await post(`/projects/${p.id}/phase-assignments/apply`, 'admin').send({ workstream: 'DEVELOPMENT', assignments: [{ phaseKey: 'Test', defaultAssigneeId: users.b.id, additionalMemberIds: [users.a.id], reassignActive: false }] })).status).toBe(201);
+    expect((await db.task.findUniqueOrThrow({ where: { id: task.id } })).assigneeId).toBe(users.a.id);
+    expect((await db.task.findUniqueOrThrow({ where: { id: unassignedTask.id } })).assigneeId).toBe(users.b.id);
+    expect((await db.projectPhaseAssignment.findUniqueOrThrow({ where: { projectId_workstream_phaseKey: { projectId: p.id, workstream: 'DEVELOPMENT', phaseKey: 'Test' } } })).defaultAssigneeId).toBe(users.b.id);
+    expect(await db.auditLog.count({ where: { actorId: users.admin.id, action: 'DEVELOPMENT_PHASE_ASSIGNED', entityType: 'ProjectPhaseAssignment' } })).toBeGreaterThan(0);
+    expect(await db.auditLog.count({ where: { actorId: users.admin.id, action: 'PHASE_MEMBER_ADDED', entityType: 'ProjectPhaseAssignment' } })).toBe(2);
+    expect(await db.taskAssignmentHistory.count({ where: { taskId: unassignedTask.id, previousAssigneeId: null, newAssigneeId: users.b.id } })).toBe(1);
+    expect((await patch(`/projects/${p.id}/checklist/${task.id}/assignment`, 'admin').send({ assigneeId: users.b.id, confirmReassignment: true, reason: 'Coverage change' })).status).toBe(200);
+    expect((await db.task.findUniqueOrThrow({ where: { id: task.id } }))).toMatchObject({ assigneeId: users.b.id, status: 'IN_PROGRESS', progress: 20 });
+    expect(await db.taskAssignmentHistory.count({ where: { taskId: task.id, previousAssigneeId: users.a.id, newAssigneeId: users.b.id } })).toBe(1);
+    expect((await del(`/projects/${p.id}/members/${users.b.id}`, 'admin')).status).toBe(400);
+    expect((await patch(`/projects/${p.id}/members/${users.b.id}/roles`, 'admin').send({ functionalRoleIds: [] })).status).toBe(400);
+    expect((await get(`/projects/${p.id}/assignment-workspace?workstream=DEVELOPMENT`, 'a')).status).toBe(403);
+    expect((await post(`/projects/${p.id}/phase-assignments/apply`, 'a').send({ workstream: 'DEVELOPMENT', assignments: [{ phaseKey: 'Test', defaultAssigneeId: users.a.id }] })).status).toBe(403);
   });
 });

@@ -1,4 +1,5 @@
 'use client';
+import { PhaseAssignments } from './PhaseAssignments';
 
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -46,12 +47,6 @@ function formatTemplateLabel(value?: string | null) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function compactAssignments(assignments: Record<string, string>) {
-  return Object.fromEntries(
-    Object.entries(assignments).filter(([, userId]) => Boolean(userId)),
-  );
-}
-
 function checklistPosition(task: any) {
   const codeNumber = Number(String(task.checklistCode || '').match(/(\d+)$/)?.[1]);
   if (Number.isFinite(codeNumber) && codeNumber > 0) return codeNumber;
@@ -75,8 +70,6 @@ export function ProjectDetailsPage({
   >('overview');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
-  const [phaseAssignments, setPhaseAssignments] = useState<Record<string, string>>({});
-  const [roleAssignments, setRoleAssignments] = useState<Record<string, string>>({});
 
   // Fetch Project Details
   const { data: projectData, isLoading } = useQuery({
@@ -105,29 +98,6 @@ export function ProjectDetailsPage({
       setPageError(err.message || 'Checklist could not be generated.'),
   });
 
-  const assignChecklistMutation = useMutation({
-    mutationFn: ({
-      taskId,
-      assigneeId,
-    }: {
-      taskId: string;
-      assigneeId: string;
-    }) =>
-      api.patch(
-        `/projects/${projectId}/development-checklist/${taskId}/assignment`,
-        {
-          assigneeId: assigneeId || null,
-        },
-      ),
-    onSuccess: () => {
-      setPageError(null);
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-    },
-    onError: (err: any) =>
-      setPageError(err.message || 'Task assignment could not be updated.'),
-  });
-
   const markNotApplicableMutation = useMutation({
     mutationFn: (taskId: string) =>
       api.patch(`/tasks/${taskId}`, { status: TaskStatus.N_A }),
@@ -137,26 +107,6 @@ export function ProjectDetailsPage({
     },
     onError: (err: any) =>
       setPageError(err.message || 'Task could not be marked not applicable.'),
-  });
-
-  const bulkAssignMutation = useMutation({
-    mutationFn: () =>
-      api.post(`/projects/${projectId}/development-checklist/bulk-assign`, {
-        phaseMappings: compactAssignments(phaseAssignments),
-        mappings: compactAssignments(roleAssignments),
-      }),
-    onSuccess: (result: any) => {
-      setPageError(null);
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['tasks'] });
-      if (!result?.assignedCount) {
-        setPageError(
-          'No unassigned checklist items matched the selected phase/responsibility mapping.',
-        );
-      }
-    },
-    onError: (err: any) =>
-      setPageError(err.message || 'Bulk assignment could not be applied.'),
   });
 
   const isFullWidth =
@@ -185,15 +135,6 @@ export function ProjectDetailsPage({
   const marketingEnabled = (project?.workstreams || []).some((row: any) => row.workstream === 'MARKETING');
   const productLaunchReady = developmentReadiness === 100 && (!marketingEnabled || marketingSummary?.marketingReadiness === 'READY');
   const phaseProgress = (project?.phaseProgress || []) as any[];
-  const checklistPhases = Array.from(
-    new Set(checklistTasks.map((task) => task.checklistPhase).filter(Boolean)),
-  ) as string[];
-  const checklistRoles = Array.from(
-    new Set(
-      checklistTasks.map((task) => task.checklistOwnerRole).filter(Boolean),
-    ),
-  ) as string[];
-
   const progressVal = Math.round(project?.progress || 0);
 
   return (
@@ -210,14 +151,14 @@ export function ProjectDetailsPage({
         {(searchParams.get('created') ||
           searchParams.get('updated') ||
           searchParams.get('taskCreated')) && (
-          <div className="rounded-[8px] border border-[#E8EBEF] bg-[#F8F9FB] px-4 py-2.5 text-xs text-[#17191C]">
-            {searchParams.get('created')
-              ? 'Product created. Generate development checklist or add custom tasks.'
-              : searchParams.get('taskCreated')
-                ? 'Task created and added to product.'
-                : 'Product updated.'}
-          </div>
-        )}
+            <div className="rounded-[8px] border border-[#E8EBEF] bg-[#F8F9FB] px-4 py-2.5 text-xs text-[#17191C]">
+              {searchParams.get('created')
+                ? 'Product created. Generate development checklist or add custom tasks.'
+                : searchParams.get('taskCreated')
+                  ? 'Task created and added to product.'
+                  : 'Product updated.'}
+            </div>
+          )}
 
         {pageError && (
           <div className="rounded-[8px] border border-[#F9D1D1] bg-[#FCEEEE] px-4 py-2.5 text-xs font-medium text-[#B54747]">
@@ -443,7 +384,22 @@ export function ProjectDetailsPage({
                           return (
                             <tr key={phase.phase} className="hover:bg-[#F8F9FB] fx-transition">
                               <td className="py-2.5 px-3 font-medium text-[#17191C]">
-                                {phase.phase}
+                                <div className="flex items-center gap-2">
+                                  {pct === 100 ? (
+                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EDF7F2] text-[#26715A] font-bold text-[10px]">
+                                      ✓
+                                    </span>
+                                  ) : pct > 0 ? (
+                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EEF4FF] text-[#245EC7] text-[10px]">
+                                      ●
+                                    </span>
+                                  ) : (
+                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#F1F3F5] text-[#8B929B] text-[10px]">
+                                      ○
+                                    </span>
+                                  )}
+                                  <span>{phase.phase}</span>
+                                </div>
                               </td>
                               <td className="py-2.5 px-3">
                                 <div className="flex items-center gap-2">
@@ -714,108 +670,7 @@ export function ProjectDetailsPage({
                   </div>
                 </div>
 
-                {/* Bulk Assignment Area */}
-                {canManage && (
-                  <div className="rounded-[10px] border border-[#E8EBEF] bg-[#F8F9FB] p-4 text-xs space-y-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h2 className="text-[13px] font-semibold text-[#17191C]">
-                          Bulk Assignment
-                        </h2>
-                        <p className="text-[12px] text-[#60666F]">
-                          Assign entire phases or responsibilities to active team members.
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="primary"
-                        loading={bulkAssignMutation.isPending}
-                        onClick={() => bulkAssignMutation.mutate()}
-                      >
-                        Apply Assignments
-                      </Button>
-                    </div>
-
-                    <div className="grid gap-6 lg:grid-cols-2 pt-2 border-t border-[#E8EBEF]">
-                      <div className="space-y-2">
-                        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
-                          Assign by Phase
-                        </h3>
-                        <div className="grid gap-2">
-                          {checklistPhases.map((phase) => (
-                            <label
-                              key={phase}
-                              className="grid gap-1 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center"
-                            >
-                              <span className="font-medium text-[#17191C]">
-                                {phase}
-                              </span>
-                              <select
-                                value={phaseAssignments[phase] || ''}
-                                onChange={(event) =>
-                                  setPhaseAssignments((prev) => ({
-                                    ...prev,
-                                    [phase]: event.target.value,
-                                  }))
-                                }
-                                className="h-8 rounded-[7px] border border-[#E8EBEF] bg-white px-2 py-1 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none focus:ring-1 focus:ring-[#2463EB]"
-                              >
-                                <option value="">Unassigned</option>
-                                {members.map((member) => (
-                                  <option
-                                    key={member.userId}
-                                    value={member.userId}
-                                  >
-                                    {member.user?.firstName} {member.user?.lastName}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
-                          Assign by Responsibility
-                        </h3>
-                        <div className="grid gap-2">
-                          {checklistRoles.map((role) => (
-                            <label
-                              key={role}
-                              className="grid gap-1 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-center"
-                            >
-                              <span className="font-medium text-[#17191C]">
-                                {formatTemplateLabel(role)}
-                              </span>
-                              <select
-                                value={roleAssignments[role] || ''}
-                                onChange={(event) =>
-                                  setRoleAssignments((prev) => ({
-                                    ...prev,
-                                    [role]: event.target.value,
-                                  }))
-                                }
-                                className="h-8 rounded-[7px] border border-[#E8EBEF] bg-white px-2 py-1 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none focus:ring-1 focus:ring-[#2463EB]"
-                              >
-                                <option value="">Unassigned</option>
-                                {members.map((member) => (
-                                  <option
-                                    key={member.userId}
-                                    value={member.userId}
-                                  >
-                                    {member.user?.firstName} {member.user?.lastName}
-                                  </option>
-                                ))}
-                              </select>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {canManage && <PhaseAssignments projectId={projectId} workstream="development" items={checklistTasks} members={members} />}
 
                 {/* 31 & 32. Operational Table: #FAFBFC header, 48–56px row height, horizontal row dividers only */}
                 <div className="overflow-x-auto">
@@ -866,32 +721,7 @@ export function ProjectDetailsPage({
                             <StatusPill status={task.status} size="xs" />
                           </td>
                           <td className="py-2.5 px-3">
-                            {canManage ? (
-                              <select
-                                value={task.assigneeId || ''}
-                                disabled={
-                                  assignChecklistMutation.isPending ||
-                                  task.status === TaskStatus.N_A
-                                }
-                                onChange={(event) =>
-                                  assignChecklistMutation.mutate({
-                                    taskId: task.id,
-                                    assigneeId: event.target.value,
-                                  })
-                                }
-                                className="min-w-40 h-8 rounded-[6px] border border-[#E8EBEF] bg-white px-2 py-1 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none focus:ring-1 focus:ring-[#2463EB]"
-                              >
-                                <option value="">Unassigned</option>
-                                {members.map((member) => (
-                                  <option
-                                    key={member.userId}
-                                    value={member.userId}
-                                  >
-                                    {member.user?.firstName} {member.user?.lastName}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : task.assignee ? (
+                            {task.assignee ? (
                               `${task.assignee.firstName} ${task.assignee.lastName}`
                             ) : (
                               'Unassigned'
@@ -1062,7 +892,7 @@ export function ProjectDetailsPage({
         {/* TAB 5: CALENDAR */}
         {activeTab === 'calendar' && (
           <div className="divide-y divide-[#E8EBEF]">
-          {[...tasks]
+            {[...tasks]
               .filter((task) => (task.workstream || 'DEVELOPMENT') === 'DEVELOPMENT')
               .filter((task) => task.dueDate)
               .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())

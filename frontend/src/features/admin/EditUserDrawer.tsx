@@ -10,6 +10,7 @@ import { UserRole } from '@futurex/shared';
 import { AlertCircle, Shield, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/AuthContext';
+import { JobRolePicker } from './JobRolePicker';
 
 interface EditUserDrawerProps {
   user: any;
@@ -24,6 +25,7 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [jobTitle, setJobTitle] = useState('');
+  const [functionalRoleIds, setFunctionalRoleIds] = useState<string[]>([]);
   const [role, setRole] = useState<UserRole>(UserRole.TEAM_MEMBER);
   const [isActive, setIsActive] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
       setFirstName(user.firstName || '');
       setLastName(user.lastName || '');
       setJobTitle(user.jobTitle || '');
+      setFunctionalRoleIds((user.functionalRoles || []).map((role: { id: string }) => role.id));
       setRole(user.globalRole || UserRole.TEAM_MEMBER);
       setIsActive(user.isActive !== false);
       setError(null);
@@ -69,6 +72,7 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
       lastName: lastName.trim(),
       jobTitle: jobTitle.trim() || undefined,
       globalRole: role,
+      functionalRoleIds,
       isActive,
     });
   };
@@ -102,6 +106,7 @@ export function EditUserDrawer({ user, open, onOpenChange }: EditUserDrawerProps
       }
     >
       <form onSubmit={handleSubmit} id="edit-user-form" className="space-y-5 text-xs">
+        <JobRolePicker value={functionalRoleIds} onChange={setFunctionalRoleIds} />
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-start gap-2 text-xs text-fx-semantic-danger animate-fadeIn">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
