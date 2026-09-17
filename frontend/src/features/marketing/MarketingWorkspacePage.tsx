@@ -13,6 +13,7 @@ import styles from './MarketingWorkspacePage.module.css';
 import { api } from '@/lib/api-client';
 import { asArray, asRecord } from '@/lib/api-data';
 import { cn, formatDate } from '@/lib/utils';
+import { roleLabel } from '@/lib/role-labels';
 import { useAuth } from '@/features/auth/AuthContext';
 
 type Tab = 'overview' | 'checklist' | 'channels' | 'content' | 'buzz' | 'signoff';
@@ -32,6 +33,7 @@ export function MarketingWorkspacePage() {
     id: member.userId || member.user?.id,
     firstName: member.user?.firstName || member.firstName || '',
     lastName: member.user?.lastName || member.lastName || '',
+    projectRoles: member.projectRoles || [],
   })).filter((member) => member.id);
   const { data: summaryData, isLoading } = useQuery({ queryKey: ['marketing', projectId, 'summary'], queryFn: () => api.get(`/projects/${projectId}/marketing/summary`), enabled: !!projectId });
   const summary = asRecord(summaryData);
@@ -78,5 +80,5 @@ export function MarketingWorkspacePage() {
 function Metric({ label, value }: { label: string; value: string }) { return <div className="min-w-0"><p className="text-[11px] text-[#8B929B]">{label}</p><p className="mt-1 text-lg font-semibold text-[#17191C]">{value}</p></div>; }
 function marketingStatusLabel(status?: string) { return ({ UNASSIGNED: 'Unassigned', READY: 'Not Started', IN_PROGRESS: 'In Progress', IN_REVIEW: 'Ready for Review', BLOCKED: 'Blocked', DONE: 'Done', N_A: 'N/A' } as Record<string, string>)[status || ''] || String(status || '').replace(/_/g, ' '); }
 function SelectStatus({ value, values, onChange }: { value: string; values: string[]; onChange: (value: string) => void }) { return <select value={value} onChange={(e) => onChange(e.target.value)} className="h-8 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs">{values.map((item) => <option key={item} value={item}>{item.replace(/_/g, ' ')}</option>)}</select>; }
-function MarketingAssigneeSelect({ row, members, pending, onChange }: { row: any; members: { id: string; firstName: string; lastName: string }[]; pending: boolean; onChange: (value: string) => void }) { const locked = ['IN_REVIEW', 'DONE'].includes(row.status); const mustKeepOwner = ['IN_PROGRESS', 'BLOCKED'].includes(row.status); const lockReason = row.status === 'DONE' ? 'Completed work cannot be reassigned' : 'Return the review before reassignment'; return <select aria-label={`${row.checklistCode} assignee`} value={row.assigneeId || ''} disabled={pending || locked} title={locked ? lockReason : 'Change assignee'} onChange={(event) => onChange(event.target.value)} className="h-8 min-w-44 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs disabled:bg-[#F4F6F8] disabled:text-[#8B929B]"><option value="" disabled={mustKeepOwner}>Unassigned</option>{members.map((member) => <option key={member.id} value={member.id}>{member.firstName} {member.lastName}</option>)}</select>; }
+function MarketingAssigneeSelect({ row, members, pending, onChange }: { row: any; members: { id: string; firstName: string; lastName: string; projectRoles: unknown[] }[]; pending: boolean; onChange: (value: string) => void }) { const locked = ['IN_REVIEW', 'DONE'].includes(row.status); const mustKeepOwner = ['IN_PROGRESS', 'BLOCKED'].includes(row.status); const lockReason = row.status === 'DONE' ? 'Completed work cannot be reassigned' : 'Return the review before reassignment'; return <select aria-label={`${row.checklistCode} assignee`} value={row.assigneeId || ''} disabled={pending || locked} title={locked ? lockReason : 'Change assignee'} onChange={(event) => onChange(event.target.value)} className="h-8 min-w-44 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs disabled:bg-[#F4F6F8] disabled:text-[#8B929B]"><option value="" disabled={mustKeepOwner}>Unassigned</option>{members.map((member) => <option key={member.id} value={member.id}>{member.firstName} {member.lastName} · {roleLabel(member.projectRoles, 'No project role')}</option>)}</select>; }
 function OperationalTable({ headers, rows }: { headers: string[]; rows: React.ReactNode[][] }) { return <div className={styles.tableScroll}><table className={styles.table}><thead><tr className="bg-[#FAFBFC] text-[#60666F]">{headers.map((header) => <th key={header} className="px-4 py-3 text-left font-medium">{header}</th>)}</tr></thead><tbody className="divide-y divide-[#E8EBEF]">{rows.map((cells, index) => <tr key={index} className="hover:bg-[#F8F9FB]">{cells.map((cell, cellIndex) => <td key={cellIndex} className="px-4 py-3 align-top text-[#17191C]">{cell}</td>)}</tr>)}</tbody></table></div>; }

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Search, Edit3, UserX, UserCheck, KeyRound } from 'lucide-react';
+import { Plus, Search, Edit3, UserX, UserCheck, KeyRound, Trash2, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { UserRole } from '@futurex/shared';
 import { AppShell } from '@/components/layout/AppShell';
@@ -10,12 +10,16 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ActionMenu, ActionMenuItem } from '@/components/ui/ActionMenu';
 import { cn } from '@/lib/utils';
+import { roleLabel } from '@/lib/role-labels';
 import Link from 'next/link';
+import { useAuth } from '@/features/auth/AuthContext';
 
 export function UserManagementPage() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ['admin', 'users', search, roleFilter],
@@ -32,9 +36,22 @@ export function UserManagementPage() {
     mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
       api.patch(`/users/${id}/toggle-active`, { isActive }),
     onSuccess: () => {
+      setActionError(null);
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
     },
+    onError: (error: Error) => setActionError(error.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/users/${id}`),
+    onSuccess: () => {
+      setActionError(null);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+    onError: (error: Error) => setActionError(error.message),
   });
 
   // Reset password mutation
@@ -69,6 +86,12 @@ export function UserManagementPage() {
         </div>
 
         {/* Search & Filter Toolbar */}
+        {actionError && (
+          <div role="alert" className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-800">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{actionError}</span>
+          </div>
+        )}
         <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-3 flex flex-wrap items-center justify-between gap-3 shadow-none">
           <div className="flex items-center gap-2.5 flex-1 min-w-[260px]">
             <div className="w-full sm:w-64">
@@ -114,7 +137,7 @@ export function UserManagementPage() {
                 <thead>
                   <tr className="bg-[#FAFBFC] text-[#60666F] font-medium border-b border-[#E8EBEF]">
                     <th className="py-2.5 px-4">User</th>
-                    <th className="py-2.5 px-3">Job Title</th>
+                    <th className="py-2.5 px-3">Functional Roles</th>
                     <th className="py-2.5 px-3">System Role</th>
                     <th className="py-2.5 px-3">Status</th>
                     <th className="py-2.5 px-4 text-right">Registered</th>
@@ -153,6 +176,19 @@ export function UserManagementPage() {
                             },
                           ]
                         : []),
+                      ...(!isActive && currentUser?.globalRole === UserRole.OWNER
+                        ? [{
+                            label: 'Delete User',
+                            icon: <Trash2 className="w-3.5 h-3.5" />,
+                            variant: 'danger' as const,
+                            onClick: () => {
+                              const confirmed = window.confirm(
+                                `Delete ${u.firstName} ${u.lastName}? Their account will be removed, open assignments will become unassigned, and historical activity will be preserved.`,
+                              );
+                              if (confirmed) deleteMutation.mutate(u.id);
+                            },
+                          }]
+                        : []),
                     ];
 
                     return (
@@ -168,11 +204,14 @@ export function UserManagementPage() {
                                 {u.firstName} {u.lastName}
                               </p>
                               <p className="text-[11px] text-[#8C939E] font-mono">{u.email}</p>
+                              {u.jobTitle && <p className="text-[11px] text-[#8C939E]">Job title: {u.jobTitle}</p>}
                             </div>
                           </div>
                         </td>
                         <td className="py-3 px-3 text-[#60666F]">
-                          {u.jobTitle || (isAdminUser ? 'System Administrator' : 'Team Member')}
+                          <span className={cn(!u.functionalRoles?.length && 'font-medium text-amber-700')}>
+                            {roleLabel(u.functionalRoles, 'Not assigned')}
+                          </span>
                         </td>
                         <td className="py-3 px-3">
                           <span

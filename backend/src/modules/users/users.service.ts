@@ -293,6 +293,9 @@ export class UsersService {
     }
 
     if (!dto.password) throw new BadRequestException('An initial password is required');
+    if (dto.globalRole === UserRole.TEAM_MEMBER && !dto.functionalRoleIds?.length) {
+      throw new BadRequestException('Choose at least one functional role for a Team Member');
+    }
     const defaultPassword = dto.password;
     await this.validateJobRoles(dto.functionalRoleIds);
     const passwordHash = await argon2.hash(defaultPassword);
@@ -346,7 +349,7 @@ export class UsersService {
     auditContext?: AuditContext,
   ) {
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
     });
 
     if (!user) {
@@ -369,6 +372,11 @@ export class UsersService {
       id === actorId
     ) {
       throw new ForbiddenException('Super Admin cannot demote their own account');
+    }
+
+    const effectiveRole = dto.globalRole ?? (user.globalRole as UserRole);
+    if (effectiveRole === UserRole.TEAM_MEMBER && dto.functionalRoleIds?.length === 0) {
+      throw new BadRequestException('Choose at least one functional role for a Team Member');
     }
 
     await this.validateJobRoles(dto.functionalRoleIds, id);
@@ -422,7 +430,7 @@ export class UsersService {
     auditContext?: AuditContext,
   ) {
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
     });
 
     if (!user) {
@@ -458,6 +466,80 @@ export class UsersService {
     return { success: true, message: `User ${isActive ? 'activated' : 'deactivated'} successfully` };
   }
 
+  async remove(id: string, actorId: string, auditContext?: AuditContext) {
+    if (id === actorId) {
+      throw new ForbiddenException('You cannot delete your own account');
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true, email: true, globalRole: true, isActive: true },
+    });
+
+    if (!user) throw new NotFoundException('User not found');
+    if (user.globalRole === UserRole.OWNER) {
+      throw new ForbiddenException('Super Admin accounts cannot be deleted');
+    }
+    if (user.isActive) {
+      throw new BadRequestException('Deactivate this account before deleting it');
+    }
+
+    const released = await this.prisma.$transaction(async (tx) => {
+      const [tasks, managedProjects, marketingProjects, phases, phaseMembers, channels, content, buzz, signoffs] = await Promise.all([
+        tx.task.updateMany({
+          where: { assigneeId: id, deletedAt: null, status: { notIn: ['DONE', 'CANCELED'] } },
+          data: { assigneeId: null },
+        }),
+        tx.project.updateMany({ where: { projectManagerId: id, deletedAt: null }, data: { projectManagerId: null } }),
+        tx.project.updateMany({ where: { marketingOwnerId: id, deletedAt: null }, data: { marketingOwnerId: null } }),
+        tx.projectPhaseAssignment.updateMany({ where: { defaultAssigneeId: id }, data: { defaultAssigneeId: null } }),
+        tx.projectPhaseMember.deleteMany({ where: { userId: id } }),
+        tx.marketingChannel.updateMany({ where: { backupAdminId: id }, data: { backupAdminId: null } }),
+        tx.marketingContentItem.updateMany({ where: { ownerId: id }, data: { ownerId: null } }),
+        tx.marketingBuzzActivity.updateMany({ where: { ownerId: id }, data: { ownerId: null } }),
+        tx.marketingSignoffItem.updateMany({ where: { ownerId: id }, data: { ownerId: null } }),
+      ]);
+
+      await tx.projectMember.deleteMany({ where: { userId: id } });
+      await tx.teamMember.deleteMany({ where: { userId: id } });
+      await tx.session.updateMany({ where: { userId: id, isRevoked: false }, data: { isRevoked: true } });
+      await tx.user.update({
+        where: { id },
+        data: {
+          isActive: false,
+          deletedAt: new Date(),
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+        },
+      });
+
+      const summary = {
+        tasks: tasks.count,
+        projectOwnerships: managedProjects.count + marketingProjects.count,
+        phaseAssignments: phases.count + phaseMembers.count,
+        marketingAssignments: channels.count + content.count + buzz.count + signoffs.count,
+      };
+      await tx.auditLog.create({
+        data: {
+          actorId,
+          action: AuditAction.USER_DELETED,
+          entityType: 'User',
+          entityId: id,
+          ipAddress: auditContext?.ipAddress,
+          userAgent: auditContext?.userAgent,
+          detailsJson: JSON.stringify({ affectedEmail: user.email, released: summary }),
+        },
+      });
+      return summary;
+    });
+
+    return {
+      success: true,
+      message: 'User deleted successfully. Historical activity and audit records were preserved.',
+      released,
+    };
+  }
+
   async resetPassword(
     id: string,
     newPassword: string,
@@ -466,7 +548,7 @@ export class UsersService {
     auditContext?: AuditContext,
   ) {
     const user = await this.prisma.user.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
     });
 
     if (!user) {

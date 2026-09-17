@@ -97,6 +97,10 @@ export function UserFormPage({ mode }: UserFormPageProps) {
       setError('Only a Super Admin can create or assign Super Admin access.');
       return;
     }
+    if (role === UserRole.TEAM_MEMBER && functionalRoleIds.length === 0) {
+      setError('Choose at least one Functional Role. Job Title is display information and is not used for Product assignments.');
+      return;
+    }
     saveMutation.mutate();
   };
 
@@ -150,8 +154,9 @@ export function UserFormPage({ mode }: UserFormPageProps) {
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={mode === 'edit'} required={mode === 'create'} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-fx-text-primary mb-1">Job Title</label>
+              <label className="block text-xs font-medium text-fx-text-primary mb-1">Job Title (display only)</label>
               <Input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Game Developer" />
+              <p className="mt-1 text-[11px] text-fx-text-muted">Example: Software Engineer. Product assignments use Functional Roles below.</p>
             </div>
           </section>
 

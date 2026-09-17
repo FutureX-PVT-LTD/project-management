@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { cn } from '@/lib/utils';
+import { roleLabel, roleNames } from '@/lib/role-labels';
 import Link from 'next/link';
 
 export function TaskFormPage() {
@@ -59,7 +60,11 @@ export function TaskFormPage() {
     if (!memberSearch) return true;
     const q = memberSearch.toLowerCase();
     const name = `${m.user?.firstName || ''} ${m.user?.lastName || ''}`.toLowerCase();
-    return name.includes(q) || m.user?.jobTitle?.toLowerCase().includes(q);
+    return (
+      name.includes(q) ||
+      roleNames(m.projectRoles).some((role) => role.toLowerCase().includes(q)) ||
+      m.user?.jobTitle?.toLowerCase().includes(q)
+    );
   });
 
   const filteredTasks = projectTasks.filter((task) => {
@@ -195,7 +200,8 @@ export function TaskFormPage() {
                         <span className="block font-semibold text-fx-text-primary">
                           {m.user?.firstName} {m.user?.lastName}
                         </span>
-                        <span className="block text-[11px] text-fx-text-muted">{m.user?.jobTitle || 'Team Member'}</span>
+                        <span className="block text-[11px] font-medium text-[#245EC7]">{roleLabel(m.projectRoles, 'No project role')}</span>
+                        {m.user?.jobTitle && <span className="block text-[11px] text-fx-text-muted">{m.user.jobTitle}</span>}
                       </span>
                       {selected && <Check className="h-4 w-4 text-[#2563EB]" />}
                     </button>

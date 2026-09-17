@@ -136,6 +136,20 @@ export class UsersController {
     });
   }
 
+  @Roles(UserRole.OWNER)
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() actor: AuthUser,
+    @Req() req: Request,
+  ) {
+    return this.usersService.remove(id, actor.id, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  }
+
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Post(':id/reset-password')
   async resetPassword(

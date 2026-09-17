@@ -1826,7 +1826,10 @@ export class ProjectsService {
       }),
       this.prisma.projectMember.findMany({
         where: { projectId, user: { isActive: true, deletedAt: null } },
-        include: { user: { select: { id: true, firstName: true, lastName: true, jobTitle: true, avatarUrl: true } } },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, jobTitle: true, avatarUrl: true } },
+          projectRoles: { include: { functionalRole: true } },
+        },
         orderBy: [{ user: { lastName: 'asc' } }, { user: { firstName: 'asc' } }],
       }),
       this.prisma.projectPhaseAssignment.findMany({
@@ -1863,7 +1866,11 @@ export class ProjectsService {
       unassignedItems: tasks.filter((task) => !task.assigneeId).length,
       readyItems: tasks.filter((task) => task.status === TaskStatus.READY).length,
       waitingItems: tasks.filter((task) => [TaskStatus.WAITING, TaskStatus.BLOCKED].includes(task.status as TaskStatus)).length,
-      members: members.map((member) => ({ id: member.userId, ...member.user })),
+      members: members.map((member) => ({
+        id: member.userId,
+        ...member.user,
+        projectRoles: member.projectRoles.map((link) => link.functionalRole),
+      })),
       phases: phaseRows,
     };
   }

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { Drawer } from '@/components/ui/Drawer';
 import { TaskPriority, UserRole } from '@futurex/shared';
 import { AlertCircle } from 'lucide-react';
+import { roleLabel } from '@/lib/role-labels';
 
 interface TaskCreateDrawerProps {
   open: boolean;
@@ -233,7 +234,7 @@ export function TaskCreateDrawer({
               ) : (
                 projectMembers.map((m: any) => (
                   <option key={m.userId} value={m.userId}>
-                    {m.user?.firstName} {m.user?.lastName} ({m.user?.jobTitle || 'Team Member'})
+                    {m.user?.firstName} {m.user?.lastName} · {roleLabel(m.projectRoles, 'No project role')}
                   </option>
                 ))
               )}

@@ -6,13 +6,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Check, Plus, X } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/Button';
+import { roleLabel } from '@/lib/role-labels';
 
-type Person = { id: string; firstName: string; lastName: string; jobTitle?: string };
+type Person = { id: string; firstName: string; lastName: string; jobTitle?: string; projectRoles?: { id: string; name: string }[] };
 type WorkItem = { id: string; humanId: string; title: string; phase: string; assigneeId?: string; status: string; progress: number; dueDate?: string };
 type Phase = { phaseKey: string; orderIndex: number; defaultAssigneeId?: string | null; memberIds: string[]; taskCount: number; assignedCount: number; unassignedCount: number; tasks: WorkItem[] };
 type Workspace = { totalItems: number; assignedItems: number; unassignedItems: number; readyItems: number; waitingItems: number; members: Person[]; phases: Phase[] };
 
 const nameOf = (person?: Person) => (person ? `${person.firstName} ${person.lastName}` : 'Unassigned');
+const optionLabel = (person: Person) => `${nameOf(person)} · ${roleLabel(person.projectRoles, 'No project role')}`;
 
 function formatPhaseTitle(index: number, phaseKey: string) {
   return /^\d+\.\s*/.test(phaseKey) ? phaseKey : `${index + 1}. ${phaseKey}`;
@@ -218,7 +220,7 @@ export function PhaseAssignments({
                       <option value="">Choose team member</option>
                       {data?.members.map((member) => (
                         <option key={member.id} value={member.id}>
-                          {nameOf(member)}
+                          {optionLabel(member)}
                         </option>
                       ))}
                     </select>
@@ -231,7 +233,7 @@ export function PhaseAssignments({
                             key={id}
                             className="inline-flex items-center gap-1 rounded border border-[#E8EBEF] bg-white px-2 py-0.5 text-[11px] text-[#17191C]"
                           >
-                            {nameOf(memberById.get(id))}
+                            {memberById.get(id) ? optionLabel(memberById.get(id)!) : 'Unknown member'}
                             <button
                               type="button"
                               aria-label={`Remove ${nameOf(memberById.get(id))} from ${phase.phaseKey}`}
@@ -264,7 +266,7 @@ export function PhaseAssignments({
                             .filter((member) => member.id !== selectedId && !extraIds.includes(member.id))
                             .map((member) => (
                               <option key={member.id} value={member.id}>
-                                {nameOf(member)}
+                                {optionLabel(member)}
                               </option>
                             ))}
                         </select>
@@ -359,7 +361,7 @@ export function PhaseAssignments({
               <option value="">All assignees</option>
               {data?.members.map((member) => (
                 <option key={member.id} value={member.id}>
-                  {nameOf(member)}
+                  {optionLabel(member)}
                 </option>
               ))}
             </select>
@@ -450,7 +452,7 @@ export function PhaseAssignments({
                 <option value="">Unassigned</option>
                 {data?.members.map((member) => (
                   <option key={member.id} value={member.id}>
-                    {nameOf(member)}
+                    {optionLabel(member)}
                   </option>
                 ))}
               </select>
@@ -489,7 +491,7 @@ function TaskRow({
           <option value="">Unassigned</option>
           {members.map((member) => (
             <option key={member.id} value={member.id}>
-              {nameOf(member)}
+              {optionLabel(member)}
             </option>
           ))}
         </select>

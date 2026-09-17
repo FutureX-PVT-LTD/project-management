@@ -23,6 +23,7 @@ import { FormPageLayout } from "@/components/layout/FormPageLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn, formatDate } from "@/lib/utils";
+import { roleLabel } from "@/lib/role-labels";
 import Link from "next/link";
 
 interface ProjectFormPageProps {
@@ -865,7 +866,12 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                           </button>
                         </div>
                         <span className="text-[10px] text-fx-text-muted">
-                          {assignedRoles.length} Project Roles Selected
+                          {roleLabel(
+                            (emp.functionalRoles || []).filter((role: any) =>
+                              assignedRoles.includes(role.id),
+                            ),
+                            "No project role selected",
+                          )}
                         </span>
                         <div className="flex flex-wrap gap-1">
                           {(emp.functionalRoles || []).map((role: any) => (
@@ -944,10 +950,8 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                             {emp.firstName} {emp.lastName}
                           </span>
                           <span className="block text-[11px] text-fx-text-muted mt-0.5">
-                            {emp.jobTitle || "Team Member"} ·{" "}
-                            {(emp.functionalRoles || [])
-                              .map((role: any) => role.name)
-                              .join(" · ") || "No Functional Roles"}
+                            {roleLabel(emp.functionalRoles)}
+                            {emp.jobTitle ? ` · ${emp.jobTitle}` : ""}
                           </span>
                         </div>
                         {selected && (
@@ -1164,7 +1168,7 @@ export function ProjectFormPage({ mode }: ProjectFormPageProps) {
                               {emp.firstName} {emp.lastName}
                             </span>
                             <span className="text-[11px] text-fx-text-muted">
-                              {emp.jobTitle || "Team Member"}
+                              {roleLabel(roles, "No project role selected")}
                             </span>
                           </div>
                           <span className="text-[10px] text-[#2563EB] bg-white border px-1.5 py-0.5 rounded">

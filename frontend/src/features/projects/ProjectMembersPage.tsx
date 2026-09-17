@@ -11,6 +11,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { FormPageLayout } from '@/components/layout/FormPageLayout';
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
+import { roleLabel } from '@/lib/role-labels';
 
 export function ProjectMembersPage() {
   const params = useParams();
@@ -128,7 +129,8 @@ export function ProjectMembersPage() {
                     <p className="font-semibold text-fx-text-primary">
                       {m.user?.firstName} {m.user?.lastName}
                     </p>
-                    <p className="text-[11px] text-fx-text-muted">{m.user?.jobTitle || 'Team Member'}</p>
+                    <p className="text-[11px] font-medium text-[#245EC7]">{roleLabel(m.projectRoles, 'No project role assigned')}</p>
+                    {m.user?.jobTitle && <p className="text-[11px] text-fx-text-muted">{m.user.jobTitle}</p>}
                     <p className="mt-1 text-[11px] text-fx-text-secondary">{m.activeAssignmentsCount || 0} active assignments</p>
                     <div className="mt-2 flex flex-wrap gap-2">{(m.user?.functionalRoleLinks || m.user?.functionalRoles || []).map((entry: any) => { const role = entry.functionalRole || entry; const current = roleDrafts[m.userId] ?? (m.projectRoles || []).map((item: any) => item.id); return <label key={role.id} className="flex items-center gap-1 rounded border px-2 py-1 text-[11px]"><input type="checkbox" checked={current.includes(role.id)} onChange={(event) => setRoleDrafts((drafts) => ({ ...drafts, [m.userId]: event.target.checked ? [...current, role.id] : current.filter((id: string) => id !== role.id) }))} />{role.name}</label>; })}</div>
                   </div>
@@ -173,7 +175,8 @@ export function ProjectMembersPage() {
                 <div key={user.id} className="flex items-center justify-between gap-3 p-3 text-xs">
                   <div>
                     <p className="font-semibold text-fx-text-primary">{user.firstName} {user.lastName}</p>
-                    <p className="text-[11px] text-fx-text-muted">{user.jobTitle || 'Team Member'}</p>
+                    <p className="text-[11px] font-medium text-[#245EC7]">{roleLabel(user.functionalRoles)}</p>
+                    {user.jobTitle && <p className="text-[11px] text-fx-text-muted">{user.jobTitle}</p>}
                     <div className="mt-2 flex flex-wrap gap-2">{(user.functionalRoles || []).map((role: any) => { const current = roleDrafts[user.id] || []; return <label key={role.id} className="flex items-center gap-1 rounded border px-2 py-1 text-[11px]"><input type="checkbox" checked={current.includes(role.id)} onChange={(event) => setRoleDrafts((drafts) => ({ ...drafts, [user.id]: event.target.checked ? [...current, role.id] : current.filter((id: string) => id !== role.id) }))} />{role.name}</label>; })}</div>
                   </div>
                   <Button
