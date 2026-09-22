@@ -17,7 +17,7 @@ import { TaskStatus, TaskPriority, UserRole, ReviewStatus } from '@futurex/share
 import { useAuth } from '@/features/auth/AuthContext';
 import {
   canStartTask,
-  canSubmitForReview,
+  canCompleteTask,
   canReviewTask,
   canUpdateTaskProgress,
   isTaskAssignee,
@@ -103,6 +103,7 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['team-submissions'] });
     },
   });
 
@@ -125,6 +126,7 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['team-submissions'] });
     },
   });
 
@@ -162,6 +164,7 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['marketing'] });
+      queryClient.invalidateQueries({ queryKey: ['team-submissions'] });
     },
   });
 
@@ -202,7 +205,7 @@ export function TaskDetailSlideOver({
   if (!open) return null;
 
   const canStart = canStartTask(user, task);
-  const canSubmitReview = canSubmitForReview(user, task);
+  const canComplete = canCompleteTask(user, task);
   const canReview = canReviewTask(user, task);
   const canUpdateProgress = canUpdateTaskProgress(user, task);
   const isAssignee = isTaskAssignee(user, task);
@@ -283,15 +286,15 @@ export function TaskDetailSlideOver({
                 </Button>
               )}
 
-              {canSubmitReview && (
+              {canComplete && (
                 <Button
                   size="xs"
                   variant="primary"
                   loading={updateStatusMutation.isPending}
-                  onClick={() => updateStatusMutation.mutate(TaskStatus.IN_REVIEW)}
-                  leftIcon={<Send className="w-3 h-3" />}
+                  onClick={() => updateStatusMutation.mutate(TaskStatus.DONE)}
+                  leftIcon={<CheckCircle2 className="w-3 h-3" />}
                 >
-                  {isMarketingChecklist ? 'Submit Ready for Review' : 'Submit Progress Review'}
+                  Mark Completed
                 </Button>
               )}
 
@@ -526,10 +529,10 @@ export function TaskDetailSlideOver({
                       <div className="p-3 bg-[#FFF7E8] border border-[#F0DFB7] rounded-[10px] text-xs space-y-1">
                         <div className="flex items-center gap-1.5 font-medium text-[#9A6515]">
                           <Lock className="w-3.5 h-3.5 text-[#9A6515]" />
-                          <span>This deliverable cannot start yet</span>
+                          <span>Related work is still open</span>
                         </div>
                         <p className="text-[#7A5010] text-[11px]">
-                          Waiting for:{' '}
+                          Related tasks (you can still start):{' '}
                           {unfinishedDeps
                             .map(
                               (d: any) =>
@@ -562,7 +565,7 @@ export function TaskDetailSlideOver({
                       {/* Waiting on Predecessors */}
                       <div className="space-y-1.5">
                         <p className="text-[11px] text-[#60666F] font-medium">
-                          Prerequisites (Waiting on):
+                          Related tasks:
                         </p>
                         {blockedBy.length === 0 ? (
                           <p className="text-[11px] text-[#8C939E] italic bg-[#F8F9FB] p-2.5 rounded-[8px] border border-[#E8EBEF]">
@@ -601,7 +604,7 @@ export function TaskDetailSlideOver({
                       {/* Unlocks Dependents */}
                       <div className="space-y-1.5 pt-1">
                         <p className="text-[11px] text-[#60666F] font-medium">
-                          Unlocks (Successors):
+                          Follow-on tasks:
                         </p>
                         {blocking.length === 0 ? (
                           <p className="text-[11px] text-[#8C939E] italic bg-[#F8F9FB] p-2.5 rounded-[8px] border border-[#E8EBEF]">
@@ -649,7 +652,7 @@ export function TaskDetailSlideOver({
                   <div className="space-y-4">
                     <div className="border-b border-[#E8EBEF] pb-3">
                       <h4 className="text-xs font-semibold text-[#17191C]">Checklist Status</h4>
-                      <p className="mt-1 text-[11px] text-[#60666F]">Record evidence or a short operational note, then submit the completed item to Admin for review.</p>
+                      <p className="mt-1 text-[11px] text-[#60666F]">Record evidence or a short operational note, then mark the item completed.</p>
                     </div>
                     {(task?.status === TaskStatus.IN_PROGRESS || task?.status === TaskStatus.BLOCKED) && isAssignee ? (
                       <div className="space-y-3 rounded-[8px] border border-[#E8EBEF] p-4">
@@ -657,15 +660,15 @@ export function TaskDetailSlideOver({
                         <label className="grid gap-1 text-[11px] font-medium text-[#60666F]">Operational note<textarea rows={3} placeholder="What was completed, or what is blocking this item?" value={checklistNotes} onChange={(event) => setChecklistNotes(event.target.value)} className="rounded-[6px] border border-[#D9DEE5] p-2.5 text-xs text-[#17191C] focus:border-[#2463EB] focus:outline-none" /></label>
                         <div className="flex flex-wrap justify-end gap-2">
                           {task.status === TaskStatus.BLOCKED ? <Button size="xs" variant="secondary" loading={checklistUpdateMutation.isPending} onClick={() => checklistUpdateMutation.mutate(TaskStatus.IN_PROGRESS)}>Resume</Button> : <Button size="xs" variant="secondary" disabled={!checklistNotes.trim()} loading={checklistUpdateMutation.isPending} onClick={() => checklistUpdateMutation.mutate(TaskStatus.BLOCKED)}>Mark Blocked</Button>}
-                          <Button size="xs" loading={checklistUpdateMutation.isPending} disabled={!checklistEvidenceUrl.trim() && !checklistNotes.trim()} onClick={() => checklistUpdateMutation.mutate(TaskStatus.IN_REVIEW)} leftIcon={<Send className="h-3 w-3" />}>Submit Ready for Review</Button>
+                          <Button size="xs" loading={checklistUpdateMutation.isPending} disabled={!checklistEvidenceUrl.trim() && !checklistNotes.trim()} onClick={() => checklistUpdateMutation.mutate(TaskStatus.DONE)} leftIcon={<CheckCircle2 className="h-3 w-3" />}>Mark Completed</Button>
                         </div>
                       </div>
                     ) : task?.status === TaskStatus.READY && isAssignee ? (
                       <div className="flex items-center justify-between gap-3 rounded-[8px] border border-[#D0E1FD] bg-[#EEF4FF] p-4"><p className="text-[11px] text-[#60666F]">This checklist item is ready to begin.</p><Button size="xs" onClick={() => updateStatusMutation.mutate(TaskStatus.IN_PROGRESS)} leftIcon={<Play className="h-3 w-3" />}>Start Checklist</Button></div>
                     ) : task?.status === TaskStatus.IN_REVIEW ? (
-                      <div className="rounded-[8px] border border-[#E4D7F5] bg-[#F5F1FB] p-4 text-[11px] text-[#594285]">Submitted to Admin. The item becomes Done only after approval.</div>
+                      <div className="rounded-[8px] border border-[#E4D7F5] bg-[#F5F1FB] p-4 text-[11px] text-[#594285]">This earlier submission is awaiting an Admin decision.</div>
                     ) : task?.status === TaskStatus.DONE ? (
-                      <div className="rounded-[8px] border border-[#C6E6D6] bg-[#EDF7F2] p-4 text-[11px] text-[#1E5947]">This checklist item has been reviewed and completed.</div>
+                      <div className="rounded-[8px] border border-[#C6E6D6] bg-[#EDF7F2] p-4 text-[11px] text-[#1E5947]">This checklist item is completed.</div>
                     ) : (
                       <div className="rounded-[8px] border border-[#E8EBEF] bg-[#F8F9FB] p-4 text-[11px] text-[#60666F]">Status and evidence are read-only for this item.</div>
                     )}
@@ -739,7 +742,7 @@ export function TaskDetailSlideOver({
                             </label>
                             <input
                               type="text"
-                              placeholder="e.g. Test physics and submit final review..."
+                              placeholder="e.g. Test physics and finish the remaining checks..."
                               value={nextStepNote}
                               onChange={(e) => setNextStepNote(e.target.value)}
                               className="w-full rounded-[8px] border border-[#E8EBEF] bg-[#F8F9FB] px-2.5 py-1.5 text-xs focus:border-[#2463EB] focus:outline-none"
@@ -796,10 +799,10 @@ export function TaskDetailSlideOver({
                         <div className="bg-[#FFF7E8] border border-[#F0DFB7] rounded-[10px] p-4 space-y-1.5 text-xs text-[#9A6515]">
                           <div className="flex items-center gap-1.5 font-medium">
                             <Lock className="w-3.5 h-3.5 text-[#9A6515]" />
-                            <span>This task cannot start yet.</span>
+                            <span>Related work is still open.</span>
                           </div>
                           <p className="text-[#7A5010] text-[11px]">
-                            Waiting for: {unfinishedDeps.length > 0 ? unfinishedDeps.map((d: any) => d.predecessorTask?.humanId).join(', ') : 'prerequisite tasks'}
+                            Related tasks: {unfinishedDeps.length > 0 ? unfinishedDeps.map((d: any) => d.predecessorTask?.humanId).join(', ') : 'none'}. You can still start this task.
                           </p>
                         </div>
                       ) : task?.status === TaskStatus.IN_REVIEW ? (
@@ -813,7 +816,7 @@ export function TaskDetailSlideOver({
                         <div className="bg-[#EDF7F2] border border-[#C6E6D6] rounded-[10px] p-4 space-y-1 text-xs text-[#26715A]">
                           <span className="font-medium">Task Completed</span>
                           <p className="text-[#1E5947] text-[11px]">
-                            This deliverable has been approved and completed (100%).
+                            This deliverable is completed (100%). Admin and Super Admin can see it in Team Submissions.
                           </p>
                         </div>
                       ) : null

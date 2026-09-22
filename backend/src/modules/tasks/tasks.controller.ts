@@ -46,6 +46,15 @@ export class TasksController {
     });
   }
 
+  @Roles(UserRole.OWNER, UserRole.ADMIN)
+  @Get('completed-feed')
+  async completedFeed(
+    @Query('projectId') projectId?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.tasksService.completedFeed({ projectId, search });
+  }
+
   @Get('dashboard')
   async getUserDashboard(
     @CurrentUser() actor: AuthUser,

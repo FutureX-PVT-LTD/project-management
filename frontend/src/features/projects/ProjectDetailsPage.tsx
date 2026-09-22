@@ -827,23 +827,18 @@ export function ProjectDetailsPage({
         {/* TAB 4: KANBAN BOARD */}
         {activeTab === 'board' && (
           <div className="overflow-x-auto pb-6">
-            <div className="flex items-start gap-3.5 min-w-[1600px]">
+            <div className="grid grid-cols-1 md:grid-cols-3 items-start gap-3.5">
               {[
-                { id: TaskStatus.UNASSIGNED, label: 'Unassigned' },
-                { id: TaskStatus.TODO, label: 'To Do' },
-                { id: TaskStatus.WAITING, label: 'Waiting' },
-                { id: TaskStatus.READY, label: 'Ready' },
-                { id: TaskStatus.IN_PROGRESS, label: 'In Progress' },
-                { id: TaskStatus.IN_REVIEW, label: 'In Review' },
-                { id: TaskStatus.BLOCKED, label: 'Blocked' },
-                { id: TaskStatus.DONE, label: 'Completed' },
+                { id: 'todo', label: 'To Do', statuses: [TaskStatus.UNASSIGNED, TaskStatus.TODO, TaskStatus.PLANNED, TaskStatus.BACKLOG, TaskStatus.WAITING, TaskStatus.READY] },
+                { id: 'doing', label: 'In Progress', statuses: [TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.BLOCKED] },
+                { id: 'completed', label: 'Completed', statuses: [TaskStatus.DONE, TaskStatus.N_A, TaskStatus.CANCELED] },
               ].map((col) => {
-                const colTasks = tasks.filter((t: any) => t.status === col.id);
+                const colTasks = tasks.filter((t: any) => col.statuses.includes(t.status));
 
                 return (
                   <div
                     key={col.id}
-                    className="w-[260px] bg-[#F8F9FB] border border-[#E8EBEF] rounded-[10px] p-3 space-y-2.5 shrink-0"
+                    className="min-w-0 bg-[#F8F9FB] border border-[#E8EBEF] rounded-[8px] p-3 space-y-2.5"
                   >
                     <div className="flex items-center justify-between pb-1.5 border-b border-[#E8EBEF]">
                       <h3 className="text-xs font-semibold text-[#17191C]">
@@ -870,11 +865,12 @@ export function ProjectDetailsPage({
                             </span>
                           </div>
 
-                          <div className="pt-1.5 border-t border-[#E8EBEF] flex items-center justify-between text-[11px]">
+                          <div className="pt-1.5 border-t border-[#E8EBEF] flex flex-wrap items-center justify-between gap-2 text-[11px]">
                             <PriorityBadge
                               priority={task.priority}
                               compact={true}
                             />
+                            <StatusPill status={task.status} size="xs" />
                             <span className="text-[#8B929B] font-mono">
                               {task.dueDate ? formatDate(task.dueDate) : ''}
                             </span>

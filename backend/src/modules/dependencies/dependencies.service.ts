@@ -103,7 +103,7 @@ export class DependenciesService {
       },
     });
 
-    // If predecessor is not satisfied, mark dependent task as WAITING (if not manually blocked or already completed)
+    // Dependencies provide context; they no longer prevent parallel work.
     const predecessorSatisfied = predTask.status === TaskStatus.DONE || predTask.status === TaskStatus.N_A;
     if (
       !predecessorSatisfied &&
@@ -111,20 +111,13 @@ export class DependenciesService {
       depTask.status !== TaskStatus.N_A &&
       depTask.status !== TaskStatus.CANCELED
     ) {
-      if (!depTask.isManualBlocked) {
-        await this.prisma.task.update({
-          where: { id: depTask.id },
-          data: { status: TaskStatus.WAITING },
-        });
-      }
-
       if (depTask.assigneeId) {
         await this.prisma.notification.create({
           data: {
             userId: depTask.assigneeId,
-            type: NotificationType.TASK_BLOCKED,
-            title: 'Task Dependency Assigned',
-            message: `"${depTask.title}" (${depTask.humanId}) is waiting for "${predTask.title}" (${predTask.humanId}).`,
+            type: NotificationType.DEPENDENCY_RESOLVED,
+            title: 'Related task added',
+            message: `"${depTask.title}" (${depTask.humanId}) is related to "${predTask.title}" (${predTask.humanId}). You can continue working.`,
             linkUrl: `/projects/${depTask.projectId}?taskId=${depTask.id}`,
           },
         });
@@ -137,7 +130,7 @@ export class DependenciesService {
         projectId: depTask.projectId,
         userId: actorId,
         actionType: TaskActionType.DEPENDENCY_ADDED,
-        description: `Added dependency: Waiting for ${predTask.humanId} (${predTask.title})`,
+        description: `Added related task: ${predTask.humanId} (${predTask.title})`,
       },
     });
 

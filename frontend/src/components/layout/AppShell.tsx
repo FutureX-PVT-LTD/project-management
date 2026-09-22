@@ -8,6 +8,7 @@ import { UserRole } from '@futurex/shared';
 import {
   LayoutDashboard,
   CheckSquare,
+  ClipboardCheck,
   FolderKanban,
   Users,
   Calendar as CalendarIcon,
@@ -81,6 +82,7 @@ export function AppShell({
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'Projects', href: '/projects', icon: FolderKanban },
         { name: 'My Work', href: '/my-work', icon: CheckSquare },
+        { name: 'Team Submissions', href: '/admin/submissions', icon: ClipboardCheck },
         { name: 'Additional Work', href: '/additional-work', icon: Plus },
         { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
         { name: 'Team', href: '/team', icon: Users },
@@ -108,6 +110,7 @@ export function AppShell({
   const getBreadcrumbs = () => {
     if (pathname === '/dashboard' || pathname === '/') return 'Overview';
     if (pathname === '/my-work') return 'My Work';
+    if (pathname === '/admin/submissions') return 'Administration / Team Submissions';
     if (pathname === '/projects') return 'Projects';
     if (pathname.startsWith('/projects/')) return 'Projects / Details';
     if (pathname === '/tasks') return 'Tasks';

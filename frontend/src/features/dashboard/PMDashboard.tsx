@@ -595,7 +595,7 @@ export function PMDashboard() {
               </Link>
 
               <Link
-                href="/my-work?tab=REVIEW"
+                href="/admin/submissions"
                 className="py-2.5 flex items-center justify-between hover:text-[#2563EB] fx-transition group"
               >
                 <div className="flex items-center gap-2.5 text-[#626A73] group-hover:text-[#17191C]">
@@ -633,7 +633,7 @@ export function PMDashboard() {
                   </span>
                 </div>
                 <Link
-                  href="/my-work?tab=REVIEW"
+                  href="/admin/submissions"
                   className="text-[11.5px] font-medium text-[#2563EB] hover:text-[#1D4ED8] fx-transition"
                 >
                   View All →

@@ -2230,22 +2230,7 @@ export class ProjectsService {
     taskId: string,
     assigneeId: string | null,
   ): Promise<TaskStatus> {
-    if (!assigneeId) return TaskStatus.UNASSIGNED;
-
-    const dependencies = await this.prisma.taskDependency.findMany({
-      where: { dependentTaskId: taskId },
-      include: {
-        predecessorTask: { select: { status: true } },
-      },
-    });
-
-    const allSatisfied = dependencies.every(
-      (dep) =>
-        dep.predecessorTask.status === TaskStatus.DONE ||
-        dep.predecessorTask.status === TaskStatus.N_A,
-    );
-
-    return allSatisfied ? TaskStatus.READY : TaskStatus.WAITING;
+    return assigneeId ? TaskStatus.READY : TaskStatus.UNASSIGNED;
   }
 
   private calculateChecklistSummary(tasks: any[]) {

@@ -28,7 +28,6 @@ export function TaskFormPage() {
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
   const [estimatedHours, setEstimatedHours] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [requiresReview, setRequiresReview] = useState(true);
   const [selectedPredecessors, setSelectedPredecessors] = useState<string[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [taskSearch, setTaskSearch] = useState('');
@@ -83,7 +82,7 @@ export function TaskFormPage() {
         priority,
         estimatedHours: estimatedHours ? Number(estimatedHours) : undefined,
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-        requiresReview,
+        requiresReview: false,
         dependsOnTaskIds: selectedPredecessors.length ? selectedPredecessors : undefined,
       }),
     onSuccess: () => {
@@ -245,7 +244,7 @@ export function TaskFormPage() {
               <input
                 value={taskSearch}
                 onChange={(e) => setTaskSearch(e.target.value)}
-                placeholder="Search prerequisite tasks..."
+                placeholder="Search related tasks..."
                 className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
               />
             </div>
@@ -294,15 +293,6 @@ export function TaskFormPage() {
               )}
             </div>
 
-            <label className="flex items-center gap-2 text-xs font-medium text-fx-text-primary">
-              <input
-                type="checkbox"
-                checked={requiresReview}
-                onChange={(e) => setRequiresReview(e.target.checked)}
-                className="rounded text-[#2563EB] focus:ring-[#2563EB]"
-              />
-              Requires Admin Review
-            </label>
           </section>
         </FormPageLayout>
       </form>

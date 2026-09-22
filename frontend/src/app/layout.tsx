@@ -7,6 +7,16 @@ import { AuthProvider } from '@/features/auth/AuthContext';
 export const metadata: Metadata = {
   title: 'FutureX | Product Development Management System',
   description: 'Internal product development, deliverable tracking, and release management workspace for FutureX.',
+  icons: {
+    icon: [
+      { url: '/images/futurex-logo.png', type: 'image/png' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: ['/images/futurex-logo.png'],
+    apple: [
+      { url: '/images/futurex-logo.png' },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -17,6 +27,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/images/futurex-logo.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/images/futurex-logo.png" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

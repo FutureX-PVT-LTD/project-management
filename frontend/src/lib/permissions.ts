@@ -70,11 +70,11 @@ export function canStartTask(
   return (
     user.isActive !== false &&
     task.assigneeId === user.id &&
-    task.status === TaskStatus.READY
+    (task.status === TaskStatus.READY || task.status === TaskStatus.WAITING)
   );
 }
 
-export function canSubmitForReview(
+export function canCompleteTask(
   user?: AuthUser | null,
   task?: { assigneeId?: string | null; status?: TaskStatus | string } | null,
 ): boolean {

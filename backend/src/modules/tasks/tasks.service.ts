@@ -37,12 +37,50 @@ export class TasksService implements OnModuleInit {
       const count = await normalizeAllTasks(this.prisma);
       if (count > 0) {
         this.logger.log(
-          `Initialized and normalized ${count} task(s) into READY/WAITING states.`,
+          `Initialized and normalized ${count} task(s) into READY states.`,
         );
       }
     } catch (err) {
       this.logger.warn(`Task normalization on startup warning: ${err}`);
     }
+  }
+
+  async completedFeed(filters: { projectId?: string; search?: string }) {
+    const search = filters.search?.trim().slice(0, 100);
+    const where = {
+        deletedAt: null,
+        project: { deletedAt: null, lifecycleStatus: { not: 'DRAFT' } },
+        ...(filters.projectId ? { projectId: filters.projectId } : {}),
+        ...(search ? { OR: [
+          { title: { contains: search, mode: 'insensitive' as const } },
+          { humanId: { contains: search, mode: 'insensitive' as const } },
+          { assignee: { OR: [
+            { firstName: { contains: search, mode: 'insensitive' as const } },
+            { lastName: { contains: search, mode: 'insensitive' as const } },
+          ] } },
+        ] } : {}),
+      };
+    const select = {
+      id: true, humanId: true, title: true, completedDate: true, status: true, updatedAt: true,
+      workstream: true, checklistCode: true,
+      project: { select: { id: true, name: true, key: true } },
+      assignee: { select: { id: true, firstName: true, lastName: true } },
+    } as const;
+    const [pending, completed] = await Promise.all([
+      this.prisma.task.findMany({
+        where: { ...where, status: TaskStatus.IN_REVIEW },
+        select,
+        orderBy: { updatedAt: 'desc' },
+        take: 100,
+      }),
+      this.prisma.task.findMany({
+        where: { ...where, status: TaskStatus.DONE },
+        select,
+        orderBy: { updatedAt: 'desc' },
+        take: 100,
+      }),
+    ]);
+    return [...pending, ...completed];
   }
 
   async findMyWork(
@@ -63,26 +101,12 @@ export class TasksService implements OnModuleInit {
           deletedAt: null,
           assigneeId: userId,
           project: { deletedAt: null, members: { some: { userId } } },
-          status: { in: ["TODO", "BACKLOG", "PLANNED"] },
-        },
-        include: {
-          blockedBy: {
-            include: {
-              predecessorTask: { select: { id: true, status: true } },
-            },
-          },
+          status: { in: ["TODO", "BACKLOG", "PLANNED", "WAITING"] },
         },
       });
 
       for (const t of legacyAssigned) {
-        const hasUnfinished = t.blockedBy.some(
-          (b) =>
-            b.predecessorTask.status !== TaskStatus.DONE &&
-            b.predecessorTask.status !== TaskStatus.N_A,
-        );
-        const resolvedStatus = hasUnfinished
-          ? TaskStatus.WAITING
-          : TaskStatus.READY;
+        const resolvedStatus = TaskStatus.READY;
         await this.prisma.task.update({
           where: { id: t.id },
           data: { status: resolvedStatus, progress: 0 },
@@ -128,6 +152,12 @@ export class TasksService implements OnModuleInit {
 
     // Apply tab filter
     switch (params?.tab) {
+      case "TODO_GROUP":
+        where.status = { in: [TaskStatus.UNASSIGNED, TaskStatus.READY, TaskStatus.WAITING, TaskStatus.TODO, TaskStatus.PLANNED, TaskStatus.BACKLOG] };
+        break;
+      case "DOING_GROUP":
+        where.status = { in: [TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED, TaskStatus.IN_REVIEW] };
+        break;
       case "READY":
         where.status = TaskStatus.READY;
         break;
@@ -156,7 +186,7 @@ export class TasksService implements OnModuleInit {
         };
         break;
       case "COMPLETED":
-        where.status = TaskStatus.DONE;
+        where.status = { in: [TaskStatus.DONE, TaskStatus.N_A, TaskStatus.CANCELED] };
         break;
       default:
         // 'ALL' tab - optionally filter specific status if passed
@@ -1069,7 +1099,7 @@ export class TasksService implements OnModuleInit {
     let initialProgress = dto.progress !== undefined ? dto.progress : 0;
 
     if (dto.assigneeId) {
-      // Assigned task must resolve to WAITING or READY by default
+      // Assigned tasks can start even when related tasks are unfinished.
       if (
         !initialStatus ||
         initialStatus === TaskStatus.TODO ||
@@ -1085,27 +1115,6 @@ export class TasksService implements OnModuleInit {
         initialStatus === TaskStatus.BACKLOG
       ) {
         initialStatus = TaskStatus.UNASSIGNED;
-      }
-    }
-
-    // If initial dependencies are passed, check if any predecessor is not DONE
-    if (dto.dependsOnTaskIds && dto.dependsOnTaskIds.length > 0) {
-      const predecessors = await this.prisma.task.findMany({
-        where: { id: { in: dto.dependsOnTaskIds } },
-        select: { id: true, status: true },
-      });
-
-      const allDone = predecessors.every(
-        (p) => p.status === TaskStatus.DONE || p.status === TaskStatus.N_A,
-      );
-      if (
-        !allDone &&
-        dto.assigneeId &&
-        initialStatus !== TaskStatus.BLOCKED &&
-        initialStatus !== TaskStatus.DONE
-      ) {
-        initialStatus = TaskStatus.WAITING;
-        initialProgress = 0;
       }
     }
 
@@ -1286,13 +1295,13 @@ export class TasksService implements OnModuleInit {
         });
       }
 
-      // ADMIN MUST NOT mark tasks directly as DONE - completion happens through review approval
+      // Admins cannot complete a team member's work on their behalf.
       if (dto.status === TaskStatus.DONE && task.status !== TaskStatus.DONE) {
         throw new ForbiddenException({
           statusCode: 403,
           code: "TASK_DIRECT_COMPLETION_NOT_ALLOWED",
           message:
-            "Tasks cannot be marked as DONE directly. Completion happens through Admin review approval.",
+            "The assigned member must mark their own work completed.",
         });
       }
     } else {
@@ -1301,7 +1310,7 @@ export class TasksService implements OnModuleInit {
       });
       if (!membership) throw new ForbiddenException('Project membership is required to execute work');
       if (dto.progress !== undefined && (dto.progress >= 100 || dto.progress < task.progress)) {
-        throw new BadRequestException('Progress must not decrease and completion requires review');
+        throw new BadRequestException('Progress must not decrease; use Mark Completed when finished');
       }
       if ((dto.isManualBlocked !== undefined || dto.manualBlockReason !== undefined || dto.actualHours !== undefined) &&
           ![TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED].includes(task.status as TaskStatus)) {
@@ -1352,32 +1361,10 @@ export class TasksService implements OnModuleInit {
       }
 
       if (dto.status !== undefined && dto.status !== task.status) {
-        if (task.status === TaskStatus.WAITING) {
-          const unfinishedPredecessors = task.blockedBy.filter(
-            (b) =>
-              b.predecessorTask.status !== TaskStatus.DONE &&
-              b.predecessorTask.status !== TaskStatus.N_A,
-          );
-
-          if (unfinishedPredecessors.length > 0) {
-            const names = unfinishedPredecessors
-              .map((b) => b.predecessorTask.humanId)
-              .join(", ");
-            throw new BadRequestException({
-              statusCode: 400,
-              code: "TASK_DEPENDENCY_PENDING",
-              message: `This task cannot be changed until its prerequisites are completed (Waiting for: ${names}).`,
-            });
-          }
-        }
-
         if (dto.status === TaskStatus.DONE) {
-          throw new ForbiddenException({
-            statusCode: 403,
-            code: "TASK_DIRECT_COMPLETION_NOT_ALLOWED",
-            message:
-              "Team members cannot mark tasks as DONE. Please submit your work for review.",
-          });
+          if (task.status !== TaskStatus.IN_PROGRESS) {
+            throw new BadRequestException('Start the task before marking it completed');
+          }
         }
 
         if (
@@ -1398,49 +1385,19 @@ export class TasksService implements OnModuleInit {
         if (
           dto.status === TaskStatus.IN_PROGRESS &&
           task.status !== TaskStatus.READY &&
+          task.status !== TaskStatus.WAITING &&
           task.status !== TaskStatus.BLOCKED
         ) {
           throw new BadRequestException({
             statusCode: 400,
             code: "TASK_START_NOT_ALLOWED",
             message:
-              "Only assigned Ready tasks can be started by team members.",
+              "Only assigned tasks in To Do can be started.",
           });
         }
 
-        if (
-          dto.status === TaskStatus.IN_PROGRESS &&
-          task.workstream !== "MARKETING" &&
-          !task.allowParallelWork
-        ) {
-          const activeTask = await this.prisma.task.findFirst({
-            where: {
-              id: { not: task.id },
-              assigneeId: actorId,
-              deletedAt: null,
-              status: TaskStatus.IN_PROGRESS,
-            },
-            select: { humanId: true, title: true },
-          });
-
-          if (activeTask) {
-            throw new BadRequestException({
-              statusCode: 400,
-              code: "ONE_ACTIVE_TASK_LIMIT",
-              message: `Finish your current task first: ${activeTask.humanId} ${activeTask.title}.`,
-            });
-          }
-        }
-
-        if (
-          dto.status === TaskStatus.IN_REVIEW &&
-          task.status !== TaskStatus.IN_PROGRESS
-        ) {
-          throw new BadRequestException({
-            statusCode: 400,
-            code: "TASK_NOT_IN_PROGRESS",
-            message: "Only work in progress can be submitted for review.",
-          });
+        if (dto.status === TaskStatus.IN_REVIEW) {
+          throw new BadRequestException('Use Mark Completed when the work is finished');
         }
       }
     }
@@ -1465,18 +1422,8 @@ export class TasksService implements OnModuleInit {
       nextStatus !== TaskStatus.CANCELED &&
       nextStatus !== TaskStatus.BLOCKED
     ) {
-      const unfinishedPredecessors = task.blockedBy.filter(
-        (b) =>
-          b.predecessorTask.status !== TaskStatus.DONE &&
-          b.predecessorTask.status !== TaskStatus.N_A,
-      );
-      if (unfinishedPredecessors.length > 0) {
-        nextStatus = TaskStatus.WAITING;
-        nextProgress = 0;
-      } else {
-        nextStatus = TaskStatus.READY;
-        nextProgress = 0;
-      }
+      nextStatus = TaskStatus.READY;
+      nextProgress = 0;
     } else if (
       !effectiveAssigneeId &&
       (nextStatus === TaskStatus.READY || nextStatus === TaskStatus.WAITING)
@@ -1487,29 +1434,6 @@ export class TasksService implements OnModuleInit {
 
     // Strict validation for transitions & blocked rules
     if (dto.status !== undefined && dto.status !== task.status) {
-      // Trying to move to IN_PROGRESS or READY when task has unfinished dependencies
-      if (
-        dto.status === TaskStatus.IN_PROGRESS ||
-        dto.status === TaskStatus.READY
-      ) {
-        const unfinishedPredecessors = task.blockedBy.filter(
-          (b) =>
-            b.predecessorTask.status !== TaskStatus.DONE &&
-            b.predecessorTask.status !== TaskStatus.N_A,
-        );
-
-        if (unfinishedPredecessors.length > 0) {
-          const names = unfinishedPredecessors
-            .map((b) => b.predecessorTask.humanId)
-            .join(", ");
-          throw new BadRequestException({
-            statusCode: 400,
-            code: "TASK_DEPENDENCY_PENDING",
-            message: `This task cannot be started until its prerequisite tasks are completed (Waiting for: ${names}).`,
-          });
-        }
-      }
-
       // If status changed to DONE
       if (dto.status === TaskStatus.DONE) {
         nextProgress = 100;
@@ -1573,15 +1497,7 @@ export class TasksService implements OnModuleInit {
     } else if (dto.isManualBlocked === false && task.isManualBlocked) {
       // Manual block removed
       manualBlockReason = null;
-      // Re-evaluate if still dependency waiting
-      const unfinished = task.blockedBy.filter(
-        (b) =>
-          b.predecessorTask.status !== TaskStatus.DONE &&
-          b.predecessorTask.status !== TaskStatus.N_A,
-      );
-      if (unfinished.length > 0) {
-        nextStatus = TaskStatus.WAITING;
-      } else if (nextStatus === TaskStatus.BLOCKED) {
+      if (nextStatus === TaskStatus.BLOCKED) {
         nextStatus = TaskStatus.READY;
       }
     }
@@ -1670,6 +1586,25 @@ export class TasksService implements OnModuleInit {
       );
     }
 
+    if (nextStatus === TaskStatus.DONE && task.status !== TaskStatus.DONE) {
+      const admins = await this.prisma.user.findMany({
+        where: { globalRole: { in: [UserRole.ADMIN, UserRole.OWNER] }, isActive: true, deletedAt: null },
+        select: { id: true },
+      });
+      const recipients = admins.filter((admin) => admin.id !== actorId);
+      if (recipients.length) {
+        await this.prisma.notification.createMany({
+          data: recipients.map((admin) => ({
+            userId: admin.id,
+            type: NotificationType.TASK_COMPLETED,
+            title: 'Task completed',
+            message: `${updated.humanId}: ${updated.title} was completed.`,
+            linkUrl: `/projects/${task.projectId}?taskId=${task.id}`,
+          })),
+        });
+      }
+    }
+
     if (dto.progress !== undefined && dto.progress !== task.progress) {
       await this.recordActivity(
         id,
@@ -1702,9 +1637,8 @@ export class TasksService implements OnModuleInit {
       }
     }
 
-    // DEPENDENCY ENGINE AUTOMATION (Requirement #2, #26, #28)
-    // If status changed to DONE or changed away from DONE, cascade update to downstream tasks
-    if (dto.status && dto.status !== task.status) {
+    // Old waiting tasks may still exist; release them when a predecessor finishes.
+    if (nextStatus === TaskStatus.DONE && task.status !== TaskStatus.DONE) {
       await this.handleDependencyAutomation(task.id, nextStatus, actorId);
     }
 
@@ -1763,7 +1697,7 @@ export class TasksService implements OnModuleInit {
 
     if (dto.progress <= 0 || dto.progress >= 100) {
       throw new BadRequestException(
-        "Daily progress for active work must be between 1% and 99%. Use progress review for Admin checkpoints or final completion approval.",
+        "Daily progress for active work must be between 1% and 99%. Use Mark Completed when finished.",
       );
     }
 

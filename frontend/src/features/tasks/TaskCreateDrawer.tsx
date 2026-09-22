@@ -31,7 +31,6 @@ export function TaskCreateDrawer({
   const [priority, setPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
   const [estimatedHours, setEstimatedHours] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [requiresReview, setRequiresReview] = useState(false);
   const [selectedPredecessors, setSelectedPredecessors] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +55,6 @@ export function TaskCreateDrawer({
       setPriority(TaskPriority.MEDIUM);
       setEstimatedHours('');
       setDueDate('');
-      setRequiresReview(false);
       setSelectedPredecessors([]);
       setError(null);
     }
@@ -118,7 +116,7 @@ export function TaskCreateDrawer({
       priority,
       estimatedHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
       dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
-      requiresReview,
+      requiresReview: false,
       dependsOnTaskIds: selectedPredecessors.length > 0 ? selectedPredecessors : undefined,
     });
   };
@@ -291,7 +289,7 @@ export function TaskCreateDrawer({
         {(projectTasks as any[]) && (projectTasks as any[]).length > 0 && (
           <div>
             <label className="block text-xs font-medium text-fx-text-primary mb-1">
-              Prerequisites (Must be completed before this task can start)
+              Related tasks (work can continue in parallel)
             </label>
             <select
               multiple
@@ -309,7 +307,7 @@ export function TaskCreateDrawer({
               ))}
             </select>
             <p className="text-[11px] text-fx-text-muted mt-1">
-              Hold Ctrl / Cmd to select multiple prerequisite tasks.
+              Hold Ctrl / Cmd to select multiple related tasks.
             </p>
           </div>
         )}
@@ -328,19 +326,6 @@ export function TaskCreateDrawer({
           />
         </div>
 
-        {/* Requires Review toggle */}
-        <div className="flex items-center gap-2 pt-1">
-          <input
-            type="checkbox"
-            id="req-review"
-            checked={requiresReview}
-            onChange={(e) => setRequiresReview(e.target.checked)}
-            className="rounded text-[#2563EB] focus:ring-[#2563EB]"
-          />
-          <label htmlFor="req-review" className="text-xs font-medium text-fx-text-primary select-none cursor-pointer">
-            Requires Admin review & approval before marking Done
-          </label>
-        </div>
       </form>
     </Drawer>
   );

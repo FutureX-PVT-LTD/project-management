@@ -9,7 +9,6 @@ import {
   AlertCircle,
   Play,
   CheckCircle2,
-  Lock,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray } from '@/lib/api-data';
@@ -22,7 +21,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { TaskDetailSlideOver } from '@/features/tasks/TaskDetailSlideOver';
 import { formatDate, formatTaskId, cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/AuthContext';
-import { canStartTask, canUpdateTaskProgress } from '@/lib/permissions';
+import { canStartTask } from '@/lib/permissions';
 import { useDebounce } from '@/hooks/useDebounce';
 import { MyWorkSkeleton } from '@/components/ui/Skeleton';
 
@@ -178,52 +177,32 @@ function MyWorkContent() {
   const now = new Date();
   const workflowColumns = [
     {
-      id: 'ready',
-      title: 'Ready',
-      subtitle: 'Start these next',
+      id: 'todo',
+      title: 'To Do',
+      subtitle: 'Assigned work',
       color: 'bg-[#237A57]',
       border: 'hover:border-[#237A57]',
-      items: allTasks.filter((t) => t.status === TaskStatus.READY),
-      empty: 'No ready tasks',
+      items: allTasks.filter((t) => [TaskStatus.READY, TaskStatus.WAITING, TaskStatus.UNASSIGNED, TaskStatus.TODO, TaskStatus.PLANNED, TaskStatus.BACKLOG].includes(t.status)),
+      empty: 'No tasks to start',
       icon: <Play className="w-3.5 h-3.5" />,
     },
     {
       id: 'doing',
-      title: 'Doing',
+      title: 'In Progress',
       subtitle: 'Active work',
       color: 'bg-[#245EC7]',
       border: 'hover:border-[#2463EB]',
-      items: allTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS),
+      items: allTasks.filter((t) => [TaskStatus.IN_PROGRESS, TaskStatus.BLOCKED, TaskStatus.IN_REVIEW].includes(t.status)),
       empty: 'Nothing in progress',
       icon: <Calendar className="w-3.5 h-3.5" />,
     },
     {
-      id: 'review',
-      title: 'Review',
-      subtitle: 'Submitted to Admin',
-      color: 'bg-[#6D52A3]',
-      border: 'hover:border-[#6D52A3]',
-      items: allTasks.filter((t) => t.status === TaskStatus.IN_REVIEW),
-      empty: 'No submitted work',
-      icon: <CheckCircle2 className="w-3.5 h-3.5" />,
-    },
-    {
-      id: 'waiting',
-      title: 'Waiting',
-      subtitle: 'Locked by dependencies',
-      color: 'bg-[#9A6515]',
-      border: 'hover:border-[#9A6515]',
-      items: allTasks.filter((t) => t.status === TaskStatus.WAITING || t.status === TaskStatus.BLOCKED),
-      empty: 'No blocked work',
-      icon: <Lock className="w-3.5 h-3.5" />,
-    },
-    {
-      id: 'done',
-      title: 'Done',
+      id: 'completed',
+      title: 'Completed',
       subtitle: 'Completed work',
       color: 'bg-[#26715A]',
       border: 'hover:border-[#26715A]',
-      items: allTasks.filter((t) => t.status === TaskStatus.DONE),
+      items: allTasks.filter((t) => [TaskStatus.DONE, TaskStatus.N_A, TaskStatus.CANCELED].includes(t.status)),
       empty: 'No completed tasks',
       icon: <CheckCircle2 className="w-3.5 h-3.5" />,
     },
@@ -231,11 +210,8 @@ function MyWorkContent() {
 
   const tabs = [
     { id: 'ALL', label: 'All' },
-    { id: 'READY', label: 'Ready' },
-    { id: 'IN_PROGRESS', label: 'In Progress' },
-    { id: 'WAITING', label: 'Waiting' },
-    { id: 'BLOCKED', label: 'Blocked' },
-    { id: 'REVIEW', label: 'Review' },
+    { id: 'TODO_GROUP', label: 'To Do' },
+    { id: 'DOING_GROUP', label: 'In Progress' },
     { id: 'COMPLETED', label: 'Completed' },
   ];
 
@@ -250,6 +226,7 @@ function MyWorkContent() {
   // Render single dominant action per task card
   const renderTaskAction = (task: any) => {
     switch (task.status) {
+      case TaskStatus.WAITING:
       case TaskStatus.READY:
         if (canStartTask(user, task)) {
           return (
@@ -289,7 +266,7 @@ function MyWorkContent() {
               setSelectedTaskId(task.id);
             }}
           >
-            {task.workstream === 'MARKETING' ? 'Update Status' : canUpdateTaskProgress(user, task) ? 'Update Progress' : 'View Progress'}
+            {task.workstream === 'MARKETING' ? 'Update Status' : 'Open Task'}
           </Button>
         );
       case TaskStatus.IN_REVIEW:
@@ -303,19 +280,6 @@ function MyWorkContent() {
             }}
           >
             View Submission
-          </Button>
-        );
-      case TaskStatus.WAITING:
-        return (
-          <Button
-            size="xs"
-            variant="secondary"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedTaskId(task.id);
-            }}
-          >
-            View Dependency
           </Button>
         );
       case TaskStatus.BLOCKED:
@@ -557,7 +521,7 @@ function MyWorkContent() {
             </p>
           </div>
         ) : groupBy === 'workflow' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
             {workflowColumns.map((column) => (
               <section
                 key={column.id}
@@ -655,7 +619,7 @@ function MyWorkContent() {
                               )}
                               {task.status === TaskStatus.WAITING && unfinishedDeps.length > 0 && (
                                 <span className="text-[#9A6515] font-medium">
-                                  Waiting for: {unfinishedDeps.map((b: any) => formatTaskId(b.predecessorTask?.humanId)).join(', ')}
+                                  Related: {unfinishedDeps.map((b: any) => formatTaskId(b.predecessorTask?.humanId)).join(', ')}
                                 </span>
                               )}
                             </div>
