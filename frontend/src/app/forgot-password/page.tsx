@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { api } from '@/services/api/api-client';
 import { AlertCircle, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
+import { FutureXLogo } from '@/components/branding/FutureXLogo';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -45,16 +45,7 @@ export default function ForgotPasswordPage() {
         <div className="w-full max-w-[420px] bg-white rounded-[18px] border border-[#E7EBF0] p-7 sm:p-9 shadow-[0_1px_3px_rgba(0,0,0,0.02),0_6px_20px_rgba(0,0,0,0.02)] animate-fxLoginFadeIn">
           {/* Brand Header */}
           <div className="flex flex-col items-center text-center mb-6">
-            <div className="relative w-[148px] h-[52px] overflow-hidden mb-4">
-              <Image
-                src="/images/futurex-logo.png"
-                alt="FutureX"
-                width={148}
-                height={148}
-                priority
-                className="w-[148px] h-[148px] -mt-[48px] object-contain select-none pointer-events-none"
-              />
-            </div>
+            <div className="mb-4"><FutureXLogo size="auth" priority /></div>
             <h1 className="text-[24px] sm:text-[26px] font-[650] text-[#17191C] tracking-tight">
               Reset password
             </h1>

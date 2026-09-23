@@ -1,6 +1,4 @@
 'use client';
-import { PhaseAssignments } from './PhaseAssignments';
-
 import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -67,9 +65,13 @@ export function ProjectDetailsPage({
 
   const [activeTab, setActiveTab] = useState<
     'overview' | 'development' | 'tasks' | 'board' | 'calendar' | 'timeline' | 'activity'
-  >('overview');
+  >(searchParams.get('tab') === 'development' ? 'development' : 'overview');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [developmentPhaseFilter, setDevelopmentPhaseFilter] = useState('');
+  const [developmentAssigneeFilter, setDevelopmentAssigneeFilter] = useState('');
+  const [developmentStatusFilter, setDevelopmentStatusFilter] = useState('');
+  const [developmentUnassignedOnly, setDevelopmentUnassignedOnly] = useState(false);
 
   // Fetch Project Details
   const { data: projectData, isLoading } = useQuery({
@@ -131,11 +133,21 @@ export function ProjectDetailsPage({
   const members = (project?.members || []) as any[];
   const checklistSummary = project?.checklistSummary;
   const marketingSummary = marketingSummaryData as any;
-  const developmentReadiness = Math.round(project?.launchReadiness || checklistSummary?.completionPercent || 0);
+  const developmentReadiness = Math.round(
+    project?.launchReadiness ?? checklistSummary?.launchReadiness ?? checklistSummary?.progress ?? 0,
+  );
   const marketingEnabled = (project?.workstreams || []).some((row: any) => row.workstream === 'MARKETING');
   const productLaunchReady = developmentReadiness === 100 && (!marketingEnabled || marketingSummary?.marketingReadiness === 'READY');
   const phaseProgress = (project?.phaseProgress || []) as any[];
   const progressVal = Math.round(project?.progress || 0);
+  const developmentPhases = [...new Set(checklistTasks.map((task) => task.checklistPhase).filter(Boolean))] as string[];
+  const developmentStatuses = [...new Set(checklistTasks.map((task) => task.status).filter(Boolean))] as string[];
+  const filteredChecklistTasks = checklistTasks.filter((task) =>
+    (!developmentPhaseFilter || task.checklistPhase === developmentPhaseFilter) &&
+    (!developmentAssigneeFilter || task.assigneeId === developmentAssigneeFilter) &&
+    (!developmentStatusFilter || task.status === developmentStatusFilter) &&
+    (!developmentUnassignedOnly || !task.assigneeId)
+  );
 
   return (
     <AppShell fullWidth={isFullWidth}>
@@ -292,14 +304,42 @@ export function ProjectDetailsPage({
           {[
             { id: 'overview', label: 'Overview', icon: Activity },
             {
-              id: 'development',
-              label: `Development Checklist (${checklistTasks.length})`,
-              icon: ListChecks,
-            },
-            {
               id: 'tasks',
               label: `Tasks (${tasks.length})`,
               icon: CheckSquare,
+            },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={cn(
+                  'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 fx-transition',
+                  isActive
+                    ? 'bg-[#EEF4FF] text-[#245EC7] font-medium'
+                    : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
+                )}
+              >
+                <Icon
+                  className={cn(
+                    'w-3.5 h-3.5',
+                    isActive ? 'text-[#245EC7]' : 'text-[#8B929B]',
+                  )}
+                />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+          <Link href={`/projects/${projectId}/marketing`} className="px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] fx-transition">
+            <Megaphone className="h-3.5 w-3.5 text-[#8B929B]" /> Marketing
+          </Link>
+          {[
+            {
+              id: 'development',
+              label: `Development Checklist (${checklistTasks.length})`,
+              icon: ListChecks,
             },
             { id: 'board', label: 'Board', icon: FolderKanban },
             { id: 'calendar', label: 'Calendar', icon: Calendar },
@@ -329,9 +369,6 @@ export function ProjectDetailsPage({
               </button>
             );
           })}
-          <Link href={`/projects/${projectId}/marketing`} className="px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] fx-transition">
-            <Megaphone className="h-3.5 w-3.5 text-[#8B929B]" /> Marketing
-          </Link>
         </div>
 
         {/* 29. TAB 1: PRODUCT OVERVIEW */}
@@ -371,7 +408,7 @@ export function ProjectDetailsPage({
                       </thead>
                       <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
                         {phaseProgress.map((phase: any) => {
-                          const pct = Number(phase.completionPercent || 0);
+                          const pct = Number(phase.progress ?? phase.completionPercent ?? 0);
                           const statusLabel =
                             pct === 100 ? 'Complete' : pct > 0 ? 'In Progress' : 'Not Started';
                           const statusColor =
@@ -636,41 +673,80 @@ export function ProjectDetailsPage({
               </div>
             ) : (
               <>
-                {/* Checklist Summary (Open metrics row) */}
-                <div className="flex flex-wrap items-center gap-6 py-2 border-b border-[#E8EBEF] text-xs">
-                  <div>
-                    <span className="text-[#8B929B]">Applicable:</span>{' '}
-                    <span className="font-mono font-semibold text-[#17191C]">
-                      {checklistSummary?.totalApplicable || checklistTasks.length}
-                    </span>
+                {/* Checklist Summary */}
+                <div className="flex flex-wrap items-center justify-between gap-4 border-y border-[#E8EBEF] bg-[#FAFBFC] px-3 py-3 text-xs">
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                    <div>
+                      <span className="text-[#8B929B]">Applicable:</span>{' '}
+                      <span className="font-mono font-semibold text-[#17191C]">
+                        {checklistSummary?.totalApplicable || checklistTasks.length}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#8B929B]">Done:</span>{' '}
+                      <span className="font-mono font-semibold text-[#26715A]">
+                        {checklistSummary?.completed || 0}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#8B929B]">Not Started:</span>{' '}
+                      <span className="font-mono font-semibold text-[#60666F]">
+                        {checklistSummary?.ready || 0}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#8B929B]">Waiting:</span>{' '}
+                      <span className="font-mono font-semibold text-[#9A6515]">
+                        {checklistSummary?.waiting || 0}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#8B929B]">Unassigned:</span>{' '}
+                      <span className="font-mono font-semibold text-[#60666F]">
+                        {checklistSummary?.unassigned || 0}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[#8B929B]">Done:</span>{' '}
-                    <span className="font-mono font-semibold text-[#26715A]">
-                      {checklistSummary?.completed || 0}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#8B929B]">Ready:</span>{' '}
-                    <span className="font-mono font-semibold text-[#237A57]">
-                      {checklistSummary?.ready || 0}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#8B929B]">Waiting:</span>{' '}
-                    <span className="font-mono font-semibold text-[#9A6515]">
-                      {checklistSummary?.waiting || 0}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[#8B929B]">Unassigned:</span>{' '}
-                    <span className="font-mono font-semibold text-[#60666F]">
-                      {checklistSummary?.unassigned || 0}
-                    </span>
-                  </div>
+                  {canManage && (
+                    <Link href={`/projects/${projectId}/setup?workstream=development&returnTo=${encodeURIComponent(`/projects/${projectId}?tab=development`)}`}>
+                      <Button size="sm" variant="primary" leftIcon={<Users className="h-3.5 w-3.5" />}>
+                        Edit Team
+                      </Button>
+                    </Link>
+                  )}
                 </div>
 
-                {canManage && <PhaseAssignments projectId={projectId} workstream="development" items={checklistTasks} members={members} />}
+                <div className="flex flex-wrap items-end gap-3 border-b border-[#E8EBEF] pb-3 text-xs">
+                  <label className="grid gap-1">
+                    <span className="text-[#8B929B]">Phase</span>
+                    <select value={developmentPhaseFilter} onChange={(event) => setDevelopmentPhaseFilter(event.target.value)} className="h-8 min-w-40 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs">
+                      <option value="">All phases</option>
+                      {developmentPhases.map((phase) => <option key={phase} value={phase}>{phase}</option>)}
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-[#8B929B]">Assignee</span>
+                    <select value={developmentAssigneeFilter} onChange={(event) => setDevelopmentAssigneeFilter(event.target.value)} className="h-8 min-w-48 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs">
+                      <option value="">All assignees</option>
+                      {members.map((member) => (
+                        <option key={member.userId || member.user?.id} value={member.userId || member.user?.id}>
+                          {member.user?.firstName || member.firstName} {member.user?.lastName || member.lastName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-[#8B929B]">Status</span>
+                    <select value={developmentStatusFilter} onChange={(event) => setDevelopmentStatusFilter(event.target.value)} className="h-8 min-w-36 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs">
+                      <option value="">All statuses</option>
+                      {developmentStatuses.map((status) => <option key={status} value={status}>{status === TaskStatus.READY ? 'Not Started' : String(status).replace(/_/g, ' ')}</option>)}
+                    </select>
+                  </label>
+                  <label className="flex h-8 items-center gap-2 text-[#60666F]">
+                    <input type="checkbox" checked={developmentUnassignedOnly} onChange={(event) => setDevelopmentUnassignedOnly(event.target.checked)} className="rounded border-[#E8EBEF] text-[#2463EB]" />
+                    Unassigned only
+                  </label>
+                </div>
 
                 {/* 31 & 32. Operational Table: #FAFBFC header, 48–56px row height, horizontal row dividers only */}
                 <div className="overflow-x-auto">
@@ -686,7 +762,7 @@ export function ProjectDetailsPage({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
-                      {checklistTasks.map((task) => (
+                      {filteredChecklistTasks.map((task) => (
                         <tr
                           key={task.id}
                           className="hover:bg-[#F8F9FB] fx-transition h-[52px]"
@@ -744,6 +820,13 @@ export function ProjectDetailsPage({
                           </td>
                         </tr>
                       ))}
+                      {filteredChecklistTasks.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="py-10 text-center text-[#8B929B]">
+                            No Development checklist items match these filters.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>

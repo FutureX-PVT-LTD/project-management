@@ -34,6 +34,7 @@ describe('Simple task workflow', () => {
       taskActivity: { create: jest.fn().mockResolvedValue({}) },
       auditLog: { create: jest.fn().mockResolvedValue({}) },
       taskDependency: { findMany: jest.fn().mockResolvedValue([]) },
+      project: { update: jest.fn().mockResolvedValue({}) },
     };
     const service = new TasksService(prisma as never);
     return { service, prisma };
@@ -97,5 +98,41 @@ describe('Simple task workflow', () => {
     expect(result.map((task) => task.id)).toEqual(['old-review', 'completed']);
     expect(findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({ where: expect.objectContaining({ status: TaskStatus.IN_REVIEW }), take: 100 }));
     expect(findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({ where: expect.objectContaining({ status: TaskStatus.DONE }), take: 100 }));
+  });
+
+  it('refreshes overview progress, development readiness, and current phase together', async () => {
+    const prisma = {
+      task: {
+        findMany: jest.fn().mockResolvedValue([
+          { progress: 100, estimatedHours: null, status: TaskStatus.DONE, workType: 'STANDARD_CHECKLIST', workstream: 'DEVELOPMENT', checklistOrder: 1, checklistPhase: 'Concept' },
+          { progress: 50, estimatedHours: null, status: TaskStatus.IN_PROGRESS, workType: 'STANDARD_CHECKLIST', workstream: 'DEVELOPMENT', checklistOrder: 2, checklistPhase: 'Scope' },
+          { progress: 0, estimatedHours: null, status: TaskStatus.READY, workType: 'STANDARD_CHECKLIST', workstream: 'MARKETING', checklistOrder: 1, checklistPhase: 'Identity' },
+        ]),
+      },
+      project: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const service = new TasksService(prisma as never);
+
+    await (service as any).updateRollups('project-1');
+
+    expect(prisma.project.update).toHaveBeenCalledWith({
+      where: { id: 'project-1' },
+      data: { progress: 50, launchReadiness: 50, currentPhase: 'Scope' },
+    });
+  });
+
+  it('resets stale overview rollups when no applicable tasks remain', async () => {
+    const prisma = {
+      task: { findMany: jest.fn().mockResolvedValue([]) },
+      project: { update: jest.fn().mockResolvedValue({}) },
+    };
+    const service = new TasksService(prisma as never);
+
+    await (service as any).updateRollups('project-1');
+
+    expect(prisma.project.update).toHaveBeenCalledWith({
+      where: { id: 'project-1' },
+      data: { progress: 0, launchReadiness: 0, currentPhase: null },
+    });
   });
 });

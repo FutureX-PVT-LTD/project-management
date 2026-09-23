@@ -376,7 +376,7 @@ export function PhaseAssignments({
               <option value="">All statuses</option>
               {statuses.map((status) => (
                 <option key={status} value={status}>
-                  {status.replace(/_/g, ' ')}
+                  {status === 'READY' ? 'Not Started' : status.replace(/_/g, ' ')}
                 </option>
               ))}
             </select>
@@ -432,7 +432,7 @@ export function PhaseAssignments({
                 <span className="font-mono text-[11px] text-[#8B929B]">{task.humanId}</span>
                 <h4 className="mt-0.5 text-sm font-medium text-[#17191C]">{task.title}</h4>
                 <p className="mt-0.5 text-xs text-[#8B929B]">
-                  {task.phase} · {task.status.replace(/_/g, ' ')}
+                  {task.phase} · {task.status === 'READY' ? 'Not Started' : task.status.replace(/_/g, ' ')}
                 </p>
               </div>
               <select
@@ -496,7 +496,7 @@ function TaskRow({
           ))}
         </select>
       </td>
-      <td className="px-3 py-2 text-[#60666F]">{task.status.replace(/_/g, ' ')}</td>
+      <td className="px-3 py-2 text-[#60666F]">{task.status === 'READY' ? 'Not Started' : task.status.replace(/_/g, ' ')}</td>
       <td className="px-3 py-2 text-[#8B929B]">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
     </tr>
   );

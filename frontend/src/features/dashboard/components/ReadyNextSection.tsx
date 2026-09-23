@@ -25,10 +25,10 @@ export function ReadyNextSection({
       <section className="space-y-3" aria-labelledby="ready-next-heading">
         <div className="flex items-center justify-between pb-2 border-b border-[#E8ECF1]">
           <h2 id="ready-next-heading" className="text-sm font-semibold uppercase tracking-wider text-[#17191C]">
-            Ready Next
+            Up Next
           </h2>
         </div>
-        <p className="text-xs text-[#8B929B] py-3">Nothing ready right now.</p>
+        <p className="text-xs text-[#8B929B] py-3">No work is waiting to start.</p>
       </section>
     );
   }
@@ -39,7 +39,7 @@ export function ReadyNextSection({
     <section className="space-y-2" aria-labelledby="ready-next-heading">
       <div className="flex items-center justify-between pb-2 border-b border-[#E8ECF1]">
         <h2 id="ready-next-heading" className="text-sm font-semibold uppercase tracking-wider text-[#17191C]">
-          Ready Next ({tasks.length})
+          Up Next ({tasks.length})
         </h2>
         <Link
           href="/my-work?tab=READY"

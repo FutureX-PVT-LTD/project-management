@@ -7,9 +7,9 @@ import { z } from 'zod';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { FutureXLogo } from '@/components/branding/FutureXLogo';
 
 const loginSchema = z.object({
   email: z
@@ -66,16 +66,7 @@ export function LoginForm() {
         {/* Left Column: Brand Context */}
         <section className="w-full md:w-auto md:max-w-[340px] flex flex-col items-center md:items-start text-center md:text-left">
           {/* Official FutureX Logo */}
-          <div className="relative w-[140px] md:w-[152px] h-[48px] md:h-[52px] overflow-hidden mb-3 md:mb-5">
-            <Image
-              src="/images/futurex-logo.png"
-              alt="FutureX"
-              width={152}
-              height={152}
-              priority
-              className="w-[140px] md:w-[152px] h-[140px] md:h-[152px] -mt-[45px] md:-mt-[49px] object-contain select-none pointer-events-none"
-            />
-          </div>
+          <div className="mb-3 md:mb-5"><FutureXLogo size="auth" priority /></div>
 
           <h2 className="text-[16px] md:text-[17px] font-[650] text-[#17191C] tracking-tight mb-1 md:mb-2">
             Product Development Workspace

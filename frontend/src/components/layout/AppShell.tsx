@@ -30,6 +30,7 @@ import { ActionMenu } from '@/components/ui/ActionMenu';
 import { Button } from '@/components/ui/Button';
 import { GlobalSearchModal } from '@/components/search/GlobalSearchModal';
 import { cn } from '@/lib/utils';
+import { FutureXLogo } from '@/components/branding/FutureXLogo';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 
@@ -150,13 +151,8 @@ export function AppShell({
           {/* Brand Header */}
           <div className="h-[56px] px-4 border-b border-[#ECEEF1] flex items-center justify-between">
             <Link href="/dashboard" className="flex items-center gap-2.5 group">
-              <div className="w-5 h-5 rounded-[6px] bg-[#2463EB] text-white flex items-center justify-center font-semibold text-[10px] tracking-tight">
-                FX
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-semibold text-[13px] tracking-tight text-[#17191C] group-hover:text-[#2463EB] fx-transition">
-                  FutureX
-                </span>
+              <FutureXLogo size="sidebar" priority />
+              <div className="flex items-baseline">
                 <span className="text-[11px] text-[#8B929B] font-normal">
                   Studio
                 </span>

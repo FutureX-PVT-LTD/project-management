@@ -42,7 +42,7 @@ export function DashboardWorkloadSummary({ counts }: DashboardWorkloadSummaryPro
         <span className="font-semibold font-mono text-[#17191C]">{counts.current}</span>
       </Link>
 
-      {/* Ready Next */}
+      {/* Not started */}
       <Link
         href="/my-work?tab=READY"
         className={cn(
@@ -58,7 +58,7 @@ export function DashboardWorkloadSummary({ counts }: DashboardWorkloadSummaryPro
             counts.readyDisplayed > 0 ? 'bg-[#237A57]' : 'bg-[#8B929B]',
           )}
         />
-        <span>Ready Next:</span>
+        <span>Not Started:</span>
         <span className="font-semibold font-mono text-[#17191C]">{counts.readyDisplayed}</span>
       </Link>
 

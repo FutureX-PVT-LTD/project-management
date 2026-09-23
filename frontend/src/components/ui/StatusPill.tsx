@@ -36,10 +36,10 @@ const statusConfig: Record<
     icon: <Lock className="w-2.5 h-2.5 text-[#9A6515] shrink-0" />,
   },
   [TaskStatus.READY]: {
-    label: 'Ready',
-    bg: 'bg-[#EFF8F3]',
-    text: 'text-[#237A57]',
-    dot: 'bg-[#237A57]',
+    label: 'Not Started',
+    bg: 'bg-[#F1F3F5]',
+    text: 'text-[#60666F]',
+    dot: 'bg-[#8B929B]',
   },
   [TaskStatus.IN_PROGRESS]: {
     label: 'In Progress',

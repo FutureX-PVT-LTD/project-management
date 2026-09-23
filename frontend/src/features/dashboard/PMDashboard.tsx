@@ -566,8 +566,8 @@ export function PMDashboard() {
                 className="py-2.5 flex items-center justify-between hover:text-[#2563EB] fx-transition group first:pt-1"
               >
                 <div className="flex items-center gap-2.5 text-[#626A73] group-hover:text-[#17191C]">
-                  <span className="w-2 h-2 rounded-full bg-[#2F7D5B] shrink-0" />
-                  <span className="font-medium">Ready</span>
+                  <span className="w-2 h-2 rounded-full bg-[#8B929B] shrink-0" />
+                  <span className="font-medium">Not Started</span>
                 </div>
                 <span className="font-mono font-semibold text-[#17191C]">{totalReady}</span>
               </Link>

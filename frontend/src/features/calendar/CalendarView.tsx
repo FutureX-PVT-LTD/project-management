@@ -272,7 +272,7 @@ export function CalendarView() {
             >
               <option value="ALL">All Statuses</option>
               <option value={TaskStatus.TODO}>To Do</option>
-              <option value={TaskStatus.READY}>Ready to Start</option>
+              <option value={TaskStatus.READY}>Not Started</option>
               <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
               <option value={TaskStatus.WAITING}>Waiting on Prerequisite</option>
               <option value={TaskStatus.BLOCKED}>Blocked</option>

@@ -363,14 +363,30 @@ export class ProjectsService {
       }
     }
 
-    const activeProjectTasks = project.tasks.filter(
+    // Overview metrics must describe the whole product even when a team member's
+    // task list is scoped to only their assignments.
+    const overviewTasks = await this.prisma.task.findMany({
+      where: { projectId: project.id, deletedAt: null },
+      select: {
+        status: true,
+        progress: true,
+        estimatedHours: true,
+        dueDate: true,
+        assigneeId: true,
+        workType: true,
+        workstream: true,
+        checklistOrder: true,
+        checklistPhase: true,
+      },
+    });
+    const activeProjectTasks = overviewTasks.filter(
       (t) => t.status !== TaskStatus.N_A && t.status !== TaskStatus.CANCELED,
     );
     const totalTasks = activeProjectTasks.length;
     const completedTasks = activeProjectTasks.filter(
       (t) => t.status === "DONE",
     ).length;
-    const blockedTasks = project.tasks.filter(
+    const blockedTasks = overviewTasks.filter(
       (t) => t.status === "BLOCKED",
     ).length;
     const now = new Date();
@@ -382,9 +398,31 @@ export class ProjectsService {
         t.status !== "CANCELED",
     ).length;
     const visibleMembers = project.members;
-    const developmentTasks = project.tasks.filter((task) => task.workstream === "DEVELOPMENT");
+    const developmentTasks = overviewTasks.filter((task) => task.workstream === "DEVELOPMENT");
     const checklistSummary = this.calculateChecklistSummary(developmentTasks);
     const phaseProgress = this.calculatePhaseProgress(developmentTasks);
+    const totalEstimatedHours = activeProjectTasks.reduce(
+      (sum, task) => sum + (task.estimatedHours || 0),
+      0,
+    );
+    const overviewProgress = activeProjectTasks.length === 0
+      ? 0
+      : totalEstimatedHours > 0
+        ? Math.round(
+            (activeProjectTasks.reduce(
+              (sum, task) =>
+                sum + (task.estimatedHours || 0) * (task.progress / 100),
+              0,
+            ) /
+              totalEstimatedHours) *
+              100,
+          )
+        : Math.round(
+            activeProjectTasks.reduce(
+              (sum, task) => sum + (task.progress || 0),
+              0,
+            ) / activeProjectTasks.length,
+          );
 
     return {
       id: project.id,
@@ -398,9 +436,9 @@ export class ProjectsService {
       health: project.health as ProjectHealth,
       healthReason: user.globalRole === UserRole.TEAM_MEMBER ? undefined : project.healthReason,
       manualHealthOverride: project.manualHealthOverride,
-      progress: project.progress,
-      launchReadiness: (project as any).launchReadiness,
-      currentPhase: (project as any).currentPhase,
+      progress: overviewProgress,
+      launchReadiness: checklistSummary.launchReadiness,
+      currentPhase: checklistSummary.currentPhase,
       checklistGeneratedAt: (project as any).checklistGeneratedAt
         ? (project as any).checklistGeneratedAt.toISOString()
         : null,
@@ -2348,6 +2386,9 @@ export class ProjectsService {
 
       return {
         phase,
+        orderIndex: Math.min(
+          ...phaseTasks.map((task) => task.checklistOrder || Number.MAX_SAFE_INTEGER),
+        ),
         totalApplicable,
         completed,
         inProgress,
@@ -2360,7 +2401,7 @@ export class ProjectsService {
             ? 0
             : Math.round((completed / totalApplicable) * 100),
       };
-    });
+    }).sort((a, b) => a.orderIndex - b.orderIndex);
   }
 
   private async recalculateProductDelivery(projectId: string) {

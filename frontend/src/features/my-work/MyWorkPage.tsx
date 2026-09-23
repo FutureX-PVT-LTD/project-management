@@ -142,7 +142,7 @@ function MyWorkContent() {
       if (inProgress.length > 0)
         groups.push({ groupName: 'In Progress', items: inProgress, dotColor: 'bg-[#245EC7]' });
       if (ready.length > 0)
-        groups.push({ groupName: 'Ready to Start', items: ready, dotColor: 'bg-[#237A57]' });
+        groups.push({ groupName: 'Not Started', items: ready, dotColor: 'bg-[#8B929B]' });
       if (waiting.length > 0)
         groups.push({ groupName: 'Waiting on Prerequisites', items: waiting, dotColor: 'bg-[#9A6515]' });
       if (upcoming.length > 0)

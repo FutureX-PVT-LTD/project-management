@@ -2138,15 +2138,23 @@ export class TasksService implements OnModuleInit {
           deletedAt: null,
           status: { notIn: [TaskStatus.CANCELED, TaskStatus.N_A] },
         },
-        select: { progress: true, estimatedHours: true, status: true },
+        select: {
+          progress: true,
+          estimatedHours: true,
+          status: true,
+          workType: true,
+          workstream: true,
+          checklistOrder: true,
+          checklistPhase: true,
+        },
       });
 
+      let progress = 0;
       if (tasks.length > 0) {
         const totalEst = tasks.reduce(
           (sum, t) => sum + (t.estimatedHours || 0),
           0,
         );
-        let progress = 0;
         if (totalEst > 0) {
           const weightedSum = tasks.reduce(
             (sum, t) => sum + (t.estimatedHours || 0) * (t.progress / 100),
@@ -2160,12 +2168,38 @@ export class TasksService implements OnModuleInit {
           );
           progress = Math.round(totalProgress / tasks.length);
         }
-
-        await this.prisma.project.update({
-          where: { id: projectId },
-          data: { progress },
-        });
       }
+
+      const developmentChecklist = tasks.filter(
+        (task) =>
+          task.workstream === 'DEVELOPMENT' &&
+          task.workType === 'STANDARD_CHECKLIST',
+      );
+      const completedDevelopment = developmentChecklist.filter(
+        (task) => task.status === TaskStatus.DONE,
+      ).length;
+      const legacyReviewDevelopment = developmentChecklist.filter(
+        (task) => task.status === TaskStatus.IN_REVIEW,
+      ).length;
+      const launchReadiness = developmentChecklist.length
+        ? Math.round(
+            ((completedDevelopment + legacyReviewDevelopment * 0.8) /
+              developmentChecklist.length) *
+              100,
+          )
+        : 0;
+      const currentPhase = developmentChecklist
+        .slice()
+        .sort(
+          (a, b) =>
+            (a.checklistOrder || 0) - (b.checklistOrder || 0),
+        )
+        .find((task) => task.status !== TaskStatus.DONE)?.checklistPhase || null;
+
+      await this.prisma.project.update({
+        where: { id: projectId },
+        data: { progress, launchReadiness, currentPhase },
+      });
 
       // Update milestone if present
       if (milestoneId) {

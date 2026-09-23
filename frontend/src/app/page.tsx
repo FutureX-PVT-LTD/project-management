@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/AuthContext';
+import { FutureXLogo } from '@/components/branding/FutureXLogo';
 
 export default function RootPage() {
   const { user, isLoading } = useAuth();
@@ -21,9 +22,7 @@ export default function RootPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-fx-bg">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 rounded bg-[#2563EB] text-white flex items-center justify-center font-bold text-sm animate-pulse">
-          FX
-        </div>
+        <div className="animate-pulse"><FutureXLogo size="sidebar" priority /></div>
         <p className="text-xs text-fx-text-muted">Loading FutureX workspace...</p>
       </div>
     </div>

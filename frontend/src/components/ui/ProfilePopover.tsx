@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { useAuth } from '@/features/auth/AuthContext';
+import { FutureXLogo } from '@/components/branding/FutureXLogo';
 import {
   Shield,
   Bell,
@@ -62,9 +63,7 @@ export function ProfilePopover({ children }: ProfilePopoverProps) {
           {/* Active Workspace */}
           <div className="px-3 py-2.5 my-1.5 bg-fx-bg-subtle rounded-lg border border-fx-border/60 flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded bg-[#2563EB] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                FX
-              </div>
+              <FutureXLogo size="small" />
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-fx-text-primary truncate">FutureX Studio</p>
                 <p className="text-[11px] text-fx-text-muted truncate">Production Workspace</p>
