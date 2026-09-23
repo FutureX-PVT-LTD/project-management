@@ -103,6 +103,7 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      if (task?.projectId) queryClient.invalidateQueries({ queryKey: ['project', task.projectId] });
       queryClient.invalidateQueries({ queryKey: ['team-submissions'] });
     },
   });
@@ -126,6 +127,7 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      if (task?.projectId) queryClient.invalidateQueries({ queryKey: ['project', task.projectId] });
       queryClient.invalidateQueries({ queryKey: ['team-submissions'] });
     },
   });
@@ -148,6 +150,7 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      if (task?.projectId) queryClient.invalidateQueries({ queryKey: ['project', task.projectId] });
     },
   });
 
@@ -163,6 +166,7 @@ export function TaskDetailSlideOver({
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      if (task?.projectId) queryClient.invalidateQueries({ queryKey: ['project', task.projectId] });
       queryClient.invalidateQueries({ queryKey: ['marketing'] });
       queryClient.invalidateQueries({ queryKey: ['team-submissions'] });
     },

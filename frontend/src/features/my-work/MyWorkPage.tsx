@@ -24,6 +24,7 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { canStartTask } from '@/lib/permissions';
 import { useDebounce } from '@/hooks/useDebounce';
 import { MyWorkSkeleton } from '@/components/ui/Skeleton';
+import { compareTasksByWorkflowOrder } from '@/lib/task-order';
 
 function MyWorkContent() {
   const { user } = useAuth();
@@ -60,9 +61,9 @@ function MyWorkContent() {
 
   // Start Work Mutation with Optimistic UI
   const startWorkMutation = useMutation({
-    mutationFn: (taskId: string) =>
+    mutationFn: ({ taskId }: { taskId: string; projectId?: string }) =>
       api.patch(`/tasks/${taskId}`, { status: TaskStatus.IN_PROGRESS }),
-    onMutate: async (taskId: string) => {
+    onMutate: async ({ taskId }: { taskId: string; projectId?: string }) => {
       setActionMessage(null);
       const qKey = ['my-work', selectedTab, debouncedSearch, projectFilter, priorityFilter];
       await queryClient.cancelQueries({ queryKey: qKey });
@@ -82,22 +83,18 @@ function MyWorkContent() {
       setActionMessage({ type: 'error', text: error?.message || 'This checklist could not be started.' });
     },
     onSuccess: () => setActionMessage({ type: 'success', text: 'Checklist started. You can update its status from Doing.' }),
-    onSettled: () => {
+    onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({ queryKey: ['my-work'] });
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      if (variables.projectId) {
+        queryClient.invalidateQueries({ queryKey: ['project', variables.projectId] });
+      }
     },
   });
 
   const allProjects = asArray<any>(projectsData);
-  const allTasks = [...asArray<any>(tasksData)].sort((a, b) => {
-    if (a.workstream === 'MARKETING' && b.workstream === 'MARKETING') {
-      const aOrder = Number(String(a.checklistCode || '').match(/(\d+)$/)?.[1]) || Number.MAX_SAFE_INTEGER;
-      const bOrder = Number(String(b.checklistCode || '').match(/(\d+)$/)?.[1]) || Number.MAX_SAFE_INTEGER;
-      return aOrder - bOrder;
-    }
-    return 0;
-  });
+  const allTasks = [...asArray<any>(tasksData)].sort(compareTasksByWorkflowOrder);
 
   // Canonical default grouping: NEEDS ATTENTION -> IN PROGRESS -> READY TO START -> WAITING -> UPCOMING -> COMPLETED
   const groupedTasks = useMemo(() => {
@@ -236,7 +233,7 @@ function MyWorkContent() {
               loading={startWorkMutation.isPending && startWorkMutation.variables === task.id}
               onClick={(e) => {
                 e.stopPropagation();
-                startWorkMutation.mutate(task.id);
+                startWorkMutation.mutate({ taskId: task.id, projectId: task.projectId || task.project?.id });
               }}
               leftIcon={<Play className="w-3 h-3 fill-white" />}
             >

@@ -2368,6 +2368,9 @@ export class ProjectsService {
       const inProgress = phaseTasks.filter(
         (t) => t.status === TaskStatus.IN_PROGRESS,
       ).length;
+      const inReview = phaseTasks.filter(
+        (t) => t.status === TaskStatus.IN_REVIEW,
+      ).length;
       const ready = phaseTasks.filter(
         (t) => t.status === TaskStatus.READY,
       ).length;
@@ -2383,6 +2386,7 @@ export class ProjectsService {
           t.status === TaskStatus.UNASSIGNED ||
           t.status === TaskStatus.PLANNED,
       ).length;
+      const hasStarted = completed > 0 || inProgress > 0 || inReview > 0 || blocked > 0;
 
       return {
         phase,
@@ -2392,10 +2396,12 @@ export class ProjectsService {
         totalApplicable,
         completed,
         inProgress,
+        inReview,
         ready,
         waiting,
         blocked,
         unassigned,
+        hasStarted,
         progress:
           totalApplicable === 0
             ? 0

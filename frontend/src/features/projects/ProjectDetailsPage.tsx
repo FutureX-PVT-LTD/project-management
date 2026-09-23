@@ -32,6 +32,7 @@ import { ProjectDetailSkeleton } from '@/components/ui/Skeleton';
 import { formatDate, cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { compareTasksByWorkflowOrder } from '@/lib/task-order';
 
 interface ProjectDetailsPageProps {
   projectId?: string;
@@ -125,7 +126,7 @@ export function ProjectDetailsPage({
   }
 
   const project = projectData as any;
-  const tasks = (project?.tasks || []) as any[];
+  const tasks = [...((project?.tasks || []) as any[])].sort(compareTasksByWorkflowOrder);
   const checklistTasks = [...tasks]
     .filter((task) => task.workType === 'STANDARD_CHECKLIST' && (task.workstream || 'DEVELOPMENT') === 'DEVELOPMENT')
     .sort((a, b) => checklistPosition(a) - checklistPosition(b));
@@ -409,12 +410,19 @@ export function ProjectDetailsPage({
                       <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
                         {phaseProgress.map((phase: any) => {
                           const pct = Number(phase.progress ?? phase.completionPercent ?? 0);
+                          const hasStarted = Boolean(
+                            phase.hasStarted ||
+                            Number(phase.completed || 0) > 0 ||
+                            Number(phase.inProgress || 0) > 0 ||
+                            Number(phase.inReview || 0) > 0 ||
+                            Number(phase.blocked || 0) > 0
+                          );
                           const statusLabel =
-                            pct === 100 ? 'Complete' : pct > 0 ? 'In Progress' : 'Not Started';
+                            pct === 100 ? 'Complete' : hasStarted ? 'In Progress' : 'Not Started';
                           const statusColor =
                             pct === 100
                               ? 'text-[#26715A] bg-[#EDF7F2]'
-                              : pct > 0
+                              : hasStarted
                                 ? 'text-[#245EC7] bg-[#EEF4FF]'
                                 : 'text-[#8B929B] bg-[#F1F3F5]';
 
@@ -426,7 +434,7 @@ export function ProjectDetailsPage({
                                     <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EDF7F2] text-[#26715A] font-bold text-[10px]">
                                       ✓
                                     </span>
-                                  ) : pct > 0 ? (
+                                  ) : hasStarted ? (
                                     <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EEF4FF] text-[#245EC7] text-[10px]">
                                       ●
                                     </span>

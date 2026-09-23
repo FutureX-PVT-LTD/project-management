@@ -9,7 +9,7 @@ describe('Project overview progress', () => {
         workType: 'STANDARD_CHECKLIST',
         checklistPhase: '8. Store & Compliance',
         checklistOrder: 34,
-        status: TaskStatus.READY,
+        status: TaskStatus.IN_PROGRESS,
         assigneeId: 'member-1',
       },
       {
@@ -36,9 +36,14 @@ describe('Project overview progress', () => {
     ]);
     expect(phases[0]).toEqual(expect.objectContaining({
       completed: 1,
+      hasStarted: true,
       totalApplicable: 2,
       progress: 50,
     }));
-    expect(phases[1]).toEqual(expect.objectContaining({ progress: 0 }));
+    expect(phases[1]).toEqual(expect.objectContaining({
+      inProgress: 1,
+      hasStarted: true,
+      progress: 0,
+    }));
   });
 });
