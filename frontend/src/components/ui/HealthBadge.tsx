@@ -13,27 +13,27 @@ interface HealthBadgeProps {
 const healthConfig: Record<string, { label: string; dot: string; text: string; bg: string }> = {
   [ProjectHealth.ON_TRACK]: {
     label: 'On Track',
-    dot: 'bg-[#237A57]',
-    text: 'text-[#237A57]',
-    bg: 'bg-[#EFF8F3]',
+    dot: 'bg-[#16A34A]',
+    text: 'text-[#15803D]',
+    bg: 'bg-[#F0FDF4] border border-[#DCFCE7]',
   },
   [ProjectHealth.AT_RISK]: {
     label: 'At Risk',
-    dot: 'bg-[#9A6515]',
-    text: 'text-[#9A6515]',
-    bg: 'bg-[#FFF7E8]',
+    dot: 'bg-[#F59E0B]',
+    text: 'text-[#B45309]',
+    bg: 'bg-[#FFFBEB] border border-[#FEF3C7]',
   },
   [ProjectHealth.OFF_TRACK]: {
     label: 'Blocked',
-    dot: 'bg-[#B54747]',
-    text: 'text-[#B54747]',
-    bg: 'bg-[#FCEEEE]',
+    dot: 'bg-[#EF4444]',
+    text: 'text-[#DC2626]',
+    bg: 'bg-[#FEF2F2] border border-[#FEE2E2]',
   },
   [ProjectHealth.COMPLETED]: {
     label: 'Completed',
-    dot: 'bg-[#26715A]',
-    text: 'text-[#26715A]',
-    bg: 'bg-[#EDF7F2]',
+    dot: 'bg-[#16A34A]',
+    text: 'text-[#15803D]',
+    bg: 'bg-[#F0FDF4] border border-[#DCFCE7]',
   },
 };
 
@@ -45,14 +45,14 @@ export function HealthBadge({
 }: HealthBadgeProps) {
   const config = healthConfig[health] || {
     label: health || 'Unknown',
-    dot: 'bg-[#8B929B]',
-    text: 'text-[#60666F]',
-    bg: 'bg-[#F1F3F5]',
+    dot: 'bg-[#94A3B8]',
+    text: 'text-[#64748B]',
+    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
   };
 
   return (
     <div className={cn('inline-flex flex-col gap-0.5', className)} title={reason || undefined}>
-      <div className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[6px] text-xs font-medium', config.bg)}>
+      <div className={cn('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[5px] text-[11px] font-medium tracking-tight', config.bg)}>
         <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', config.dot)} />
         {showLabel && (
           <span className={cn('font-medium select-none', config.text)}>

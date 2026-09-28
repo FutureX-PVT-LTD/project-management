@@ -45,6 +45,7 @@ model User {
   auditLogs                 AuditLog[]               @relation("ActorAuditLogs")
   sessions                  Session[]
   marketingOwnedProjects    Project[]                @relation("MarketingOwner")
+  marketingChannelsOwned    MarketingChannel[]       @relation("ChannelOwner")
   marketingChannelsAsBackup MarketingChannel[]       @relation("ChannelBackupAdmin")
   marketingContentItems     MarketingContentItem[]   @relation("ContentOwner")
   marketingBuzzActivities   MarketingBuzzActivity[]  @relation("BuzzOwner")
@@ -635,6 +636,7 @@ model MarketingChannel {
   publicUrl        String?
   adminEmail       String?
   twoFactorEnabled Boolean  @default(false)
+  ownerId          String?
   backupAdminId    String?
   status           String   @default("NOT_CREATED")
   notes            String?
@@ -642,10 +644,12 @@ model MarketingChannel {
   updatedAt        DateTime @updatedAt
 
   project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner       User?   @relation("ChannelOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   backupAdmin User?   @relation("ChannelBackupAdmin", fields: [backupAdminId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, code])
   @@index([projectId, status])
+  @@index([ownerId])
 }
 
 model MarketingContentItem {

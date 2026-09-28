@@ -23,12 +23,12 @@ export function ReadyNextSection({
   if (tasks.length === 0) {
     return (
       <section className="space-y-3" aria-labelledby="ready-next-heading">
-        <div className="flex items-center justify-between pb-2 border-b border-[#E8ECF1]">
-          <h2 id="ready-next-heading" className="text-sm font-semibold uppercase tracking-wider text-[#17191C]">
+        <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+          <h2 id="ready-next-heading" className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
             Up Next
           </h2>
         </div>
-        <p className="text-xs text-[#8B929B] py-3">No work is waiting to start.</p>
+        <p className="text-xs text-[#64748B] py-3">No work is waiting to start.</p>
       </section>
     );
   }
@@ -37,21 +37,21 @@ export function ReadyNextSection({
 
   return (
     <section className="space-y-2" aria-labelledby="ready-next-heading">
-      <div className="flex items-center justify-between pb-2 border-b border-[#E8ECF1]">
-        <h2 id="ready-next-heading" className="text-sm font-semibold uppercase tracking-wider text-[#17191C]">
+      <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+        <h2 id="ready-next-heading" className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
           Up Next ({tasks.length})
         </h2>
         <Link
           href="/my-work?tab=READY"
-          className="text-xs font-medium text-[#2463EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors"
+          className="text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors"
         >
           <span>View all work</span>
-          {laterCount > 0 && <span className="text-[#8B929B]">({laterCount} later)</span>}
+          {laterCount > 0 && <span className="text-[#64748B]">({laterCount} later)</span>}
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
-      <div className="divide-y divide-[#E8ECF1]">
+      <div className="divide-y divide-[#F1F5F9]">
         {tasks.map((task) => (
           <WorkItemRow
             key={task.id}

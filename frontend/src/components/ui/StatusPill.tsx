@@ -16,69 +16,69 @@ const statusConfig: Record<
 > = {
   [TaskStatus.UNASSIGNED]: {
     label: 'Unassigned',
-    bg: 'bg-[#F1F3F5]',
-    text: 'text-[#626A73]',
+    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
+    text: 'text-[#64748B]',
   },
   [TaskStatus.TODO]: {
     label: 'To Do',
-    bg: 'bg-[#F1F3F5]',
-    text: 'text-[#626A73]',
+    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
+    text: 'text-[#64748B]',
   },
   [TaskStatus.PLANNED]: {
     label: 'Planned',
-    bg: 'bg-[#F1F3F5]',
-    text: 'text-[#8B929B]',
+    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
+    text: 'text-[#64748B]',
   },
   [TaskStatus.WAITING]: {
     label: 'Waiting',
-    bg: 'bg-[#FFF7E8]',
-    text: 'text-[#9A6515]',
-    icon: <Lock className="w-2.5 h-2.5 text-[#9A6515] shrink-0" />,
+    bg: 'bg-[#FFFBEB] border border-[#FEF3C7]',
+    text: 'text-[#B45309]',
+    icon: <Lock className="w-2.5 h-2.5 text-[#B45309] shrink-0" />,
   },
   [TaskStatus.READY]: {
     label: 'Not Started',
-    bg: 'bg-[#F1F3F5]',
-    text: 'text-[#60666F]',
-    dot: 'bg-[#8B929B]',
+    bg: 'bg-[#F1F5F9] border border-[#E2E8F0]',
+    text: 'text-[#475569]',
+    dot: 'bg-[#94A3B8]',
   },
   [TaskStatus.IN_PROGRESS]: {
     label: 'In Progress',
-    bg: 'bg-[#EEF4FF]',
-    text: 'text-[#245EC7]',
-    dot: 'bg-[#245EC7]',
+    bg: 'bg-[#EFF6FF] border border-[#DBEAFE]',
+    text: 'text-[#1D4ED8]',
+    dot: 'bg-[#2563EB]',
   },
   [TaskStatus.IN_REVIEW]: {
     label: 'In Review',
-    bg: 'bg-[#F5F1FB]',
-    text: 'text-[#6D52A3]',
-    dot: 'bg-[#6D52A3]',
+    bg: 'bg-[#F5F3FF] border border-[#EDE9FE]',
+    text: 'text-[#6D28D9]',
+    dot: 'bg-[#7C3AED]',
   },
   [TaskStatus.BLOCKED]: {
     label: 'Blocked',
-    bg: 'bg-[#FCEEEE]',
-    text: 'text-[#B54747]',
-    dot: 'bg-[#B54747]',
+    bg: 'bg-[#FEF2F2] border border-[#FEE2E2]',
+    text: 'text-[#DC2626]',
+    dot: 'bg-[#EF4444]',
   },
   [TaskStatus.BACKLOG]: {
     label: 'Backlog',
-    bg: 'bg-[#F1F3F5]',
-    text: 'text-[#8B929B]',
+    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
+    text: 'text-[#64748B]',
   },
   [TaskStatus.DONE]: {
     label: 'Completed',
-    bg: 'bg-[#EDF7F2]',
-    text: 'text-[#26715A]',
-    dot: 'bg-[#26715A]',
+    bg: 'bg-[#F0FDF4] border border-[#DCFCE7]',
+    text: 'text-[#15803D]',
+    dot: 'bg-[#16A34A]',
   },
   [TaskStatus.N_A]: {
     label: 'N/A',
-    bg: 'bg-[#F1F3F5]',
-    text: 'text-[#8B929B]',
+    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
+    text: 'text-[#64748B]',
   },
   [TaskStatus.CANCELED]: {
     label: 'Cancelled',
-    bg: 'bg-[#F1F3F5]',
-    text: 'text-[#8B929B]',
+    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
+    text: 'text-[#64748B]',
   },
 };
 
@@ -86,14 +86,14 @@ export function StatusPill({ status, size = 'sm', className, showDot = true }: S
   const safeStatus = status || 'UNKNOWN';
   const config = statusConfig[safeStatus] || {
     label: safeStatus.replace(/_/g, ' '),
-    bg: 'bg-[#F1F3F5]',
-    text: 'text-[#626A73]',
+    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
+    text: 'text-[#64748B]',
   };
 
   const sizeStyles = {
-    xs: 'h-5 px-1.5 text-[11px] gap-1 rounded-[5px]',
-    sm: 'h-[22px] px-2 text-[12px] gap-1.5 rounded-[6px]',
-    md: 'h-6 px-2.5 text-xs gap-1.5 rounded-[6px]',
+    xs: 'h-[19px] px-1.5 text-[10.5px] gap-1 rounded-[5px]',
+    sm: 'h-[21px] px-2 text-[11px] gap-1.5 rounded-[5px]',
+    md: 'h-[24px] px-2.5 text-[11.5px] gap-1.5 rounded-[6px]',
   };
 
   return (

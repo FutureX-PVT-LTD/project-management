@@ -494,6 +494,7 @@ export class UsersService {
         tx.project.updateMany({ where: { marketingOwnerId: id, deletedAt: null }, data: { marketingOwnerId: null } }),
         tx.projectPhaseAssignment.updateMany({ where: { defaultAssigneeId: id }, data: { defaultAssigneeId: null } }),
         tx.projectPhaseMember.deleteMany({ where: { userId: id } }),
+        tx.marketingChannel.updateMany({ where: { ownerId: id }, data: { ownerId: null } }),
         tx.marketingChannel.updateMany({ where: { backupAdminId: id }, data: { backupAdminId: null } }),
         tx.marketingContentItem.updateMany({ where: { ownerId: id }, data: { ownerId: null } }),
         tx.marketingBuzzActivity.updateMany({ where: { ownerId: id }, data: { ownerId: null } }),

@@ -15,6 +15,7 @@ export class AssignMarketingItemDto {
 }
 
 export class UpdateChannelDto {
+  @IsString() @IsOptional() ownerId?: string | null;
   @IsString() @IsOptional() @MaxLength(120) handle?: string;
   @IsUrl({ require_protocol: true }) @IsOptional() publicUrl?: string;
   @IsEmail() @IsOptional() adminEmail?: string;

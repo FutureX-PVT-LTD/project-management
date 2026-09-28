@@ -46,16 +46,16 @@ export function CurrentFocusCard({
 
     return (
       <section aria-labelledby="current-focus-heading">
-        <div className="rounded-[14px] bg-white border border-[#E8ECF1] p-5 sm:p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-[#F4F6F8] pb-3">
+        <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
             <span
               id="current-focus-heading"
-              className="text-[11px] font-semibold uppercase tracking-wider text-[#245EC7] flex items-center gap-1.5"
+              className="text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8] flex items-center gap-1.5"
             >
-              <span className="w-2 h-2 rounded-full bg-[#2463EB] animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-pulse" />
               Current Focus
             </span>
-            <span className="text-xs font-medium text-[#245EC7] bg-[#EEF4FF] px-2 py-0.5 rounded-[4px]">
+            <span className="text-xs font-medium text-[#1D4ED8] bg-[#EFF6FF] border border-[#DBEAFE] px-2.5 py-0.5 rounded-[6px]">
               In Progress
             </span>
           </div>
@@ -65,32 +65,32 @@ export function CurrentFocusCard({
             className="cursor-pointer group space-y-1.5"
           >
             {/* Product · Workstream · Phase */}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-[#60666F]">
-              <span className="font-semibold text-[#17191C]">{currentFocus.project?.name}</span>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[#64748B]">
+              <span className="font-semibold text-[#0F172A]">{currentFocus.project?.name}</span>
               {workstreamLabel && (
                 <>
-                  <span className="text-[#8B929B]">·</span>
-                  <span className="font-medium text-[#60666F]">{workstreamLabel}</span>
+                  <span className="text-[#94A3B8]">·</span>
+                  <span className="font-medium text-[#475569]">{workstreamLabel}</span>
                 </>
               )}
               {currentFocus.checklistPhase && (
                 <>
-                  <span className="text-[#8B929B]">·</span>
-                  <span className="text-[#8B929B]">{currentFocus.checklistPhase}</span>
+                  <span className="text-[#94A3B8]">·</span>
+                  <span className="text-[#64748B]">{currentFocus.checklistPhase}</span>
                 </>
               )}
-              <span className="font-mono text-[11px] text-[#60666F] px-1.5 py-0.2 bg-[#F4F6F8] rounded-[4px] border border-[#E8ECF1]">
+              <span className="font-mono text-[11px] text-[#64748B] px-1.5 py-0.5 bg-[#F8FAFC] rounded-[5px] border border-[#E2E8F0]">
                 {cleanId}
               </span>
             </div>
 
             {/* Task Title */}
-            <h2 className="text-lg sm:text-[21px] font-semibold text-[#17191C] group-hover:text-[#2463EB] leading-snug tracking-tight transition-colors">
+            <h2 className="text-lg sm:text-[21px] font-semibold text-[#0F172A] group-hover:text-[#2563EB] leading-snug tracking-tight transition-colors">
               {currentFocus.title}
             </h2>
 
             {currentFocus.description && (
-              <p className="text-xs text-[#60666F] line-clamp-2 leading-relaxed max-w-3xl">
+              <p className="text-xs text-[#64748B] line-clamp-2 leading-relaxed max-w-3xl">
                 {currentFocus.description}
               </p>
             )}
@@ -100,8 +100,8 @@ export function CurrentFocusCard({
           {currentFocus.workstream !== 'MARKETING' && (
             <div className="space-y-1.5 pt-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#60666F] font-medium">Progress</span>
-                <span className="font-mono font-semibold text-[#2463EB]">
+                <span className="text-[#64748B] font-medium">Progress</span>
+                <span className="font-mono font-semibold text-[#2563EB]">
                   {currentFocus.progress || 0}%
                 </span>
               </div>
@@ -110,13 +110,13 @@ export function CurrentFocusCard({
           )}
 
           {/* Bottom Bar: Metadata & Primary Action */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#E8ECF1]">
-            <div className="flex flex-wrap items-center gap-3 text-xs text-[#60666F]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#F1F5F9]">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-[#64748B]">
               {currentFocus.dueDate && (
                 <span
                   className={cn(
                     'flex items-center gap-1 font-medium font-mono text-xs',
-                    isOverdue ? 'text-[#B54747] font-semibold' : 'text-[#60666F]',
+                    isOverdue ? 'text-[#DC2626] font-semibold' : 'text-[#64748B]',
                   )}
                 >
                   <Calendar className="w-3.5 h-3.5" />
@@ -159,21 +159,21 @@ export function CurrentFocusCard({
 
     return (
       <section aria-labelledby="current-focus-heading">
-        <div className="rounded-[14px] bg-[#FFFFFF] border border-[#E8ECF1] p-5 sm:p-6 shadow-xs space-y-4">
-          <div className="flex items-center justify-between border-b border-[#F4F6F8] pb-3">
+        <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-5 sm:p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
             <span
               id="current-focus-heading"
-              className="text-[11px] font-semibold uppercase tracking-wider text-[#60666F] flex items-center gap-1.5"
+              className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B] flex items-center gap-1.5"
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#8B929B]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#94A3B8]" />
               Current Focus
             </span>
-            <span className="text-xs text-[#60666F]">Nothing in progress</span>
+            <span className="text-xs text-[#64748B]">Nothing in progress</span>
           </div>
 
           <div className="space-y-3">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#237A57] flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#237A57]" />
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#15803D] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#16A34A]" />
               Recommended next:
             </div>
 
@@ -181,41 +181,41 @@ export function CurrentFocusCard({
               onClick={() => onSelectTask(recommendedNext.id)}
               className="cursor-pointer group space-y-1"
             >
-              <div className="flex flex-wrap items-center gap-2 text-xs text-[#60666F]">
-                <span className="font-semibold text-[#17191C]">{recommendedNext.project?.name}</span>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#64748B]">
+                <span className="font-semibold text-[#0F172A]">{recommendedNext.project?.name}</span>
                 {workstreamLabel && (
                   <>
-                    <span className="text-[#8B929B]">·</span>
-                    <span className="font-medium text-[#60666F]">{workstreamLabel}</span>
+                    <span className="text-[#94A3B8]">·</span>
+                    <span className="font-medium text-[#475569]">{workstreamLabel}</span>
                   </>
                 )}
                 {recommendedNext.checklistPhase && (
                   <>
-                    <span className="text-[#8B929B]">·</span>
-                    <span className="text-[#8B929B]">{recommendedNext.checklistPhase}</span>
+                    <span className="text-[#94A3B8]">·</span>
+                    <span className="text-[#64748B]">{recommendedNext.checklistPhase}</span>
                   </>
                 )}
-                <span className="font-mono text-[11px] text-[#60666F] px-1.5 py-0.2 bg-[#F4F6F8] rounded-[4px] border border-[#E8ECF1]">
+                <span className="font-mono text-[11px] text-[#64748B] px-1.5 py-0.5 bg-[#F8FAFC] rounded-[5px] border border-[#E2E8F0]">
                   {cleanId}
                 </span>
               </div>
 
-              <h2 className="text-lg sm:text-[20px] font-semibold text-[#17191C] group-hover:text-[#2463EB] leading-snug tracking-tight transition-colors">
+              <h2 className="text-lg sm:text-[20px] font-semibold text-[#0F172A] group-hover:text-[#2563EB] leading-snug tracking-tight transition-colors">
                 {recommendedNext.title}
               </h2>
 
               {recommendedNext.description && (
-                <p className="text-xs text-[#60666F] line-clamp-2 leading-relaxed">
+                <p className="text-xs text-[#64748B] line-clamp-2 leading-relaxed">
                   {recommendedNext.description}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#E8ECF1]">
-            <div className="flex flex-wrap items-center gap-3 text-xs text-[#60666F]">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-[#F1F5F9]">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-[#64748B]">
               {recommendedNext.dueDate && (
-                <span className="flex items-center gap-1 font-mono text-xs text-[#60666F]">
+                <span className="flex items-center gap-1 font-mono text-xs text-[#64748B]">
                   <Calendar className="w-3.5 h-3.5" /> Due {formatDate(recommendedNext.dueDate)}
                 </span>
               )}
@@ -254,14 +254,14 @@ export function CurrentFocusCard({
   // Case 3: Completely clear (no in progress and no ready work)
   return (
     <section aria-labelledby="current-focus-heading">
-      <div className="rounded-[14px] bg-[#FFFFFF] border border-[#E8ECF1] p-6 text-center space-y-2">
-        <div className="w-8 h-8 rounded-full bg-[#EFF8F3] text-[#237A57] flex items-center justify-center mx-auto">
+      <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-6 text-center space-y-2">
+        <div className="w-8 h-8 rounded-full bg-[#F0FDF4] text-[#15803D] flex items-center justify-center mx-auto">
           <CheckCircle2 className="w-4 h-4" />
         </div>
-        <h2 id="current-focus-heading" className="text-sm font-semibold text-[#17191C]">
+        <h2 id="current-focus-heading" className="text-sm font-semibold text-[#0F172A]">
           You're up to date
         </h2>
-        <p className="text-xs text-[#60666F] max-w-sm mx-auto">
+        <p className="text-xs text-[#64748B] max-w-sm mx-auto">
           No items are in progress or ready to start right now.
         </p>
       </div>

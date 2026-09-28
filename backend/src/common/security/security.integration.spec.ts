@@ -591,7 +591,16 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
 
     expect((await get(`/projects/${marketingProject.id}/marketing/summary`, 'b')).status).toBe(404);
     expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(403);
-    await db.project.update({ where: { id: marketingProject.id }, data: { marketingOwnerId: users.a.id } });
+    const marketingExecutiveRole = await db.functionalRole.findUniqueOrThrow({ where: { code: 'MARKETING_EXECUTIVE' } });
+    const marketingMember = await db.projectMember.findUniqueOrThrow({
+      where: { projectId_userId: { projectId: marketingProject.id, userId: users.a.id } },
+    });
+    await db.userFunctionalRole.create({
+      data: { userId: users.a.id, functionalRoleId: marketingExecutiveRole.id },
+    });
+    await db.projectMemberRoleAssignment.create({
+      data: { projectMemberId: marketingMember.id, functionalRoleId: marketingExecutiveRole.id },
+    });
     expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(200);
 
     const content = await db.marketingContentItem.findFirstOrThrow({ where: { projectId: marketingProject.id } });

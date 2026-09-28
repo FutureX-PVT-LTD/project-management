@@ -29,29 +29,29 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const isSpinnerActive = loading || isLoading;
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-[9px] fx-transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2463EB]/25 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none';
+      'inline-flex items-center justify-center font-medium rounded-[8px] fx-transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/20 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none active:scale-[0.99]';
 
     const variants = {
       primary:
-        'bg-[#2463EB] text-white hover:bg-[#1D4ED8] active:bg-[#1B44B8] border border-transparent shadow-none',
+        'bg-[#2563EB] text-white hover:bg-[#1D4ED8] active:bg-[#1E40AF] border border-transparent shadow-[0_1px_2px_rgba(37,99,235,0.12)]',
       secondary:
-        'bg-white text-[#17191C] border border-[#DCE1E7] hover:bg-[#F8F9FB] hover:border-[#CCD3DD] active:bg-[#F3F5F7]',
+        'bg-white text-[#0F172A] border border-[#DCE0E5] hover:bg-[#F8FAFC] hover:border-[#CAD0D8] active:bg-[#F1F5F9] shadow-[0_1px_2px_rgba(0,0,0,0.02)]',
       ghost:
-        'bg-transparent text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] border border-transparent',
+        'bg-transparent text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent',
       danger:
-        'bg-[#B54747] text-white hover:bg-[#A33B3B] active:bg-[#8F3232] border border-transparent',
+        'bg-[#DC2626] text-white hover:bg-[#B91C1C] active:bg-[#991B1B] border border-transparent shadow-[0_1px_2px_rgba(220,38,38,0.12)]',
       // Backward-compatible aliases
       soft:
-        'bg-[#EEF4FF] text-[#2463EB] hover:bg-[#E0ECFF] active:bg-[#D4E4FF] border border-transparent',
+        'bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] active:bg-[#BFDBFE] border border-transparent',
       outline:
-        'bg-transparent text-[#17191C] border border-[#DCE1E7] hover:bg-[#F8F9FB]',
+        'bg-transparent text-[#0F172A] border border-[#DCE0E5] hover:bg-[#F8FAFC] active:bg-[#F1F5F9]',
     };
 
     const sizes = {
-      xs: 'h-7 px-2.5 text-xs gap-1 rounded-[7px] font-medium',
-      sm: 'h-8 px-3 text-xs gap-1.5 rounded-[8px] font-medium',
-      md: 'h-[36px] px-3.5 text-[13px] gap-2 font-medium rounded-[9px]',
-      lg: 'h-[40px] px-4 text-sm gap-2 font-semibold rounded-[9px]',
+      xs: 'h-7 px-2.5 text-[11px] gap-1 rounded-[6px] font-medium',
+      sm: 'h-[30px] px-3 text-[12px] gap-1.5 rounded-[7px] font-medium',
+      md: 'h-[34px] px-3.5 text-[12.5px] gap-2 font-medium rounded-[8px]',
+      lg: 'h-[38px] px-4 text-[13px] gap-2 font-semibold rounded-[8px]',
     };
 
     return (

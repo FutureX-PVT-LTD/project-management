@@ -65,5 +65,5 @@
 @media (min-width: 1280px) {
   .overview { grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); }
   .overview > aside { border-left: 1px solid #e8ebef; padding-left: 24px; }
-  .buzzRow { grid-template-columns: 110px minmax(0, 1fr) 170px 140px; gap: 20px; }
+  .buzzRow { grid-template-columns: 110px minmax(0, 1fr) 220px 170px 140px; gap: 20px; }
 }

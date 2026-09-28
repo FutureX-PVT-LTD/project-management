@@ -37,7 +37,7 @@ export function DashboardFilters({
             id="product-filter"
             value={selectedProjectId}
             onChange={(e) => onSelectProject(e.target.value)}
-            className="appearance-none h-8 pl-3 pr-8 text-xs font-medium text-[#17191C] bg-white border border-[#E8ECF1] rounded-[6px] hover:border-[#DCE1E7] focus:outline-none focus:ring-1 focus:ring-[#2463EB] focus:border-[#2463EB] cursor-pointer transition-colors shadow-xs"
+            className="appearance-none h-8 pl-3 pr-8 text-xs font-medium text-[#0F172A] bg-white border border-[#E2E8F0] rounded-[8px] hover:border-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#2563EB]/15 focus:border-[#2563EB] cursor-pointer transition-colors shadow-xs"
           >
             <option value="all">All Products</option>
             {projects.map((p) => (
@@ -46,7 +46,7 @@ export function DashboardFilters({
               </option>
             ))}
           </select>
-          <ChevronDown className="w-3.5 h-3.5 text-[#8B929B] absolute right-2.5 pointer-events-none" />
+          <ChevronDown className="w-3.5 h-3.5 text-[#64748B] absolute right-2.5 pointer-events-none" />
         </div>
       </div>
 
@@ -54,7 +54,7 @@ export function DashboardFilters({
       <div
         role="tablist"
         aria-label="Filter by workstream"
-        className="inline-flex items-center p-0.5 bg-[#F4F6F8] border border-[#E8ECF1] rounded-[7px] self-start sm:self-auto"
+        className="inline-flex items-center p-0.5 bg-[#F1F5F9] border border-[#E2E8F0] rounded-[8px] self-start sm:self-auto"
       >
         {workstreamOptions.map((opt) => {
           const isActive = selectedWorkstream === opt.id;
@@ -66,10 +66,10 @@ export function DashboardFilters({
               type="button"
               onClick={() => onSelectWorkstream(opt.id)}
               className={cn(
-                'px-3 py-1 text-xs font-medium rounded-[5px] transition-all duration-150',
+                'px-3 py-1 text-xs font-medium rounded-[6px] transition-all duration-150',
                 isActive
-                  ? 'bg-white text-[#245EC7] font-semibold shadow-xs'
-                  : 'text-[#60666F] hover:text-[#17191C]',
+                  ? 'bg-white text-[#1D4ED8] font-semibold shadow-xs'
+                  : 'text-[#64748B] hover:text-[#0F172A]',
               )}
             >
               {opt.label}

@@ -13,7 +13,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <div className="w-full relative">
         <div className="relative flex items-center">
           {leftIcon && (
-            <div className="absolute left-3 text-[#8B929B] pointer-events-none flex items-center justify-center">
+            <div className="absolute left-3 text-[#94A3B8] pointer-events-none flex items-center justify-center">
               {leftIcon}
             </div>
           )}
@@ -22,23 +22,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             disabled={disabled}
             className={cn(
-              'w-full h-9 px-3 py-1.5 bg-[#F8F9FB] text-[13px] text-[#17191C] rounded-[9px] border border-[#E8EBEF] placeholder:text-[#8B929B] fx-transition',
-              'focus:outline-none focus:bg-white focus:border-[#2463EB] focus:ring-1 focus:ring-[#2463EB]',
-              'disabled:bg-[#F1F3F5] disabled:text-[#8B929B] disabled:cursor-not-allowed',
+              'w-full h-9 px-3 py-1.5 bg-[#F8FAFC] text-[13px] text-[#0F172A] rounded-[8px] border border-[#E2E8F0] placeholder:text-[#94A3B8] fx-transition',
+              'focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15',
+              'disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:cursor-not-allowed',
               leftIcon && 'pl-9',
               rightIcon && 'pr-9',
-              error && 'border-[#B54747] focus:border-[#B54747] focus:ring-[#B54747]',
+              error && 'border-[#DC2626] focus:border-[#DC2626] focus:ring-[#DC2626]/20',
               className,
             )}
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3 text-[#8B929B] flex items-center justify-center">
+            <div className="absolute right-3 text-[#94A3B8] flex items-center justify-center">
               {rightIcon}
             </div>
           )}
         </div>
-        {error && <p className="mt-1 text-xs text-[#B54747]">{error}</p>}
+        {error && <p className="mt-1 text-[11.5px] text-[#DC2626]">{error}</p>}
       </div>
     );
   },

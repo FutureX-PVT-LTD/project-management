@@ -30,7 +30,6 @@ export class MarketingController {
   @Patch('buzz/:id') updateBuzz(@Param('projectId') projectId: string, @Param('id') id: string, @Body() dto: UpdateBuzzDto, @CurrentUser() actor: AuthUser) { return this.service.updateBuzz(projectId, id, dto, actor); }
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Patch('gates/:id') approveGate(@Param('projectId') projectId: string, @Param('id') id: string, @Body() dto: ApproveGateDto, @CurrentUser() actor: AuthUser) { return this.service.approveGate(projectId, id, dto, actor); }
-  @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Patch('signoff/:id') updateSignoff(@Param('projectId') projectId: string, @Param('id') id: string, @Body() dto: UpdateSignoffDto, @CurrentUser() actor: AuthUser) { return this.service.updateSignoff(projectId, id, dto, actor); }
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Patch('reschedule') reschedule(@Param('projectId') projectId: string, @Body() dto: RescheduleMarketingDto, @CurrentUser() actor: AuthUser) { return this.service.reschedule(projectId, dto.targetDate, actor); }

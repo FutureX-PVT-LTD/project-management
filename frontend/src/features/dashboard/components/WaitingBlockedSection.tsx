@@ -25,23 +25,23 @@ export function WaitingBlockedSection({
       {/* 1. Blocked Work (Shown before ordinary waiting if present) */}
       {blockedTasks.length > 0 && (
         <section className="space-y-2" aria-labelledby="blocked-heading">
-          <div className="flex items-center justify-between pb-2 border-b border-[#E8ECF1]">
+          <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#B54747]" />
-              <h2 id="blocked-heading" className="text-sm font-semibold uppercase tracking-wider text-[#B54747]">
+              <span className="w-2 h-2 rounded-full bg-[#DC2626]" />
+              <h2 id="blocked-heading" className="text-xs font-semibold uppercase tracking-wider text-[#DC2626]">
                 Blocked ({blockedTasks.length})
               </h2>
             </div>
             <Link
               href="/my-work?tab=BLOCKED"
-              className="text-xs font-medium text-[#B54747] hover:underline flex items-center gap-1"
+              className="text-xs font-medium text-[#DC2626] hover:underline flex items-center gap-1"
             >
               <span>View blocked</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="divide-y divide-[#E8ECF1]">
+          <div className="divide-y divide-[#F1F5F9]">
             {blockedTasks.map((task) => (
               <WorkItemRow
                 key={task.id}
@@ -58,23 +58,23 @@ export function WaitingBlockedSection({
       {/* 2. Waiting Work with Dependency Context */}
       {waitingTasks.length > 0 && (
         <section className="space-y-2" aria-labelledby="waiting-heading">
-          <div className="flex items-center justify-between pb-2 border-b border-[#E8ECF1]">
+          <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#9A6515]" />
-              <h2 id="waiting-heading" className="text-sm font-semibold uppercase tracking-wider text-[#17191C]">
+              <span className="w-2 h-2 rounded-full bg-[#D97706]" />
+              <h2 id="waiting-heading" className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
                 Waiting on Prerequisites ({waitingTasks.length})
               </h2>
             </div>
             <Link
               href="/my-work?tab=WAITING"
-              className="text-xs font-medium text-[#2463EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors"
+              className="text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors"
             >
               <span>View all waiting</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
-          <div className="divide-y divide-[#E8ECF1]">
+          <div className="divide-y divide-[#F1F5F9]">
             {waitingTasks.map((task) => {
               const predecessor = task.blockedBy?.[0]?.predecessorTask;
               const predName = predecessor

@@ -50,41 +50,41 @@ export function WorkItemRow({
   return (
     <div
       onClick={() => onSelectTask(task.id)}
-      className="py-3 hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs cursor-pointer group"
+      className="py-2.5 hover:bg-[#F8FAFC] -mx-2 px-2.5 rounded-[8px] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs cursor-pointer group"
     >
       {/* Task Meta and Title */}
       <div className="space-y-1 min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="font-mono text-[11px] font-semibold text-[#60666F] px-1.5 py-0.5 bg-[#F4F6F8] rounded-[4px] border border-[#E8ECF1]">
+          <span className="font-mono text-[11px] font-semibold text-[#64748B] px-1.5 py-0.5 bg-[#F8FAFC] rounded-[5px] border border-[#E2E8F0]">
             {cleanId}
           </span>
-          <span className="font-medium text-sm text-[#17191C] group-hover:text-[#2463EB] truncate transition-colors">
+          <span className="font-medium text-sm text-[#0F172A] group-hover:text-[#2563EB] truncate transition-colors">
             {task.title}
           </span>
         </div>
 
         {/* Supporting context: Product · Workstream · Phase */}
-        <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-[#60666F]">
-          <span className="font-medium text-[#17191C]">{task.project?.name}</span>
+        <div className="flex flex-wrap items-center gap-x-2 text-[12px] text-[#64748B]">
+          <span className="font-medium text-[#0F172A]">{task.project?.name}</span>
           {workstreamLabel && (
             <>
-              <span className="text-[#8B929B]">·</span>
+              <span className="text-[#94A3B8]">·</span>
               <span>{workstreamLabel}</span>
             </>
           )}
           {task.checklistPhase && (
             <>
-              <span className="text-[#8B929B]">·</span>
-              <span className="text-[#60666F]">{task.checklistPhase}</span>
+              <span className="text-[#94A3B8]">·</span>
+              <span className="text-[#64748B]">{task.checklistPhase}</span>
             </>
           )}
           {task.dueDate && (
             <>
-              <span className="text-[#8B929B]">·</span>
+              <span className="text-[#94A3B8]">·</span>
               <span
                 className={cn(
                   'font-mono flex items-center gap-1',
-                  isOverdue ? 'text-[#B54747] font-semibold' : 'text-[#8B929B]',
+                  isOverdue ? 'text-[#DC2626] font-semibold' : 'text-[#64748B]',
                 )}
               >
                 <Calendar className="w-3 h-3" />
@@ -97,7 +97,7 @@ export function WorkItemRow({
 
         {/* Blocked notice */}
         {isBlocked && blockReason && (
-          <div className="flex items-center gap-1.5 text-[11px] text-[#B54747] pt-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-[#DC2626] pt-0.5">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span className="font-medium">Reason: {blockReason}</span>
           </div>
@@ -105,9 +105,9 @@ export function WorkItemRow({
 
         {/* Dependency notice for waiting */}
         {showDependencyReason && dependencyNote && (
-          <div className="flex items-center gap-1.5 text-[11px] text-[#9A6515] pt-0.5">
+          <div className="flex items-center gap-1.5 text-[11px] text-[#D97706] pt-0.5">
             <Lock className="w-3.5 h-3.5 shrink-0" />
-            <span>Waiting for: <strong className="font-medium text-[#17191C]">{dependencyNote}</strong></span>
+            <span>Waiting for: <strong className="font-medium text-[#0F172A]">{dependencyNote}</strong></span>
           </div>
         )}
       </div>
@@ -126,7 +126,7 @@ export function WorkItemRow({
               e.stopPropagation();
               onStartTask(task.id);
             }}
-            leftIcon={<Play className="w-3 h-3 text-[#2463EB] fill-[#2463EB]" />}
+            leftIcon={<Play className="w-3 h-3 text-[#2563EB] fill-[#2563EB]" />}
             className="ml-1"
           >
             Start

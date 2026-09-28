@@ -167,7 +167,7 @@ export function CalendarWidget({
 
   const containerClasses = cn(
     'space-y-4 bg-white',
-    borderless ? 'p-0' : 'rounded-[10px] border border-[#E8EBEF] p-4',
+    borderless ? 'p-0' : 'rounded-[12px] border border-[#E2E8F0] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]',
     className,
   );
 
@@ -178,13 +178,13 @@ export function CalendarWidget({
         <div className="flex items-center gap-2.5">
           <div>
             {title && (
-              <h2 className="text-[11px] font-medium uppercase tracking-wider text-[#8C939E]">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
                 {title}
               </h2>
             )}
             <h3 className={cn(
-              'text-xs font-semibold text-[#17191C] tracking-tight',
-              title && 'text-[11px] font-normal text-[#60666F]'
+              'text-[13px] font-semibold text-[#0F172A] tracking-tight',
+              title && 'text-[11px] font-medium text-[#64748B]'
             )}>
               {monthNames[month]} {year}
             </h3>
@@ -196,7 +196,7 @@ export function CalendarWidget({
           <button
             type="button"
             onClick={prevMonth}
-            className="w-6 h-6 rounded-[5px] text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] flex items-center justify-center transition-colors"
+            className="w-6 h-6 rounded-[5px] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] flex items-center justify-center transition-colors"
             title="Previous month"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -207,14 +207,14 @@ export function CalendarWidget({
               setCurrentDate(new Date());
               setSelectedDate(new Date());
             }}
-            className="px-2 py-0.5 text-[11px] font-medium text-[#2463EB] bg-[#EEF4FF] hover:bg-[#EEF4FF]/80 rounded-[5px] transition-colors"
+            className="px-2 py-0.5 text-[11px] font-medium text-[#2563EB] bg-[#EFF6FF] hover:bg-[#DBEAFE] rounded-[5px] border border-[#DBEAFE]/80 transition-colors"
           >
             Today
           </button>
           <button
             type="button"
             onClick={nextMonth}
-            className="w-6 h-6 rounded-[5px] text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] flex items-center justify-center transition-colors"
+            className="w-6 h-6 rounded-[5px] text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] flex items-center justify-center transition-colors"
             title="Next month"
           >
             <ChevronRight className="w-3.5 h-3.5" />
@@ -223,7 +223,7 @@ export function CalendarWidget({
       </div>
 
       {/* Weekdays Row */}
-      <div className="grid grid-cols-7 text-center text-[10px] font-medium text-[#8C939E] select-none py-0.5">
+      <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wider select-none py-0.5">
         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
           <div key={day} className="py-0.5">
             {day}
@@ -245,10 +245,10 @@ export function CalendarWidget({
               onClick={() => setSelectedDate(cell.date)}
               className={cn(
                 'h-7 w-7 mx-auto rounded-full flex flex-col items-center justify-center text-[11px] relative transition-colors select-none',
-                !cell.isCurrentMonth && 'text-[#8C939E]/30',
-                cell.isCurrentMonth && !isSelected && !isToday && 'text-[#17191C] hover:bg-[#F8F9FB]',
-                isToday && !isSelected && 'font-medium text-[#2463EB] bg-[#EEF4FF]',
-                isSelected && 'bg-[#2463EB] text-white font-medium',
+                !cell.isCurrentMonth && 'text-[#CBD5E1]',
+                cell.isCurrentMonth && !isSelected && !isToday && 'text-[#0F172A] hover:bg-[#F1F5F9]',
+                isToday && !isSelected && 'font-semibold text-[#2563EB] bg-[#EFF6FF]',
+                isSelected && 'bg-[#2563EB] text-white font-medium shadow-xs',
               )}
             >
               <span>{cell.dayNum}</span>
@@ -256,7 +256,7 @@ export function CalendarWidget({
                 <span
                   className={cn(
                     'absolute bottom-0.5 w-1 h-1 rounded-full',
-                    isSelected ? 'bg-white' : 'bg-[#2463EB]',
+                    isSelected ? 'bg-white' : 'bg-[#2563EB]',
                   )}
                 />
               )}
@@ -266,9 +266,9 @@ export function CalendarWidget({
       </div>
 
       {/* Selected Day Agenda */}
-      <div className="pt-3 border-t border-[#E8EBEF] space-y-2">
+      <div className="pt-3.5 border-t border-[#F1F5F9] space-y-2.5">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-[#17191C]">
+          <span className="font-semibold text-[12px] text-[#0F172A]">
             {selectedDate.toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
@@ -277,34 +277,34 @@ export function CalendarWidget({
           </span>
           <Link
             href="/calendar"
-            className="text-[11px] font-medium text-[#2463EB] hover:text-[#1D4ED8] flex items-center gap-1"
+            className="text-[11px] font-medium text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 group transition-colors"
           >
             <span>Full Calendar</span>
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
         {selectedDeliverables.totalCount === 0 ? (
-          <p className="text-[11px] text-[#8C939E] py-2 text-center">No deadlines scheduled for this date.</p>
+          <p className="text-[11.5px] text-[#94A3B8] py-2.5 text-center">No deadlines scheduled for this date.</p>
         ) : (
-          <div className="divide-y divide-[#E8EBEF] max-h-52 overflow-y-auto">
+          <div className="space-y-2 max-h-56 overflow-y-auto pr-0.5">
             {selectedDeliverables.tasks.map((task: any) => (
               <div
                 key={task.id}
                 onClick={() => onSelectTask?.(task.id)}
-                className="py-2 flex items-center justify-between gap-2 cursor-pointer hover:text-[#2463EB] transition-colors"
+                className="p-2 rounded-[8px] hover:bg-[#F8FAFC] border border-transparent hover:border-[#E2E8F0] flex items-center justify-between gap-2.5 cursor-pointer transition-all group"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-mono text-[10px] text-[#8C939E]">
+                    <span className="font-mono text-[10px] text-[#64748B] bg-[#F1F5F9] px-1 py-0.2 rounded-[4px] border border-[#E2E8F0]">
                       {task.humanId || 'FX'}
                     </span>
-                    <p className="text-xs font-medium text-[#17191C] truncate">
+                    <p className="text-[12px] font-medium text-[#0F172A] group-hover:text-[#2563EB] transition-colors truncate">
                       {task.title}
                     </p>
                   </div>
                   {task.project && (
-                    <p className="text-[10px] text-[#60666F] truncate mt-0.5">
+                    <p className="text-[10.5px] text-[#64748B] truncate mt-0.5">
                       {task.project.name}
                     </p>
                   )}
@@ -319,20 +319,20 @@ export function CalendarWidget({
             {selectedDeliverables.milestones.map((m: any) => (
               <div
                 key={m.id}
-                className="p-2.5 rounded-[8px] bg-[#F5F1FB] border border-[#E4D7F5] flex items-center justify-between gap-2"
+                className="p-2.5 rounded-[10px] bg-[#FAFAFD] border border-[#EDE9FE] hover:border-[#DDD6FE] flex items-center justify-between gap-2 transition-all shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <Flag className="w-3.5 h-3.5 text-[#6D52A3] shrink-0" />
-                    <p className="text-xs font-medium text-[#17191C] truncate">
+                    <Flag className="w-3.5 h-3.5 text-[#7C3AED] shrink-0" />
+                    <p className="text-[12px] font-medium text-[#0F172A] truncate">
                       {m.title || m.name}
                     </p>
                   </div>
-                  <p className="text-[10px] text-[#6D52A3] truncate mt-0.5">
+                  <p className="text-[10.5px] text-[#64748B] truncate mt-0.5 pl-5">
                     Milestone Target · {m.project?.name || 'Project'}
                   </p>
                 </div>
-                <span className="text-[10px] uppercase font-medium px-1.5 py-0.5 rounded-[4px] bg-white text-[#6D52A3] border border-[#E4D7F5]">
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-[4px] bg-white text-[#7C3AED] border border-[#DDD6FE] shrink-0">
                   Milestone
                 </span>
               </div>
@@ -341,17 +341,20 @@ export function CalendarWidget({
             {selectedDeliverables.projects.map((p: any) => (
               <div
                 key={p.id}
-                className="p-2.5 rounded-[8px] bg-[#EEF4FF] border border-[#D0E1FD] flex items-center justify-between gap-2"
+                className="p-2.5 rounded-[10px] bg-white border border-[#E2E8F0] hover:border-[#CBD5E1] flex items-center justify-between gap-2.5 transition-all shadow-[0_1px_2px_rgba(15,23,42,0.03)] hover:shadow-[0_2px_4px_rgba(15,23,42,0.04)]"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-[#17191C] truncate">
-                    {p.name}
-                  </p>
-                  <p className="text-[10px] text-[#2463EB] truncate mt-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] shrink-0" />
+                    <p className="text-[12px] font-semibold text-[#0F172A] truncate">
+                      {p.name}
+                    </p>
+                  </div>
+                  <p className="text-[10.5px] text-[#64748B] truncate mt-0.5 pl-3">
                     Project Target Launch
                   </p>
                 </div>
-                <span className="text-[10px] uppercase font-medium px-1.5 py-0.5 rounded-[4px] bg-white text-[#2463EB] border border-[#D0E1FD]">
+                <span className="text-[10px] font-medium tracking-tight px-2 py-0.5 rounded-[5px] bg-[#EFF6FF] text-[#1D4ED8] border border-[#DBEAFE] shrink-0">
                   Project Deadline
                 </span>
               </div>

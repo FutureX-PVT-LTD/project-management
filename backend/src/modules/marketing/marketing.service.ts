@@ -23,6 +23,8 @@ const gates = [
   ['MG-04', 'Initial Buzz Ready', 'Required pre-launch buzz activity is complete.'],
 ] as const;
 const signoffs = ['Ownership', 'Domain & Website', 'Social Footprint', 'Digital Links', 'Content Bank', 'Buzz Schedule', 'Tracking', 'Launch Approval'];
+const marketingRoleCodes = ['MARKETING_MANAGER', 'MARKETING_EXECUTIVE', 'MARKETING_COORDINATOR'];
+const marketingHeadRoleCodes = ['MARKETING_MANAGER'];
 
 @Injectable()
 export class MarketingService {
@@ -30,10 +32,48 @@ export class MarketingService {
 
   private async project(projectId: string, actor: AuthUser) { return requireProject(this.prisma, projectId, actor); }
   private isManager(actor: AuthUser) { return actor.globalRole === UserRole.ADMIN || actor.globalRole === UserRole.OWNER; }
+  private async marketingAccess(projectId: string, actor: AuthUser) {
+    const project = await this.project(projectId, actor);
+    if (this.isManager(actor)) return { project, isOperator: true, isHead: true, isManager: true };
+    const membership = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: actor.id } },
+      include: { projectRoles: { include: { functionalRole: { select: { code: true, isActive: true } } } } },
+    });
+    const roleCodes = new Set(
+      (membership?.projectRoles || [])
+        .filter((link) => link.functionalRole.isActive)
+        .map((link) => link.functionalRole.code),
+    );
+    return {
+      project,
+      isOperator: marketingRoleCodes.some((code) => roleCodes.has(code)),
+      isHead: marketingHeadRoleCodes.some((code) => roleCodes.has(code)),
+      isManager: false,
+    };
+  }
+  private requireOperator(access: { isOperator: boolean }) {
+    if (!access.isOperator) throw new ForbiddenException('An active Product Marketing role is required');
+  }
+  private requireHead(access: { isHead: boolean }) {
+    if (!access.isHead) throw new ForbiddenException('Marketing Head or management permission is required');
+  }
   private async eligible(projectId: string, userId: string | null | undefined) {
     if (!userId) return;
     const user = await this.prisma.user.findFirst({ where: { id: userId, isActive: true, deletedAt: null, projectMemberships: { some: { projectId } } }, select: { id: true } });
     if (!user) throw new BadRequestException('Assignee must be an active Product member');
+  }
+  private async eligibleMarketingOperator(projectId: string, userId: string | null | undefined) {
+    if (!userId) return;
+    const member = await this.prisma.projectMember.findFirst({
+      where: {
+        projectId,
+        userId,
+        user: { isActive: true, deletedAt: null },
+        projectRoles: { some: { functionalRole: { code: { in: marketingRoleCodes }, isActive: true } } },
+      },
+      select: { id: true },
+    });
+    if (!member) throw new BadRequestException('Owner must be an active Product member with a Marketing role');
   }
   private async audit(tx: any, actorId: string, action: string, type: string, id: string, details?: unknown) {
     await tx.auditLog.create({ data: { actorId, action, entityType: type, entityId: id, detailsJson: details ? JSON.stringify(details) : undefined } });
@@ -174,11 +214,20 @@ export class MarketingService {
   }
 
   async checklist(projectId: string, actor: AuthUser) { await this.project(projectId, actor); return this.prisma.task.findMany({ where: { projectId, workstream: 'MARKETING', deletedAt: null, ...(actor.globalRole === UserRole.TEAM_MEMBER ? { assigneeId: actor.id } : {}) }, include: { assignee: { select: publicUserSelect }, checklistTemplateItem: { select: { sourceConfirmed: true } } }, orderBy: { checklistOrder: 'asc' } }); }
-  async channels(projectId: string, actor: AuthUser) { const project = await this.project(projectId, actor); if (!this.isManager(actor) && project.marketingOwnerId !== actor.id) throw new ForbiddenException('Marketing channel access requires management or Marketing Owner permission'); return this.prisma.marketingChannel.findMany({ where: { projectId }, include: { backupAdmin: { select: publicUserSelect } }, orderBy: { code: 'asc' } }); }
-  async content(projectId: string, actor: AuthUser) { await this.project(projectId, actor); return this.prisma.marketingContentItem.findMany({ where: { projectId, ...(actor.globalRole === UserRole.TEAM_MEMBER ? { ownerId: actor.id } : {}) }, include: { owner: { select: publicUserSelect } }, orderBy: { code: 'asc' } }); }
-  async buzz(projectId: string, actor: AuthUser) { await this.project(projectId, actor); return this.prisma.marketingBuzzActivity.findMany({ where: { projectId, ...(actor.globalRole === UserRole.TEAM_MEMBER ? { ownerId: actor.id } : {}) }, include: { owner: { select: publicUserSelect } }, orderBy: { startDate: 'asc' } }); }
+  async channels(projectId: string, actor: AuthUser) {
+    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    return this.prisma.marketingChannel.findMany({ where: { projectId, ...(!access.isHead ? { ownerId: actor.id } : {}) }, include: { owner: { select: publicUserSelect }, backupAdmin: { select: publicUserSelect } }, orderBy: { code: 'asc' } });
+  }
+  async content(projectId: string, actor: AuthUser) {
+    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    return this.prisma.marketingContentItem.findMany({ where: { projectId, ...(!access.isHead ? { ownerId: actor.id } : {}) }, include: { owner: { select: publicUserSelect } }, orderBy: { code: 'asc' } });
+  }
+  async buzz(projectId: string, actor: AuthUser) {
+    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    return this.prisma.marketingBuzzActivity.findMany({ where: { projectId, ...(!access.isHead ? { ownerId: actor.id } : {}) }, include: { owner: { select: publicUserSelect } }, orderBy: { startDate: 'asc' } });
+  }
   async gates(projectId: string, actor: AuthUser) { await this.project(projectId, actor); return this.prisma.marketingGate.findMany({ where: { projectId }, orderBy: { code: 'asc' } }); }
-  async signoff(projectId: string, actor: AuthUser) { await this.project(projectId, actor); if (!this.isManager(actor)) throw new ForbiddenException('Sign-off details require management permission'); return this.prisma.marketingSignoffItem.findMany({ where: { projectId }, include: { owner: { select: publicUserSelect } }, orderBy: { code: 'asc' } }); }
+  async signoff(projectId: string, actor: AuthUser) { const access = await this.marketingAccess(projectId, actor); this.requireHead(access); return this.prisma.marketingSignoffItem.findMany({ where: { projectId }, include: { owner: { select: publicUserSelect } }, orderBy: { code: 'asc' } }); }
 
   async bulkAssign(projectId: string, dto: MarketingAssignmentDto, actor: AuthUser) {
       requireManager(actor.globalRole); await this.project(projectId, actor);
@@ -224,11 +273,52 @@ export class MarketingService {
       }); */
     }
 
-  async updateChannel(projectId: string, id: string, dto: UpdateChannelDto, actor: AuthUser) { const project = await this.project(projectId, actor); if (!this.isManager(actor) && project.marketingOwnerId !== actor.id) throw new ForbiddenException('Channel update permission denied'); await this.eligible(projectId, dto.backupAdminId); return this.prisma.$transaction(async (tx: any) => { const row = await tx.marketingChannel.update({ where: { id, projectId }, data: { ...dto, backupAdminId: dto.backupAdminId || null } }); await this.audit(tx, actor.id, 'CHANNEL_REGISTRY_UPDATED', 'MarketingChannel', id, { status: row.status }); return row; }); }
-  async updateContent(projectId: string, id: string, dto: UpdateContentDto, actor: AuthUser) { await this.project(projectId, actor); const row = await this.prisma.marketingContentItem.findFirst({ where: { id, projectId } }); if (!row) throw new NotFoundException('Content item not found'); if (!this.isManager(actor) && row.ownerId !== actor.id) throw new ForbiddenException('Content update permission denied'); if (!this.isManager(actor) && dto.ownerId !== undefined) throw new ForbiddenException('Only management can change the owner'); await this.eligible(projectId, dto.ownerId); return this.prisma.$transaction(async (tx: any) => { const updated = await tx.marketingContentItem.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, targetDate: dto.targetDate === undefined ? undefined : dto.targetDate ? new Date(dto.targetDate) : null, scheduledDate: dto.scheduledDate === undefined ? undefined : dto.scheduledDate ? new Date(dto.scheduledDate) : null } }); await this.audit(tx, actor.id, 'CONTENT_ITEM_UPDATED', 'MarketingContentItem', id, { assetStatus: updated.assetStatus, postStatus: updated.postStatus }); return updated; }); }
-  async updateBuzz(projectId: string, id: string, dto: UpdateBuzzDto, actor: AuthUser) { await this.project(projectId, actor); const row = await this.prisma.marketingBuzzActivity.findFirst({ where: { id, projectId } }); if (!row) throw new NotFoundException('Buzz activity not found'); if (!this.isManager(actor) && row.ownerId !== actor.id) throw new ForbiddenException('Buzz update permission denied'); if (!this.isManager(actor) && dto.ownerId !== undefined) throw new ForbiddenException('Only management can change the owner'); await this.eligible(projectId, dto.ownerId); return this.prisma.$transaction(async (tx: any) => { const updated = await tx.marketingBuzzActivity.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null } }); await this.audit(tx, actor.id, 'BUZZ_ACTIVITY_UPDATED', 'MarketingBuzzActivity', id, { status: updated.status }); return updated; }); }
+  async updateChannel(projectId: string, id: string, dto: UpdateChannelDto, actor: AuthUser) {
+    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    const existing = await this.prisma.marketingChannel.findFirst({ where: { id, projectId } });
+    if (!existing) throw new NotFoundException('Marketing channel not found');
+    if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Channel update permission denied');
+    if (!access.isHead && dto.ownerId !== undefined) throw new ForbiddenException('Only Marketing Head or management can change the owner');
+    await this.eligibleMarketingOperator(projectId, dto.ownerId); await this.eligible(projectId, dto.backupAdminId);
+    return this.prisma.$transaction(async (tx: any) => {
+      const row = await tx.marketingChannel.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, backupAdminId: dto.backupAdminId === undefined ? undefined : dto.backupAdminId || null } });
+      await this.audit(tx, actor.id, 'CHANNEL_REGISTRY_UPDATED', 'MarketingChannel', id, { previousStatus: existing.status, status: row.status, previousOwnerId: existing.ownerId, ownerId: row.ownerId }); return row;
+    });
+  }
+  async updateContent(projectId: string, id: string, dto: UpdateContentDto, actor: AuthUser) {
+    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    const existing = await this.prisma.marketingContentItem.findFirst({ where: { id, projectId } });
+    if (!existing) throw new NotFoundException('Content item not found');
+    if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Content update permission denied');
+    if (!access.isHead && dto.ownerId !== undefined) throw new ForbiddenException('Only Marketing Head or management can change the owner');
+    await this.eligibleMarketingOperator(projectId, dto.ownerId);
+    return this.prisma.$transaction(async (tx: any) => {
+      const updated = await tx.marketingContentItem.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, targetDate: dto.targetDate === undefined ? undefined : dto.targetDate ? new Date(dto.targetDate) : null, scheduledDate: dto.scheduledDate === undefined ? undefined : dto.scheduledDate ? new Date(dto.scheduledDate) : null } });
+      await this.audit(tx, actor.id, 'CONTENT_ITEM_UPDATED', 'MarketingContentItem', id, { previousAssetStatus: existing.assetStatus, assetStatus: updated.assetStatus, previousPostStatus: existing.postStatus, postStatus: updated.postStatus, previousOwnerId: existing.ownerId, ownerId: updated.ownerId }); return updated;
+    });
+  }
+  async updateBuzz(projectId: string, id: string, dto: UpdateBuzzDto, actor: AuthUser) {
+    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    const existing = await this.prisma.marketingBuzzActivity.findFirst({ where: { id, projectId } });
+    if (!existing) throw new NotFoundException('Buzz activity not found');
+    if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Buzz update permission denied');
+    if (!access.isHead && dto.ownerId !== undefined) throw new ForbiddenException('Only Marketing Head or management can change the owner');
+    await this.eligibleMarketingOperator(projectId, dto.ownerId);
+    return this.prisma.$transaction(async (tx: any) => {
+      const updated = await tx.marketingBuzzActivity.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null } });
+      await this.audit(tx, actor.id, 'BUZZ_ACTIVITY_UPDATED', 'MarketingBuzzActivity', id, { previousStatus: existing.status, status: updated.status, previousOwnerId: existing.ownerId, ownerId: updated.ownerId }); return updated;
+    });
+  }
   async approveGate(projectId: string, id: string, _dto: ApproveGateDto, actor: AuthUser) { requireManager(actor.globalRole); await this.project(projectId, actor); const gate = await this.prisma.marketingGate.findFirst({ where: { id, projectId } }); if (!gate) throw new NotFoundException('Marketing gate not found'); const eligibility = await this.gateEligibility(projectId); if (!eligibility[gate.code]) throw new BadRequestException(`${gate.name} is not ready for approval`); return this.prisma.$transaction(async (tx: any) => { const updated = await tx.marketingGate.update({ where: { id }, data: { status: 'APPROVED', approvedById: actor.id, approvedAt: new Date() } }); await this.audit(tx, actor.id, 'MARKETING_GATE_APPROVED', 'MarketingGate', id); return updated; }); }
-  async updateSignoff(projectId: string, id: string, dto: UpdateSignoffDto, actor: AuthUser) { requireManager(actor.globalRole); await this.project(projectId, actor); await this.eligible(projectId, dto.ownerId); const existing = await this.prisma.marketingSignoffItem.findFirst({ where: { id, projectId } }); if (!existing) throw new NotFoundException('Marketing sign-off item not found'); const marketingCheck = dto.marketingCheck ?? existing.marketingCheck; const pmCheck = dto.pmCheck ?? existing.pmCheck; const finalStatus = marketingCheck === 'FIX_REQUIRED' || pmCheck === 'FIX_REQUIRED' ? 'FIX_REQUIRED' : marketingCheck === 'VERIFIED' && pmCheck === 'VERIFIED' ? 'READY' : marketingCheck === 'N_A' && pmCheck === 'N_A' ? 'READY' : 'PENDING'; return this.prisma.$transaction(async (tx: any) => { const row = await tx.marketingSignoffItem.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, targetFixDate: dto.targetFixDate === undefined ? undefined : dto.targetFixDate ? new Date(dto.targetFixDate) : null, finalStatus } }); await this.audit(tx, actor.id, 'MARKETING_SIGNOFF_UPDATED', 'MarketingSignoffItem', id, { finalStatus }); return row; }); }
+  async updateSignoff(projectId: string, id: string, dto: UpdateSignoffDto, actor: AuthUser) {
+    const access = await this.marketingAccess(projectId, actor); this.requireHead(access);
+    if (!access.isManager && (dto.pmCheck !== undefined || dto.ownerId !== undefined)) throw new ForbiddenException('Only Admin or Super Admin can update the PM check or sign-off owner');
+    await this.eligible(projectId, dto.ownerId);
+    const existing = await this.prisma.marketingSignoffItem.findFirst({ where: { id, projectId } }); if (!existing) throw new NotFoundException('Marketing sign-off item not found');
+    const marketingCheck = dto.marketingCheck ?? existing.marketingCheck; const pmCheck = dto.pmCheck ?? existing.pmCheck;
+    const finalStatus = marketingCheck === 'FIX_REQUIRED' || pmCheck === 'FIX_REQUIRED' ? 'FIX_REQUIRED' : marketingCheck === 'VERIFIED' && pmCheck === 'VERIFIED' ? 'READY' : marketingCheck === 'N_A' && pmCheck === 'N_A' ? 'READY' : 'PENDING';
+    return this.prisma.$transaction(async (tx: any) => { const row = await tx.marketingSignoffItem.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, targetFixDate: dto.targetFixDate === undefined ? undefined : dto.targetFixDate ? new Date(dto.targetFixDate) : null, finalStatus } }); await this.audit(tx, actor.id, 'MARKETING_SIGNOFF_UPDATED', 'MarketingSignoffItem', id, { previousMarketingCheck: existing.marketingCheck, marketingCheck, previousPmCheck: existing.pmCheck, pmCheck, finalStatus }); return row; });
+  }
 
   async reschedulePreview(projectId: string, targetDate: string, actor: AuthUser) {
     requireManager(actor.globalRole); await this.project(projectId, actor);

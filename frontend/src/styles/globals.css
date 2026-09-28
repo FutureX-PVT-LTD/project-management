@@ -4,57 +4,57 @@
 
 @layer base {
   :root {
-    /* FutureX Centralized Design System Tokens */
+    /* FutureX Refined SaaS Design System Tokens */
 
-    /* 6. Background System (Predominantly White) */
-    --bg-app: #FFFFFF;
-    --bg-subtle: #F8F9FB;
-    --bg-muted: #F3F5F7;
-    --bg-canvas: #FFFFFF;
+    /* Background System (Soft Neutral Canvas + Clean White Surfaces) */
+    --bg-app: #F8F9FA;
+    --bg-subtle: #F1F5F9;
+    --bg-muted: #E2E8F0;
+    --bg-canvas: #F8F9FA;
     --bg-surface: #FFFFFF;
-    --bg-hover: #F8F9FB;
+    --bg-hover: #F8FAFC;
 
     /* Backward compatibility aliases */
-    --fx-bg: #FFFFFF;
+    --fx-bg: #F8F9FA;
     --fx-surface: #FFFFFF;
-    --fx-surface-secondary: #F8F9FB;
-    --fx-surface-soft: #F4F6F8;
+    --fx-surface-secondary: #F8FAFC;
+    --fx-surface-soft: #F1F5F9;
 
-    /* 7. Text & Typography Tokens */
-    --text-primary: #17191C;
-    --text-secondary: #60666F;
-    --text-tertiary: #8B929B;
-    --text-muted: #8B929B;
-    --text-disabled: #A8AFB9;
+    /* Text & Typography Tokens (Slate/Charcoal Hierarchy) */
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-tertiary: #64748B;
+    --text-muted: #94A3B8;
+    --text-disabled: #CBD5E1;
 
-    --fx-text: #17191C;
-    --fx-text-primary: #17191C;
-    --fx-text-secondary: #60666F;
-    --fx-text-muted: #8B929B;
-    --fx-text-disabled: #A8AFB9;
+    --fx-text: #0F172A;
+    --fx-text-primary: #0F172A;
+    --fx-text-secondary: #475569;
+    --fx-text-muted: #94A3B8;
+    --fx-text-disabled: #CBD5E1;
 
-    /* Borders & Dividers */
-    --border-subtle: #E8EBEF;
-    --border-medium: #DCE1E7;
-    --border: #E8EBEF;
-    --border-strong: #DCE1E7;
+    /* Calm, Subtle Borders */
+    --border-subtle: #E2E8F0;
+    --border-medium: #CBD5E1;
+    --border: #E2E8F0;
+    --border-strong: #94A3B8;
 
-    --fx-border: #E8EBEF;
-    --fx-border-strong: #DCE1E7;
-    --fx-border-subtle: #E8EBEF;
+    --fx-border: #E2E8F0;
+    --fx-border-strong: #CBD5E1;
+    --fx-border-subtle: #E2E8F0;
 
-    /* Primary Blue Accent System */
-    --blue-600: #2463EB;
+    /* Refined Primary Accent Blue System */
+    --blue-600: #2563EB;
     --blue-700: #1D4ED8;
-    --blue-100: #EEF4FF;
-    --blue-50: #F6F9FF;
+    --blue-100: #EFF6FF;
+    --blue-50: #F8FAFC;
 
-    --fx-primary: #2463EB;
+    --fx-primary: #2563EB;
     --fx-primary-hover: #1D4ED8;
-    --fx-primary-pressed: #1B44B8;
-    --fx-primary-soft: #EEF4FF;
-    --fx-primary-very-soft: #F6F9FF;
-    --fx-deep-navy: #163A5F;
+    --fx-primary-pressed: #1E40AF;
+    --fx-primary-soft: #EFF6FF;
+    --fx-primary-very-soft: #F8FAFC;
+    --fx-deep-navy: #0F172A;
 
     --fx-accent: var(--fx-primary);
     --fx-accent-hover: var(--fx-primary-hover);
@@ -63,21 +63,34 @@
     --fx-accent-very-soft: var(--fx-primary-very-soft);
     --fx-accent-subtle: var(--bg-subtle);
 
-    /* 8. Semantic Status System */
-    --status-completed-text: #26715A;
-    --status-completed-bg: #EDF7F2;
-    --status-ready-text: #237A57;
-    --status-ready-bg: #EFF8F3;
-    --status-inprogress-text: #245EC7;
-    --status-inprogress-bg: #EEF4FF;
-    --status-waiting-text: #9A6515;
-    --status-waiting-bg: #FFF7E8;
-    --status-inreview-text: #6D52A3;
-    --status-inreview-bg: #F5F1FB;
-    --status-blocked-text: #B54747;
-    --status-blocked-bg: #FCEEEE;
-    --status-unassigned-text: #626A73;
-    --status-unassigned-bg: #F1F3F5;
+    /* Semantic Status System (Soft, Clean, Restrained Tones) */
+    --status-completed-text: #15803D;
+    --status-completed-bg: #F0FDF4;
+    --status-completed-border: #DCFCE7;
+
+    --status-ready-text: #475569;
+    --status-ready-bg: #F1F5F9;
+    --status-ready-border: #E2E8F0;
+
+    --status-inprogress-text: #1D4ED8;
+    --status-inprogress-bg: #EFF6FF;
+    --status-inprogress-border: #DBEAFE;
+
+    --status-waiting-text: #B45309;
+    --status-waiting-bg: #FFFBEB;
+    --status-waiting-border: #FEF3C7;
+
+    --status-inreview-text: #6D28D9;
+    --status-inreview-bg: #F5F3FF;
+    --status-inreview-border: #EDE9FE;
+
+    --status-blocked-text: #DC2626;
+    --status-blocked-bg: #FEF2F2;
+    --status-blocked-border: #FEE2E2;
+
+    --status-unassigned-text: #64748B;
+    --status-unassigned-bg: #F8FAFC;
+    --status-unassigned-border: #E2E8F0;
 
     --fx-status-ready-text: var(--status-ready-text);
     --fx-status-ready-bg: var(--status-ready-bg);
@@ -106,9 +119,9 @@
     --semantic-done-bg: var(--status-completed-bg);
 
     /* Motion Tokens */
-    --motion-fast: 130ms;
-    --motion-standard: 170ms;
-    --motion-panel: 200ms;
+    --motion-fast: 140ms;
+    --motion-standard: 180ms;
+    --motion-panel: 220ms;
     --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -117,41 +130,41 @@
   }
 
   body {
-    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background-color: var(--bg-app);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 14px;
+    font-size: 13.5px;
     line-height: 1.5;
   }
 
-  /* 10. Typography Scale Classes */
+  /* Typography Scale Classes */
   .fx-page-title {
-    font-size: 30px;
-    font-weight: 650;
-    line-height: 1.15;
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.2;
     letter-spacing: -0.025em;
     color: var(--text-primary);
   }
 
   .fx-section-title {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: -0.01em;
+    line-height: 1.35;
+    letter-spacing: -0.015em;
     color: var(--text-primary);
   }
 
   .fx-entity-title {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 600;
-    line-height: 1.35;
+    line-height: 1.4;
     color: var(--text-primary);
   }
 
   .fx-body {
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 400;
     line-height: 1.5;
     color: var(--text-primary);
@@ -167,7 +180,8 @@
   .fx-small-label {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
     color: var(--text-tertiary);
   }
 
@@ -180,8 +194,8 @@
 
   /* Restrained Enterprise Scrollbar (4px) */
   ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
@@ -190,7 +204,7 @@
 
   ::-webkit-scrollbar-thumb {
     background: var(--border-medium);
-    border-radius: 4px;
+    border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -216,7 +230,7 @@
   }
 
   .fx-transition-colors {
-    transition-property: color, background-color, border-color;
+    transition-property: color, background-color, border-color, box-shadow;
     transition-timing-function: var(--ease-standard);
     transition-duration: var(--motion-fast);
   }
@@ -225,7 +239,7 @@
     transition: transform var(--motion-panel) var(--ease-standard), opacity var(--motion-panel) var(--ease-standard);
   }
 
-  /* Surface System Helper Classes (Open surfaces, not heavy cards) */
+  /* Surface System Helper Classes */
   .fx-surface-subtle {
     background-color: var(--bg-subtle);
     border: 1px solid var(--border-subtle);
@@ -235,7 +249,8 @@
   .fx-surface-panel {
     background-color: #FFFFFF;
     border: 1px solid var(--border-subtle);
-    border-radius: 14px;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
   }
 
   .fx-row-divider {
