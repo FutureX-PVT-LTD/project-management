@@ -53,53 +53,121 @@ export function AuditLogsPage() {
 
   return (
     <AppShell>
-      <div className="space-y-5">
+      <div className="space-y-6 w-full max-w-7xl">
         {/* Header */}
-        <div className="border-b border-[#E8EBEF] pb-4">
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#17191C]">
+        <div className="border-b border-[#E3E7EC] pb-4">
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#181B20]">
             System Audit Log
           </h1>
-          <p className="mt-1 text-[13px] text-[#60666F]">Authentication, account and system activity across FutureX.</p>
+          <p className="mt-1 text-xs text-[#626A73]">
+            Authentication, account security, and administrative actions across FutureX.
+          </p>
         </div>
 
-        {/* Search Toolbar */}
-        <div className="flex flex-wrap items-end gap-3 border-b border-fx-border pb-4">
+        {/* Search & Filter Toolbar */}
+        <div className="flex flex-wrap items-end gap-3 border-b border-[#E3E7EC] pb-4">
           <div className="w-full sm:w-64">
-            <Input
-              placeholder="Search audit actions..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setOffset(0); }}
-              leftIcon={<Search className="w-3.5 h-3.5" />}
-              className="h-8 text-xs bg-[#F8F9FB]"
-            />
+            <label className="grid gap-1 text-xs font-medium text-[#181B20]">
+              Search
+              <Input
+                placeholder="Search audit actions..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setOffset(0);
+                }}
+                leftIcon={<Search className="w-3.5 h-3.5 text-[#929AA3]" />}
+                className="h-8.5 text-xs bg-white"
+              />
+            </label>
           </div>
-          <label className="grid gap-1 text-xs">User<select value={filters.actorId} onChange={(e) => { setFilters({ ...filters, actorId: e.target.value }); setOffset(0); }} className="h-8 max-w-52 rounded border border-fx-border bg-white px-2">
-            <option value="">All users</option>{users.map((person) => <option key={person.id} value={person.id}>{person.firstName} {person.lastName}</option>)}
-          </select></label>
-          {(['action', 'entityType'] as const).map((field) => <label key={field} className="grid gap-1 text-xs">{field === 'action' ? 'Action' : 'Category'}<input value={filters[field]} maxLength={100} onChange={(e) => { setFilters({ ...filters, [field]: e.target.value }); setOffset(0); }} className="h-8 w-36 rounded border border-fx-border px-2" /></label>)}
-          <label className="grid gap-1 text-xs">Result<select value={filters.outcome} onChange={(e) => { setFilters({ ...filters, outcome: e.target.value }); setOffset(0); }} className="h-8 rounded border border-fx-border bg-white px-2"><option value="">All results</option><option value="success">Success</option><option value="failed">Failed</option></select></label>
-          {(['startDate', 'endDate'] as const).map((field) => <label key={field} className="grid gap-1 text-xs">{field === 'startDate' ? 'From (UTC)' : 'To (UTC)'}<input type="date" value={filters[field]} onChange={(e) => { setFilters({ ...filters, [field]: e.target.value }); setOffset(0); }} className="h-8 rounded border border-fx-border px-2" /></label>)}
+          <label className="grid gap-1 text-xs font-medium text-[#181B20]">
+            User
+            <select
+              value={filters.actorId}
+              onChange={(e) => {
+                setFilters({ ...filters, actorId: e.target.value });
+                setOffset(0);
+              }}
+              className="h-8.5 max-w-52 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:outline-none focus:border-[#2563EB]"
+            >
+              <option value="">All users</option>
+              {users.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.firstName} {person.lastName}
+                </option>
+              ))}
+            </select>
+          </label>
+          {(['action', 'entityType'] as const).map((field) => (
+            <label key={field} className="grid gap-1 text-xs font-medium text-[#181B20]">
+              {field === 'action' ? 'Action' : 'Category'}
+              <input
+                value={filters[field]}
+                maxLength={100}
+                placeholder={field === 'action' ? 'e.g. LOGIN' : 'e.g. Project'}
+                onChange={(e) => {
+                  setFilters({ ...filters, [field]: e.target.value });
+                  setOffset(0);
+                }}
+                className="h-8.5 w-36 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:outline-none focus:border-[#2563EB]"
+              />
+            </label>
+          ))}
+          <label className="grid gap-1 text-xs font-medium text-[#181B20]">
+            Result
+            <select
+              value={filters.outcome}
+              onChange={(e) => {
+                setFilters({ ...filters, outcome: e.target.value });
+                setOffset(0);
+              }}
+              className="h-8.5 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:outline-none focus:border-[#2563EB]"
+            >
+              <option value="">All results</option>
+              <option value="success">Success</option>
+              <option value="failed">Failed</option>
+            </select>
+          </label>
+          {(['startDate', 'endDate'] as const).map((field) => (
+            <label key={field} className="grid gap-1 text-xs font-medium text-[#181B20]">
+              {field === 'startDate' ? 'From (UTC)' : 'To (UTC)'}
+              <input
+                type="date"
+                value={filters[field]}
+                onChange={(e) => {
+                  setFilters({ ...filters, [field]: e.target.value });
+                  setOffset(0);
+                }}
+                className="h-8.5 rounded-[8px] border border-[#E3E7EC] bg-white px-2 text-xs text-[#181B20] focus:outline-none focus:border-[#2563EB]"
+              />
+            </label>
+          ))}
         </div>
-        {error && <p role="alert" className="text-sm text-red-700">{error.message}</p>}
+        {error && (
+          <p role="alert" className="text-xs text-[#C24141]">
+            {error.message}
+          </p>
+        )}
 
         {/* Audit Log Table */}
         {isLoading ? (
-          <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-10 text-center text-xs text-[#8C939E]">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] p-10 text-center text-xs text-[#929AA3]">
             Loading security logs...
           </div>
         ) : logs.length === 0 ? (
-          <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-8 text-center text-xs text-[#8C939E]">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] p-8 text-center text-xs text-[#929AA3]">
             No audit records found.
           </div>
         ) : (
-          <div className="bg-white border border-[#E8EBEF] rounded-[10px] overflow-hidden">
-            <div className="px-4 py-2 border-b border-[#E8EBEF] bg-[#FAFBFC] text-[11px] text-[#8C939E]">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] overflow-hidden shadow-none">
+            <div className="px-4 py-2 border-b border-[#E3E7EC] bg-[#F7F8FA] text-[11px] text-[#929AA3]">
               Showing {logs.length} of {totalLogs} audit records
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-[#FAFBFC] text-[#60666F] font-medium border-b border-[#E8EBEF]">
+                  <tr className="bg-[#F7F8FA] text-[#626A73] font-medium border-b border-[#E3E7EC]">
                     <th className="py-2.5 px-4">Time</th>
                     <th className="py-2.5 px-3">Actor</th>
                     <th className="py-2.5 px-3">Action</th>
@@ -108,35 +176,78 @@ export function AuditLogsPage() {
                     <th className="py-2.5 px-4">Device / IP</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
-                  {logs.map((log: any) => (
-                    <tr key={log.id} className="hover:bg-[#F8F9FB] transition-colors">
-                      <td className="whitespace-nowrap py-3 px-4 font-mono text-[11px] text-[#8C939E]">
-                        {new Date(log.createdAt).toLocaleString()}
-                      </td>
-                      <td className="py-3 px-3 text-[#60666F]">
-                        {log.actor ? `${log.actor.firstName} ${log.actor.lastName}` : 'System'}
-                      </td>
-                      <td className="py-3 px-3 font-medium text-[#17191C]">{String(log.action).replace(/_/g, ' ')}</td>
-                      <td className="max-w-56 truncate py-3 px-3 text-[#60666F]" title={auditContext(log)}>{auditContext(log)}</td>
-                      <td className="py-3 px-3">
-                        <span className={String(log.action).endsWith('_FAILED') ? 'text-[#B54747]' : 'text-[#237A57]'}>{String(log.action).endsWith('_FAILED') ? 'Failed' : 'Success'}</span>
-                      </td>
-                      <td className="max-w-52 py-3 px-4 text-[11px] text-[#8C939E]">
-                        <span className="block truncate" title={log.userAgent || ''}>{log.userAgent || 'Device unavailable'}</span>
-                        <span className="font-mono">{log.ipAddress || 'IP unavailable'}</span>
-                      </td>
-                    </tr>
-                  ))}
+                <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
+                  {logs.map((log: any) => {
+                    const isFailed = String(log.action).endsWith('_FAILED');
+                    return (
+                      <tr key={log.id} className="hover:bg-[#F7F8FA] transition-colors">
+                        <td className="whitespace-nowrap py-3 px-4 font-mono text-[11px] text-[#929AA3]">
+                          {new Date(log.createdAt).toLocaleString()}
+                        </td>
+                        <td className="py-3 px-3 text-[#626A73]">
+                          {log.actor ? `${log.actor.firstName} ${log.actor.lastName}` : 'System'}
+                        </td>
+                        <td className="py-3 px-3 font-medium text-[#181B20]">
+                          {String(log.action).replace(/_/g, ' ')}
+                        </td>
+                        <td
+                          className="max-w-56 truncate py-3 px-3 text-[#626A73]"
+                          title={auditContext(log)}
+                        >
+                          {auditContext(log)}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span
+                            className={
+                              isFailed
+                                ? 'text-[11px] font-medium text-[#C24141]'
+                                : 'text-[11px] font-medium text-[#237A57]'
+                            }
+                          >
+                            {isFailed ? 'Failed' : 'Success'}
+                          </span>
+                        </td>
+                        <td className="max-w-52 py-3 px-4 text-[11px] text-[#929AA3]">
+                          <span
+                            className="block truncate"
+                            title={log.userAgent || ''}
+                          >
+                            {log.userAgent || 'Device unavailable'}
+                          </span>
+                          <span className="font-mono text-[10px]">
+                            {log.ipAddress || 'IP unavailable'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           </div>
         )}
-        <div className="flex items-center gap-3 text-xs">
-          <button type="button" title="Previous page" aria-label="Previous page" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 50))} className="disabled:opacity-30"><ChevronLeft size={18} /></button>
+        <div className="flex items-center gap-3 text-xs text-[#626A73]">
+          <button
+            type="button"
+            title="Previous page"
+            aria-label="Previous page"
+            disabled={offset === 0}
+            onClick={() => setOffset(Math.max(0, offset - 50))}
+            className="p-1 rounded-[6px] border border-[#E3E7EC] hover:bg-[#F7F8FA] disabled:opacity-30 transition-colors"
+          >
+            <ChevronLeft size={16} />
+          </button>
           <span>Page {Math.floor(offset / 50) + 1}</span>
-          <button type="button" title="Next page" aria-label="Next page" disabled={offset + 50 >= totalLogs} onClick={() => setOffset(offset + 50)} className="disabled:opacity-30"><ChevronRight size={18} /></button>
+          <button
+            type="button"
+            title="Next page"
+            aria-label="Next page"
+            disabled={offset + 50 >= totalLogs}
+            onClick={() => setOffset(offset + 50)}
+            className="p-1 rounded-[6px] border border-[#E3E7EC] hover:bg-[#F7F8FA] disabled:opacity-30 transition-colors"
+          >
+            <ChevronRight size={16} />
+          </button>
         </div>
       </div>
     </AppShell>

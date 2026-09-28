@@ -87,27 +87,27 @@ export function UserManagementPage() {
 
         {/* Search & Filter Toolbar */}
         {actionError && (
-          <div role="alert" className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-800">
+          <div role="alert" className="flex items-center gap-2 rounded-[8px] border border-[#C24141]/20 bg-[#FDEEEE] p-3 text-xs font-medium text-[#C24141]">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{actionError}</span>
           </div>
         )}
-        <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-3 flex flex-wrap items-center justify-between gap-3 shadow-none">
+        <div className="bg-white border border-[#E3E7EC] rounded-[8px] p-2.5 flex flex-wrap items-center justify-between gap-3 shadow-none">
           <div className="flex items-center gap-2.5 flex-1 min-w-[260px]">
             <div className="w-full sm:w-64">
               <Input
                 placeholder="Search users by name or email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                leftIcon={<Search className="w-3.5 h-3.5" />}
-                className="h-8 text-xs bg-[#F8F9FB]"
+                leftIcon={<Search className="w-3.5 h-3.5 text-[#929AA3]" />}
+                className="h-8.5 text-xs bg-white"
               />
             </div>
 
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="h-8 px-2.5 text-xs bg-[#F8F9FB] border border-[#E8EBEF] rounded-[9px] text-[#17191C] focus:bg-white focus:outline-none focus:border-[#2463EB]"
+              className="h-8.5 px-2.5 text-xs bg-white border border-[#E3E7EC] rounded-[8px] text-[#181B20] focus:outline-none focus:border-[#2563EB]"
             >
               <option value="ALL">All Roles</option>
               <option value={UserRole.OWNER}>Super Admin</option>
@@ -116,35 +116,35 @@ export function UserManagementPage() {
             </select>
           </div>
 
-          <span className="text-xs text-[#8C939E] font-mono">
+          <span className="text-xs text-[#929AA3] font-mono">
             {users.length} {users.length === 1 ? 'user' : 'users'} registered
           </span>
         </div>
 
         {/* User Table */}
         {isLoading ? (
-          <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-10 text-center text-xs text-[#8C939E]">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] p-10 text-center text-xs text-[#929AA3]">
             Loading team members...
           </div>
         ) : users.length === 0 ? (
-          <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-8 text-center text-xs text-[#8C939E]">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] p-8 text-center text-xs text-[#929AA3]">
             No users found matching your search.
           </div>
         ) : (
-          <div className="bg-white border border-[#E8EBEF] rounded-[10px] overflow-hidden">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] overflow-hidden shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-[#FAFBFC] text-[#60666F] font-medium border-b border-[#E8EBEF]">
+                  <tr className="bg-[#F7F8FA] text-[#626A73] font-medium border-b border-[#E3E7EC]">
                     <th className="py-2.5 px-4">User</th>
-                    <th className="py-2.5 px-3">Functional Roles</th>
+                    <th className="py-2.5 px-3">Job Title</th>
                     <th className="py-2.5 px-3">System Role</th>
+                    <th className="py-2.5 px-3">Functional Roles</th>
                     <th className="py-2.5 px-3">Status</th>
-                    <th className="py-2.5 px-4 text-right">Registered</th>
-                    <th className="py-2.5 px-3 text-right">Actions</th>
+                    <th className="py-2.5 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
+                <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                   {users.map((u: any) => {
                     const isAdminUser = u.globalRole === UserRole.ADMIN || u.globalRole === UserRole.OWNER;
                     const isActive = u.isActive !== false;
@@ -192,34 +192,31 @@ export function UserManagementPage() {
                     ];
 
                     return (
-                      <tr key={u.id} className="hover:bg-[#F8F9FB] transition-colors">
+                      <tr key={u.id} className="hover:bg-[#F7F8FA] transition-colors">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-7 h-7 rounded-full bg-[#EEF4FF] text-[#2463EB] font-medium text-[11px] flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-full bg-[#EEF4FF] text-[#2563EB] font-medium text-[11px] flex items-center justify-center shrink-0">
                               {u.firstName?.[0]}
                               {u.lastName?.[0]}
                             </div>
                             <div>
-                              <p className="font-medium text-[#17191C]">
+                              <p className="font-medium text-[#181B20]">
                                 {u.firstName} {u.lastName}
                               </p>
-                              <p className="text-[11px] text-[#8C939E] font-mono">{u.email}</p>
-                              {u.jobTitle && <p className="text-[11px] text-[#8C939E]">Job title: {u.jobTitle}</p>}
+                              <p className="text-[11px] text-[#929AA3] font-mono">{u.email}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="py-3 px-3 text-[#60666F]">
-                          <span className={cn(!u.functionalRoles?.length && 'font-medium text-amber-700')}>
-                            {roleLabel(u.functionalRoles, 'Not assigned')}
-                          </span>
+                        <td className="py-3 px-3 text-[#626A73]">
+                          {u.jobTitle || '—'}
                         </td>
                         <td className="py-3 px-3">
                           <span
                             className={cn(
-                              'text-[10px] font-medium uppercase px-2 py-0.5 rounded-[4px] border',
+                              'text-[10.5px] font-medium px-2 py-0.5 rounded-[4px] border',
                               isAdminUser
-                                ? 'bg-[#EEF4FF] text-[#2463EB] border-[#D0E1FD]'
-                                : 'bg-[#F8F9FB] text-[#60666F] border-[#E8EBEF]',
+                                ? 'bg-[#EEF4FF] text-[#2563EB] border-[#2563EB]/20'
+                                : 'bg-[#F7F8FA] text-[#626A73] border-[#E3E7EC]',
                             )}
                           >
                             {u.globalRole === UserRole.ADMIN
@@ -229,22 +226,24 @@ export function UserManagementPage() {
                                 : 'Team Member'}
                           </span>
                         </td>
+                        <td className="py-3 px-3 text-[#626A73]">
+                          <span className={cn(!u.functionalRoles?.length && 'font-medium text-[#A86B12]')}>
+                            {roleLabel(u.functionalRoles, 'Not assigned')}
+                          </span>
+                        </td>
                         <td className="py-3 px-3">
                           <span
                             className={cn(
                               'text-[10px] uppercase font-medium px-2 py-0.5 rounded-[4px] border',
                               isActive
-                                ? 'bg-[#EDF7F2] text-[#26715A] border-[#C6E6D6]'
-                                : 'bg-[#FCEEEE] text-[#B54747] border-[#F2C0C0]',
+                                ? 'bg-[#EDF8F2] text-[#237A57] border-[#237A57]/20'
+                                : 'bg-[#FDEEEE] text-[#C24141] border-[#C24141]/20',
                             )}
                           >
                             {isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-[#8C939E] text-[11px]">
-                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
-                        </td>
-                        <td className="py-3 px-3 text-right">
+                        <td className="py-3 px-4 text-right">
                           <ActionMenu items={rowActions} />
                         </td>
                       </tr>

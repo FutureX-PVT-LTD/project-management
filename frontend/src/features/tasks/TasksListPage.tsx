@@ -80,14 +80,14 @@ export function TasksListPage() {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="bg-white border border-fx-border rounded-lg p-2.5 flex flex-wrap items-center gap-2.5">
+        <div className="bg-white border border-[#E3E7EC] rounded-[8px] p-2.5 flex flex-wrap items-center gap-2.5">
           <div className="w-full sm:w-64">
             <Input
               placeholder="Search by title, ID or assignee..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               leftIcon={<Search className="w-3.5 h-3.5" />}
-              className="h-8 text-xs bg-fx-bg"
+              className="h-8.5 text-xs bg-white"
             />
           </div>
 
@@ -95,7 +95,7 @@ export function TasksListPage() {
           <select
             value={projectFilter}
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-[#2563EB] focus:outline-none"
+            className="h-8.5 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none"
           >
             <option value="">All Projects</option>
             {projects.map((p: any) => (
@@ -109,7 +109,7 @@ export function TasksListPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-[#2563EB] focus:outline-none"
+            className="h-8.5 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none"
           >
             <option value="">All Statuses</option>
             {Object.values(TaskStatus).map((s) => (
@@ -123,7 +123,7 @@ export function TasksListPage() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="h-8 rounded-md border border-fx-border bg-fx-bg px-2 text-xs text-fx-text-primary focus:border-[#2563EB] focus:outline-none"
+            className="h-8.5 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none"
           >
             <option value="">All Priorities</option>
             {Object.values(TaskPriority).map((p) => (
@@ -136,7 +136,7 @@ export function TasksListPage() {
 
         {/* Master Tasks Table */}
         {isLoading ? (
-          <div className="bg-white border border-fx-border rounded-[8px] p-10 text-center text-xs text-fx-text-muted shadow-none">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] p-10 text-center text-xs text-[#929AA3] shadow-none">
             Loading tasks...
           </div>
         ) : tasks.length === 0 ? (
@@ -146,12 +146,11 @@ export function TasksListPage() {
             description="No deliverables match your search and filter criteria."
           />
         ) : (
-          <div className="bg-white border border-fx-border rounded-[8px] overflow-hidden shadow-none">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] overflow-hidden shadow-none">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-
                 <thead>
-                  <tr className="bg-fx-bg text-fx-text-secondary font-medium border-b border-fx-border">
+                  <tr className="bg-[#F7F8FA] text-[#626A73] font-medium border-b border-[#E3E7EC]">
                     <th className="py-2.5 px-4">Task ID & Title</th>
                     <th className="py-2.5 px-3">Project</th>
                     <th className="py-2.5 px-3">Status</th>
@@ -161,30 +160,30 @@ export function TasksListPage() {
                     <th className="py-2.5 px-4 text-right">Due Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-fx-border/60 text-fx-text-primary">
+                <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                   {tasks.map((task: any) => (
                     <tr
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="hover:bg-fx-bg-hover cursor-pointer fx-transition"
+                      className="hover:bg-[#F7F8FA] cursor-pointer transition-colors"
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-[11px] text-fx-text-muted shrink-0">
+                          <span className="font-mono text-[11px] text-[#929AA3] shrink-0">
                             {task.humanId}
                           </span>
-                          <span className="font-semibold text-fx-text-primary truncate max-w-sm">
+                          <span className="font-semibold text-[#181B20] truncate max-w-sm">
                             {task.title}
                           </span>
                         </div>
                       </td>
-                      <td className="py-3 px-3 text-fx-text-secondary truncate max-w-[140px]">
+                      <td className="py-3 px-3 text-[#626A73] truncate max-w-[140px]">
                         {task.project?.name || '—'}
                       </td>
                       <td className="py-3 px-3">
                         <StatusPill status={task.status} size="xs" />
                       </td>
-                      <td className="py-3 px-3 text-fx-text-secondary">
+                      <td className="py-3 px-3 text-[#626A73]">
                         {task.assignee
                           ? `${task.assignee.firstName} ${task.assignee.lastName}`
                           : 'Unassigned'}
@@ -195,7 +194,7 @@ export function TasksListPage() {
                       <td className="py-3 px-3 w-28">
                         <Progress value={task.progress || 0} showLabel={true} size="xs" />
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-fx-text-secondary">
+                      <td className="py-3 px-4 text-right font-mono text-[#626A73]">
                         {task.dueDate ? formatDate(task.dueDate) : '—'}
                       </td>
                     </tr>

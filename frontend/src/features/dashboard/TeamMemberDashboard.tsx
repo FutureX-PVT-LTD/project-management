@@ -184,18 +184,18 @@ export function TeamMemberDashboard() {
       />
 
       {/* 1. Header: Greeting & Workload Summary */}
-      <header className="border-b border-[#E2E8F0] pb-5 space-y-3.5">
+      <header className="border-b border-[#E3E7EC] pb-5 space-y-3.5">
         <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
           <div>
             <h1 className="fx-page-title">
               <DashboardGreeting userName={firstName} />
             </h1>
-            <p className="text-[13px] text-[#64748B] mt-1 font-normal">
+            <p className="text-[13px] text-[#626A73] mt-1 font-normal">
               {getGreetingSubtitle()}
             </p>
           </div>
           <span
-            className="text-xs text-[#64748B] font-medium shrink-0"
+            className="text-xs text-[#626A73] font-medium shrink-0"
             suppressHydrationWarning
           >
             {now.toLocaleDateString('en-US', {
@@ -213,8 +213,8 @@ export function TeamMemberDashboard() {
             className={cn(
               'rounded-[8px] border px-3.5 py-2.5 text-xs flex items-center justify-between',
               actionMessage.type === 'error'
-                ? 'border-[#FEE2E2] bg-[#FEF2F2] text-[#DC2626]'
-                : 'border-[#DCFCE7] bg-[#F0FDF4] text-[#15803D]',
+                ? 'border-[#FECACA] bg-[#FDEEEE] text-[#C24141]'
+                : 'border-[#C6E7D2] bg-[#EDF8F2] text-[#237A57]',
             )}
           >
             <span>{actionMessage.text}</span>
@@ -232,7 +232,7 @@ export function TeamMemberDashboard() {
         <DashboardWorkloadSummary counts={counts} />
 
         {/* 2. Project & Workstream Filters */}
-        <div className="pt-2 border-t border-[#F1F5F9]">
+        <div className="pt-2 border-t border-[#F2F4F7]">
           <DashboardFilters
             projects={filterProjects}
             selectedProjectId={selectedProjectId}
@@ -287,8 +287,8 @@ export function TeamMemberDashboard() {
         <aside className="flex flex-col gap-6 min-w-0 xl:sticky xl:top-6">
           {/* Up Next Deadlines */}
           <div className="space-y-2.5">
-            <div className="flex items-center justify-between pb-1.5 border-b border-[#E2E8F0]">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">
+            <div className="flex items-center justify-between pb-1.5 border-b border-[#E3E7EC]">
+              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#626A73]">
                 Upcoming Deadlines
               </h3>
               <Link
@@ -301,9 +301,9 @@ export function TeamMemberDashboard() {
             </div>
 
             {upNextDeadlines.length === 0 ? (
-              <p className="text-xs text-[#64748B] py-1">No upcoming deadlines.</p>
+              <p className="text-xs text-[#626A73] py-1">No upcoming deadlines.</p>
             ) : (
-              <div className="divide-y divide-[#F1F5F9]">
+              <div className="divide-y divide-[#F2F4F7]">
                 {upNextDeadlines.map((task: any) => {
                   const isOverdue = new Date(task.dueDate) < now;
                   const cleanId = formatTaskId(
@@ -315,22 +315,22 @@ export function TeamMemberDashboard() {
                     <div
                       key={task.id}
                       onClick={() => setSelectedTaskId(task.id)}
-                      className="py-2 cursor-pointer hover:bg-[#F8FAFC] rounded-[8px] px-2 -mx-2 transition-colors text-xs space-y-1 group"
+                      className="py-2 cursor-pointer hover:bg-[#F7F8FA] rounded-[8px] px-2 -mx-2 transition-colors text-xs space-y-1 group"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium text-[#0F172A] truncate group-hover:text-[#2563EB] transition-colors">
+                        <span className="font-medium text-[#181B20] truncate group-hover:text-[#2563EB] transition-colors">
                           {task.title}
                         </span>
                         <span
                           className={cn(
                             'font-mono text-[11px] shrink-0 font-medium',
-                            isOverdue ? 'text-[#DC2626]' : 'text-[#64748B]',
+                            isOverdue ? 'text-[#C24141]' : 'text-[#626A73]',
                           )}
                         >
                           {formatDate(task.dueDate)}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-[#64748B]">
+                      <div className="flex items-center justify-between text-[11.5px] text-[#626A73]">
                         <span className="font-mono">
                           {cleanId} · {task.project?.name}
                         </span>
@@ -344,7 +344,7 @@ export function TeamMemberDashboard() {
           </div>
 
           {/* Compact Calendar Schedule */}
-          <div className="rounded-[14px] border border-[#E2E8F0] bg-white p-3.5 shadow-xs">
+          <div className="rounded-[14px] border border-[#E3E7EC] bg-white p-3.5">
             <CalendarWidget
               tasks={upNextDeadlines}
               onSelectTask={setSelectedTaskId}

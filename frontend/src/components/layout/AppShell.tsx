@@ -81,7 +81,7 @@ export function AppShell({
   const navigation = canManage
     ? [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Projects', href: '/projects', icon: FolderKanban },
+        { name: 'Products', href: '/projects', icon: FolderKanban },
         { name: 'My Work', href: '/my-work', icon: CheckSquare },
         { name: 'Team Submissions', href: '/admin/submissions', icon: ClipboardCheck },
         { name: 'Additional Work', href: '/additional-work', icon: Plus },
@@ -95,7 +95,7 @@ export function AppShell({
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
         { name: 'My Work', href: '/my-work', icon: CheckSquare },
         { name: 'Additional Work', href: '/additional-work', icon: Plus },
-        { name: 'Projects', href: '/projects', icon: FolderKanban },
+        { name: 'Products', href: '/projects', icon: FolderKanban },
         { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
         { name: 'Timeline', href: '/timeline', icon: GanttChartSquare },
         { name: 'Notifications', href: '/notifications', icon: Bell, badge: unreadCount },
@@ -111,9 +111,10 @@ export function AppShell({
   const getBreadcrumbs = () => {
     if (pathname === '/dashboard' || pathname === '/') return 'Overview';
     if (pathname === '/my-work') return 'My Work';
+    if (pathname === '/additional-work') return 'Additional Work';
     if (pathname === '/admin/submissions') return 'Administration / Team Submissions';
-    if (pathname === '/projects') return 'Projects';
-    if (pathname.startsWith('/projects/')) return 'Projects / Details';
+    if (pathname === '/projects') return 'Products';
+    if (pathname.startsWith('/projects/')) return 'Products / Details';
     if (pathname === '/tasks') return 'Tasks';
     if (pathname === '/calendar') return 'Calendar';
     if (pathname === '/team') return 'Team';
@@ -131,7 +132,7 @@ export function AppShell({
   const fullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.email || 'User';
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex">
+    <div className="min-h-screen bg-[#F7F8FA] flex">
       {/* Mobile Backdrop */}
       {mobileOpen && (
         <div
@@ -140,20 +141,20 @@ export function AppShell({
         />
       )}
 
-      {/* Sidebar: 224px desktop, white bg, refined subtle border */}
+      {/* Sidebar: 224px desktop, clean white bg, subtle border */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-[224px] bg-white border-r border-[#E2E8F0] flex flex-col justify-between transition-transform duration-180 ease-in-out lg:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-[224px] bg-white border-r border-[#E3E7EC] flex flex-col justify-between transition-transform duration-170 ease-in-out lg:translate-x-0',
           mobileOpen ? 'translate-x-0 shadow-drawer' : '-translate-x-full',
         )}
       >
         <div className="flex flex-col h-full">
           {/* Brand Header */}
-          <div className="h-[56px] px-4 border-b border-[#E2E8F0] flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2.5 group">
+          <div className="h-[54px] px-4 border-b border-[#E3E7EC] flex items-center justify-between">
+            <Link href="/dashboard" className="flex items-center gap-2 group">
               <FutureXLogo size="sidebar" priority />
               <div className="flex items-baseline">
-                <span className="text-[11px] text-[#94A3B8] font-medium tracking-tight">
+                <span className="text-[11px] text-[#929AA3] font-semibold tracking-tight">
                   Studio
                 </span>
               </div>
@@ -161,7 +162,7 @@ export function AppShell({
 
             <button
               onClick={() => setMobileOpen(false)}
-              className="lg:hidden text-[#94A3B8] hover:text-[#0F172A] p-1 rounded-md hover:bg-[#F8FAFC]"
+              className="lg:hidden text-[#929AA3] hover:text-[#181B20] p-1 rounded-md hover:bg-[#F7F8FA]"
             >
               <X className="w-4 h-4" />
             </button>
@@ -170,7 +171,7 @@ export function AppShell({
           {/* Navigation Items */}
           <div className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4">
             <div>
-              <p className="px-2 pb-1 text-[10.5px] font-semibold uppercase tracking-wider text-[#94A3B8] select-none">
+              <p className="px-2 pb-1 text-[10.5px] font-semibold uppercase tracking-wider text-[#929AA3] select-none">
                 Workspace
               </p>
               <nav className="space-y-0.5">
@@ -185,23 +186,23 @@ export function AppShell({
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        'h-[34px] flex items-center justify-between px-2.5 rounded-[7px] text-[13px] fx-transition group relative',
+                        'h-[34px] flex items-center justify-between px-2.5 rounded-[8px] text-[13px] fx-transition group relative',
                         isActive
-                          ? 'bg-[#EFF6FF] text-[#1D4ED8] font-semibold'
-                          : 'text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]',
+                          ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold'
+                          : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA] font-normal',
                       )}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <Icon
                           className={cn(
                             'w-4 h-4 shrink-0 fx-transition',
-                            isActive ? 'text-[#2563EB]' : 'text-[#64748B] group-hover:text-[#334155]',
+                            isActive ? 'text-[#2563EB]' : 'text-[#626A73] group-hover:text-[#181B20]',
                           )}
                         />
                         <span className="truncate">{item.name}</span>
                       </div>
                       {typeof item.badge === 'number' && item.badge > 0 && (
-                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#DBEAFE] text-[#1D4ED8] text-[10px] font-semibold flex items-center justify-center shrink-0">
+                        <span className="h-4 min-w-4 px-1 rounded-full bg-[#EEF4FF] border border-[#D8E6FD] text-[#2563EB] text-[10px] font-semibold flex items-center justify-center shrink-0">
                           {item.badge}
                         </span>
                       )}
@@ -213,7 +214,7 @@ export function AppShell({
 
             {(isAdmin || isOwner) && (
               <div>
-                <p className="px-2 pb-1 text-[10.5px] font-semibold uppercase tracking-wider text-[#94A3B8] select-none">
+                <p className="px-2 pb-1 text-[10.5px] font-semibold uppercase tracking-wider text-[#929AA3] select-none">
                   Administration
                 </p>
                 <nav className="space-y-0.5">
@@ -226,16 +227,16 @@ export function AppShell({
                         href={item.href}
                         onClick={() => setMobileOpen(false)}
                         className={cn(
-                          'h-[34px] flex items-center gap-2.5 px-2.5 rounded-[7px] text-[13px] fx-transition group relative',
+                          'h-[34px] flex items-center gap-2.5 px-2.5 rounded-[8px] text-[13px] fx-transition group relative',
                           isActive
-                            ? 'bg-[#EFF6FF] text-[#1D4ED8] font-semibold'
-                            : 'text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]',
+                            ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold'
+                            : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA] font-normal',
                         )}
                       >
                         <Icon
                           className={cn(
                             'w-4 h-4 shrink-0 fx-transition',
-                            isActive ? 'text-[#2563EB]' : 'text-[#64748B] group-hover:text-[#334155]',
+                            isActive ? 'text-[#2563EB]' : 'text-[#626A73] group-hover:text-[#181B20]',
                           )}
                         />
                         <span className="truncate">{item.name}</span>
@@ -248,25 +249,25 @@ export function AppShell({
           </div>
 
           {/* User Profile Footer Trigger */}
-          <div className="p-2 border-t border-[#E2E8F0] bg-white">
+          <div className="p-2 border-t border-[#E3E7EC] bg-white">
             <ProfilePopover>
               <button
                 type="button"
-                className="w-full flex items-center justify-between p-1.5 rounded-[7px] hover:bg-[#F8FAFC] fx-transition text-left group"
+                className="w-full flex items-center justify-between p-1.5 rounded-[8px] hover:bg-[#F7F8FA] fx-transition text-left group"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-[#EFF6FF] text-[#2563EB] font-semibold text-[10.5px] border border-[#DBEAFE] flex items-center justify-center shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-[#EEF4FF] text-[#2563EB] font-semibold text-[10.5px] border border-[#D8E6FD] flex items-center justify-center shrink-0">
                     {initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[12px] font-semibold text-[#0F172A] truncate">{fullName}</p>
-                    <p className="text-[10px] text-[#64748B] truncate capitalize">
+                    <p className="text-[12px] font-semibold text-[#181B20] truncate">{fullName}</p>
+                    <p className="text-[10px] text-[#626A73] truncate capitalize">
                       {(user?.jobTitle || (user as any)?.role || user?.globalRole || 'Team Member').toString().toLowerCase().replace(/_/g, ' ')}
                     </p>
                   </div>
                 </div>
 
-                <MoreVertical className="w-3.5 h-3.5 text-[#94A3B8] group-hover:text-[#0F172A] shrink-0" />
+                <MoreVertical className="w-3.5 h-3.5 text-[#929AA3] group-hover:text-[#181B20] shrink-0" />
               </button>
             </ProfilePopover>
           </div>
@@ -275,17 +276,17 @@ export function AppShell({
 
       {/* Main Content Canvas */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-[224px]">
-        {/* Top Bar (56px) */}
-        <header className="h-[56px] bg-white border-b border-[#E2E8F0] px-4 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-30">
+        {/* Top Bar (54px) */}
+        <header className="h-[54px] bg-white border-b border-[#E3E7EC] px-4 sm:px-6 lg:px-7 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden text-[#64748B] hover:text-[#0F172A] p-1.5 rounded-md hover:bg-[#F8FAFC]"
+              className="lg:hidden text-[#626A73] hover:text-[#181B20] p-1.5 rounded-md hover:bg-[#F7F8FA]"
               aria-label="Toggle navigation menu"
             >
               <Menu className="w-4 h-4" />
             </button>
-            <span className="text-[12.5px] text-[#64748B] font-medium truncate hidden sm:inline">
+            <span className="text-[12.5px] text-[#626A73] font-medium truncate hidden sm:inline">
               {getBreadcrumbs()}
             </span>
           </div>
@@ -296,13 +297,13 @@ export function AppShell({
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="hidden md:flex w-64 h-[32px] px-2.5 bg-[#F8FAFC] text-[12px] text-[#64748B] rounded-[7px] border border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-white items-center justify-between fx-transition focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+              className="hidden md:flex w-64 h-[32px] px-2.5 bg-[#F7F8FA] text-[12px] text-[#626A73] rounded-[8px] border border-[#E3E7EC] hover:border-[#D4DAE1] hover:bg-white items-center justify-between fx-transition focus:outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
             >
               <span className="flex items-center gap-2 truncate">
-                <Search className="w-3.5 h-3.5 text-[#94A3B8]" />
+                <Search className="w-3.5 h-3.5 text-[#929AA3]" />
                 <span>Search tasks, projects...</span>
               </span>
-              <kbd className="text-[10px] font-mono px-1 py-0.5 rounded-[4px] bg-white text-[#64748B] border border-[#E2E8F0]">
+              <kbd className="text-[10px] font-mono px-1 py-0.5 rounded-[4px] bg-white text-[#626A73] border border-[#E3E7EC]">
                 ⌘K
               </kbd>
             </button>
@@ -311,7 +312,7 @@ export function AppShell({
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
-              className="md:hidden p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-[7px] fx-transition"
+              className="md:hidden p-1.5 text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA] rounded-[7px] fx-transition"
               aria-label="Search"
             >
               <Search className="w-4 h-4" />
@@ -320,7 +321,7 @@ export function AppShell({
             {/* Notification Bell */}
             <Link
               href="/notifications"
-              className="relative p-1.5 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F8FAFC] rounded-[7px] fx-transition"
+              className="relative p-1.5 text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA] rounded-[7px] fx-transition"
               aria-label="View notifications"
             >
               <Bell className="w-4 h-4" />
@@ -358,7 +359,7 @@ export function AppShell({
                   ...(onOpenCreateProject
                     ? [
                         {
-                          label: 'New Project',
+                          label: 'New Product',
                           icon: <FolderKanban className="w-3.5 h-3.5 text-[#2563EB]" />,
                           onClick: () => onOpenCreateProject(),
                         },
@@ -371,8 +372,8 @@ export function AppShell({
         </header>
 
         {/* Dynamic Main Content Canvas */}
-        <main className="min-w-0 flex-1 bg-[#F8F9FA] p-4 sm:p-6 lg:p-8">
-          <div className={cn('mx-auto min-w-0', fullWidth ? 'w-full' : 'max-w-[1480px]')}>
+        <main className="min-w-0 flex-1 bg-[#F7F8FA] p-4 sm:p-6 lg:p-7">
+          <div className={cn('mx-auto min-w-0', fullWidth ? 'w-full' : 'max-w-[1440px]')}>
             {children}
           </div>
         </main>

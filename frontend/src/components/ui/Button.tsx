@@ -29,29 +29,28 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const isSpinnerActive = loading || isLoading;
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-[8px] fx-transition duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/20 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none active:scale-[0.99]';
+      'inline-flex items-center justify-center font-semibold rounded-[9px] fx-transition duration-130 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2563EB]/25 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none active:scale-[0.99]';
 
     const variants = {
       primary:
-        'bg-[#2563EB] text-white hover:bg-[#1D4ED8] active:bg-[#1E40AF] border border-transparent shadow-[0_1px_2px_rgba(37,99,235,0.12)]',
+        'bg-[#2563EB] text-white hover:bg-[#1D4ED8] active:bg-[#1E40AF] border border-transparent shadow-none',
       secondary:
-        'bg-white text-[#0F172A] border border-[#DCE0E5] hover:bg-[#F8FAFC] hover:border-[#CAD0D8] active:bg-[#F1F5F9] shadow-[0_1px_2px_rgba(0,0,0,0.02)]',
+        'bg-white text-[#181B20] border border-[#E3E7EC] hover:bg-[#F7F8FA] hover:border-[#D4DAE1] active:bg-[#F2F4F7] shadow-none',
       ghost:
-        'bg-transparent text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] border border-transparent',
+        'bg-transparent text-[#626A73] hover:text-[#181B20] hover:bg-[#F2F4F7] border border-transparent',
       danger:
-        'bg-[#DC2626] text-white hover:bg-[#B91C1C] active:bg-[#991B1B] border border-transparent shadow-[0_1px_2px_rgba(220,38,38,0.12)]',
-      // Backward-compatible aliases
+        'bg-[#C24141] text-white hover:bg-[#B03535] active:bg-[#9B2A2A] border border-transparent shadow-none',
       soft:
-        'bg-[#EFF6FF] text-[#2563EB] hover:bg-[#DBEAFE] active:bg-[#BFDBFE] border border-transparent',
+        'bg-[#EEF4FF] text-[#2563EB] hover:bg-[#E0ECFE] active:bg-[#D3E3FD] border border-transparent font-medium',
       outline:
-        'bg-transparent text-[#0F172A] border border-[#DCE0E5] hover:bg-[#F8FAFC] active:bg-[#F1F5F9]',
+        'bg-transparent text-[#181B20] border border-[#E3E7EC] hover:bg-[#F7F8FA] active:bg-[#F2F4F7]',
     };
 
     const sizes = {
-      xs: 'h-7 px-2.5 text-[11px] gap-1 rounded-[6px] font-medium',
-      sm: 'h-[30px] px-3 text-[12px] gap-1.5 rounded-[7px] font-medium',
-      md: 'h-[34px] px-3.5 text-[12.5px] gap-2 font-medium rounded-[8px]',
-      lg: 'h-[38px] px-4 text-[13px] gap-2 font-semibold rounded-[8px]',
+      xs: 'h-[28px] px-2.5 text-[11.5px] gap-1 rounded-[6px] font-semibold',
+      sm: 'h-[32px] px-3 text-[12.5px] gap-1.5 rounded-[8px] font-semibold',
+      md: 'h-[36px] px-3.5 text-[13.5px] gap-2 font-semibold rounded-[9px]',
+      lg: 'h-[42px] px-4.5 text-[14px] gap-2.5 font-semibold rounded-[9px]',
     };
 
     return (

@@ -16,11 +16,11 @@ export function Card({
   const baseStyles = 'rounded-[12px] fx-transition';
 
   const variants = {
-    default: 'bg-white border border-[#E2E8F0] text-[#0F172A] shadow-[0_1px_2px_rgba(15,23,42,0.03)]',
-    subtle: 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] shadow-none',
-    outline: 'bg-transparent border border-[#E2E8F0] text-[#0F172A] shadow-none',
+    default: 'bg-white border border-[#E3E7EC] text-[#181B20]',
+    subtle: 'bg-[#F7F8FA] border border-[#E3E7EC] text-[#181B20]',
+    outline: 'bg-transparent border border-[#E3E7EC] text-[#181B20]',
     interactive:
-      'bg-white border border-[#E2E8F0] hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(15,23,42,0.04)] cursor-pointer text-[#0F172A] shadow-[0_1px_2px_rgba(15,23,42,0.03)]',
+      'bg-white border border-[#E3E7EC] hover:border-[#D4DAE1] cursor-pointer text-[#181B20]',
   };
 
   const paddings = {

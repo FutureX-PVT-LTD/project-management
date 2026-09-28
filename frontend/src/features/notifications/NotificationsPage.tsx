@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Bell, CheckCheck, Clock, Inbox, AlertCircle, Info } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray } from '@/lib/api-data';
 import { AppShell } from '@/components/layout/AppShell';
@@ -40,14 +40,14 @@ export function NotificationsPage() {
 
   return (
     <AppShell>
-      <div className="space-y-5 max-w-3xl">
+      <div className="space-y-6 w-full max-w-3xl">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8EBEF] pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E3E7EC] pb-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#17191C]">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-[#181B20]">
               Notifications
             </h1>
-            <p className="text-xs text-[#60666F] mt-1">
+            <p className="text-xs text-[#626A73] mt-1">
               Prerequisite unlocks, status updates, and assignment alerts.
             </p>
           </div>
@@ -74,29 +74,29 @@ export function NotificationsPage() {
 
         {/* Notifications List */}
         {isLoading ? (
-          <div className="bg-white border border-[#E8EBEF] rounded-[10px] p-10 text-center text-xs text-[#8C939E]">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] p-10 text-center text-xs text-[#929AA3]">
             Loading notifications...
           </div>
         ) : notifications.length === 0 ? (
           <EmptyState
-            icon={<Bell className="w-5 h-5 text-[#2463EB]" />}
+            icon={<Bell className="w-5 h-5 text-[#2563EB]" />}
             title="All caught up"
             description="You have no new alerts or notifications."
           />
         ) : (
-          <div className="bg-white border border-[#E8EBEF] rounded-[10px] divide-y divide-[#E8EBEF] overflow-hidden">
+          <div className="bg-white border border-[#E3E7EC] rounded-[8px] divide-y divide-[#E3E7EC] overflow-hidden shadow-none">
             {notifications.map((n: any) => (
               <div
                 key={n.id}
                 onClick={() => !n.isRead && markAsReadMutation.mutate(n.id)}
                 className={cn(
-                  'p-3.5 hover:bg-[#F8F9FB] transition-colors flex items-start gap-3 text-xs cursor-pointer',
-                  !n.isRead && 'bg-[#F8FAFF]',
+                  'p-3.5 hover:bg-[#F7F8FA] transition-colors flex items-start gap-3 text-xs cursor-pointer',
+                  !n.isRead && 'bg-[#F6F9FF]',
                 )}
               >
                 <div className="mt-1 shrink-0">
                   {!n.isRead ? (
-                    <span className="w-2 h-2 rounded-full bg-[#2463EB] block" />
+                    <span className="w-2 h-2 rounded-full bg-[#2563EB] block" />
                   ) : (
                     <span className="w-2 h-2 rounded-full bg-transparent block" />
                   )}
@@ -105,14 +105,14 @@ export function NotificationsPage() {
                 <div className="space-y-0.5 flex-1 min-w-0">
                   <p
                     className={cn(
-                      'text-xs font-medium',
-                      !n.isRead ? 'text-[#17191C]' : 'text-[#60666F]',
+                      'text-xs font-semibold',
+                      !n.isRead ? 'text-[#181B20]' : 'text-[#626A73]',
                     )}
                   >
                     {n.title}
                   </p>
-                  <p className="text-xs text-[#60666F] leading-relaxed">{n.message}</p>
-                  <p className="text-[10px] text-[#8C939E] font-mono pt-0.5">{formatDate(n.createdAt)}</p>
+                  <p className="text-xs text-[#626A73] leading-relaxed">{n.message}</p>
+                  <p className="text-[10.5px] text-[#929AA3] font-mono pt-0.5">{formatDate(n.createdAt)}</p>
                 </div>
               </div>
             ))}

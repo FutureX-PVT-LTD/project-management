@@ -82,12 +82,12 @@ export function ProjectsListPage() {
     <AppShell>
       <div className="space-y-8">
         {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-[#E8EBEF] pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-[#E3E7EC] pb-5">
           <div>
             <h1 className="fx-page-title">
               Products Directory
             </h1>
-            <p className="text-[13px] text-[#60666F] mt-1">
+            <p className="text-[13px] text-[#626A73] mt-1">
               Deliverable execution, checklist governance, and milestone readiness across all studio titles.
             </p>
           </div>
@@ -101,8 +101,8 @@ export function ProjectsListPage() {
           )}
         </div>
 
-        {/* Status Tabs & Controls */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8EBEF] pb-3">
+        {/* Compact Table / Filter Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E3E7EC] pb-3">
           <div className="flex items-center gap-1 overflow-x-auto no-scrollbar">
             {statusTabs.map((tab) => {
               const isActive = statusFilter === tab.id;
@@ -111,10 +111,10 @@ export function ProjectsListPage() {
                   key={tab.id}
                   onClick={() => setStatusFilter(tab.id)}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] fx-transition',
+                    'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] transition-colors',
                     isActive
-                      ? 'bg-[#EEF4FF] text-[#245EC7] font-medium'
-                      : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
+                      ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold'
+                      : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
                   )}
                 >
                   {tab.label}
@@ -126,24 +126,24 @@ export function ProjectsListPage() {
           {/* Search & View Mode Toggles */}
           <div className="flex items-center gap-2.5">
             <div className="relative w-full sm:w-60">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8B929B]" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#929AA3]" />
               <input
                 type="text"
                 placeholder="Search products..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F8F9FB] border border-[#E8EBEF] rounded-[8px] text-[#17191C] placeholder:text-[#8B929B] focus:outline-none focus:bg-white focus:ring-1 focus:ring-[#2463EB] focus:border-[#2463EB] fx-transition"
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#E3E7EC] rounded-[8px] text-[#181B20] placeholder:text-[#929AA3] focus:outline-none focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] transition-colors"
               />
             </div>
 
-            <div className="flex items-center gap-0.5 border border-[#E8EBEF] rounded-[7px] p-0.5 bg-[#F8F9FB] shrink-0">
+            <div className="flex items-center gap-0.5 border border-[#E3E7EC] rounded-[7px] p-0.5 bg-[#F7F8FA] shrink-0">
               <button
                 onClick={() => setViewMode('cards')}
                 className={cn(
-                  'p-1.5 rounded-[5px] text-xs fx-transition',
+                  'p-1.5 rounded-[5px] text-xs transition-colors',
                   viewMode === 'cards'
-                    ? 'bg-white text-[#17191C] shadow-xs'
-                    : 'text-[#8B929B] hover:text-[#17191C]',
+                    ? 'bg-white text-[#181B20] border border-[#E3E7EC]'
+                    : 'text-[#929AA3] hover:text-[#181B20]',
                 )}
                 title="Grid View"
               >
@@ -152,10 +152,10 @@ export function ProjectsListPage() {
               <button
                 onClick={() => setViewMode('table')}
                 className={cn(
-                  'p-1.5 rounded-[5px] text-xs fx-transition',
+                  'p-1.5 rounded-[5px] text-xs transition-colors',
                   viewMode === 'table'
-                    ? 'bg-white text-[#17191C] shadow-xs'
-                    : 'text-[#8B929B] hover:text-[#17191C]',
+                    ? 'bg-white text-[#181B20] border border-[#E3E7EC]'
+                    : 'text-[#929AA3] hover:text-[#181B20]',
                 )}
                 title="Table View"
               >
@@ -165,25 +165,25 @@ export function ProjectsListPage() {
           </div>
         </div>
 
-        {/* Drafts Management Section */}
+        {/* Drafts Management Section: Clean, Quiet Rows */}
         {canManage && drafts.length > 0 && !search && statusFilter === 'ALL' && (
-          <div className="rounded-[8px] border border-[#E8EBEF] bg-[#FAFAFC] p-4 space-y-3">
+          <div className="rounded-[10px] border border-[#E3E7EC] bg-[#F7F8FA] p-3.5 space-y-2.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#2563EB]" />
-                <h2 className="text-xs font-semibold text-[#17191C] uppercase tracking-wider">
+                <FileText className="w-3.5 h-3.5 text-[#2563EB]" />
+                <h2 className="text-[11px] font-semibold text-[#626A73] uppercase tracking-wider">
                   Draft Products ({drafts.length})
                 </h2>
-                <span className="rounded-full bg-[#EEF4FF] px-2 py-0.5 text-[10px] font-medium text-[#2563EB]">
+                <span className="rounded-[5px] bg-[#EEF4FF] px-1.5 py-0.5 text-[10px] font-medium text-[#2563EB]">
                   Unpublished
                 </span>
               </div>
-              <span className="text-[11px] text-[#8B929B]">
-                Drafts autosave continuously and do not affect active metrics
+              <span className="text-[11px] text-[#929AA3]">
+                Drafts autosave continuously
               </span>
             </div>
 
-            <div className="divide-y divide-[#E8EBEF] rounded-[6px] border border-[#E8EBEF] bg-white overflow-hidden shadow-xs">
+            <div className="divide-y divide-[#E3E7EC] rounded-[8px] border border-[#E3E7EC] bg-white overflow-hidden">
               {drafts.map((d: any) => {
                 const stepLabel =
                   d.currentStep === 'TEAM'
@@ -197,11 +197,11 @@ export function ProjectsListPage() {
                 return (
                   <div
                     key={d.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 text-xs hover:bg-[#F8F9FB] transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-3.5 py-2.5 text-xs hover:bg-[#F7F8FA] transition-colors"
                   >
-                    <div className="flex items-center gap-2.5 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span
-                        className="font-semibold text-[#17191C] hover:text-[#2563EB] cursor-pointer"
+                        className="font-semibold text-[13px] text-[#181B20] hover:text-[#2563EB] cursor-pointer"
                         onClick={() =>
                           router.push(
                             `/projects/new?draft=${d.id}&step=${(d.currentStep || 'DETAILS').toLowerCase()}`,
@@ -210,13 +210,13 @@ export function ProjectsListPage() {
                       >
                         {d.name || 'Untitled Draft'}
                       </span>
-                      <span className="text-[#8B929B]">·</span>
-                      <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-[#60666F]">
+                      <span className="text-[#929AA3]">·</span>
+                      <span className="rounded bg-[#F2F4F7] px-1.5 py-0.5 text-[11px] font-medium text-[#626A73]">
                         {stepLabel}
                       </span>
-                      <span className="text-[#8B929B]">·</span>
-                      <span className="text-[11px] text-[#8B929B] flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-[#8B929B]" />
+                      <span className="text-[#929AA3]">·</span>
+                      <span className="text-[11.5px] text-[#626A73] flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-[#929AA3]" />
                         Updated {formatDate(d.updatedAt)}
                       </span>
                     </div>
@@ -236,7 +236,7 @@ export function ProjectsListPage() {
                       <Button
                         size="xs"
                         variant="ghost"
-                        className="text-[#8B929B] hover:text-red-600 hover:bg-red-50"
+                        className="text-[#929AA3] hover:text-[#C24141] hover:bg-[#FDEEEE]"
                         onClick={() => {
                           if (
                             window.confirm(
@@ -263,12 +263,12 @@ export function ProjectsListPage() {
           <ProjectsListSkeleton />
         ) : projects.length === 0 ? (
           <div className="py-16 text-center space-y-3 max-w-sm mx-auto">
-            <div className="w-10 h-10 rounded-full bg-[#EEF4FF] text-[#2463EB] mx-auto flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-[#EEF4FF] text-[#2563EB] mx-auto flex items-center justify-center">
               <FolderKanban className="w-5 h-5" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-[13px] font-semibold text-[#17191C]">No products found</h3>
-              <p className="text-[12px] text-[#60666F]">
+              <h3 className="text-[13px] font-semibold text-[#181B20]">No products found</h3>
+              <p className="text-[12px] text-[#626A73]">
                 {search
                   ? `No products matched the search "${search}".`
                   : 'Create your first product to generate standard checklists and monitor deliverable execution.'}
@@ -283,8 +283,8 @@ export function ProjectsListPage() {
             )}
           </div>
         ) : viewMode === 'cards' ? (
-          /* 24. Spacious 2-Column Product Surfaces with Breathing Room & Inline Metadata */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          /* Compact, Comfortable 2-Column Product Surfaces */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {projects.map((proj: any) => {
               const doneCount = proj.completedTasksCount || proj.stats?.completedTasks || 0;
               const inProgressCount = proj.inProgressTasksCount || 0;
@@ -298,21 +298,21 @@ export function ProjectsListPage() {
                 <div
                   key={proj.id}
                   onClick={() => openProject(proj.id)}
-                  className="rounded-[12px] bg-white border border-[#E8EBEF] hover:border-[#DCE1E7] p-5 sm:p-6 space-y-4 fx-transition cursor-pointer flex flex-col justify-between"
+                  className="rounded-[12px] bg-white border border-[#E3E7EC] hover:border-[#D4DAE1] p-5 space-y-4 cursor-pointer flex flex-col justify-between transition-colors"
                 >
                   <div className="space-y-3">
                     {/* Top Row: Title, Key, Health */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-base font-semibold text-[#17191C] hover:text-[#2463EB] truncate tracking-tight">
+                          <h3 className="text-[15px] font-semibold text-[#181B20] hover:text-[#2563EB] truncate tracking-tight transition-colors">
                             {proj.name}
                           </h3>
-                          <span className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-[5px] bg-[#F8F9FB] text-[#60666F] border border-[#E8EBEF]">
+                          <span className="font-mono text-[11px] font-medium px-1.5 py-0.5 rounded-[5px] bg-[#F2F4F7] text-[#626A73] border border-[#E3E7EC]">
                             {proj.cleanKey}
                           </span>
                         </div>
-                        <p className="text-[12px] text-[#60666F]">
+                        <p className="text-[12px] text-[#626A73]">
                           {(proj.productType || 'Product').replace('_', ' ')}
                         </p>
                       </div>
@@ -330,45 +330,45 @@ export function ProjectsListPage() {
                     </div>
 
                     {proj.description && (
-                      <p className="text-[12px] text-[#60666F] line-clamp-2 leading-relaxed">
+                      <p className="text-[12.5px] text-[#626A73] line-clamp-2 leading-relaxed">
                         {proj.description}
                       </p>
                     )}
 
                     {/* Progress Bar */}
                     <div className="space-y-1 pt-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-medium text-[#17191C]">{progressVal}% complete</span>
-                        <span className="font-mono text-[#8B929B]">
+                      <div className="flex items-center justify-between text-[11.5px]">
+                        <span className="font-medium text-[#181B20]">{progressVal}% complete</span>
+                        <span className="font-mono text-[#929AA3]">
                           {proj.targetDate ? `Target ${formatDate(proj.targetDate)}` : 'No target date'}
                         </span>
                       </div>
-                      <div className="w-full bg-[#F3F5F7] rounded-full h-1.5 overflow-hidden">
+                      <div className="w-full bg-[#E3E7EC] rounded-full h-1.5 overflow-hidden">
                         <div
-                          className="bg-[#2463EB] h-full rounded-full fx-transition"
+                          className="bg-[#2563EB] h-full rounded-full transition-all"
                           style={{ width: `${Math.min(100, Math.max(0, progressVal))}%` }}
                         />
                       </div>
                     </div>
 
-                    {/* 24. Status counts as text / inline metadata (NOT nested square cells) */}
-                    <div className="flex flex-wrap items-center gap-2 pt-1 text-[12px] text-[#60666F]">
-                      <span className="text-[#26715A] font-medium">{doneCount} completed</span>
-                      <span className="text-[#8B929B]">·</span>
+                    {/* Status counts as text / inline metadata */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 text-[12px] text-[#626A73]">
+                      <span className="text-[#237A57] font-medium">{doneCount} completed</span>
+                      <span className="text-[#929AA3]">·</span>
                       <span>{inProgressCount} active</span>
-                      <span className="text-[#8B929B]">·</span>
+                      <span className="text-[#929AA3]">·</span>
                       <span>{waitingCount} waiting</span>
                       {inReviewCount > 0 && (
                         <>
-                          <span className="text-[#8B929B]">·</span>
-                          <span className="text-[#6D52A3] font-medium">{inReviewCount} in review</span>
+                          <span className="text-[#929AA3]">·</span>
+                          <span className="text-[#7557B5] font-medium">{inReviewCount} in review</span>
                         </>
                       )}
                     </div>
                   </div>
 
                   {/* Footer */}
-                  <div className="pt-3 border-t border-[#E8EBEF] flex items-center justify-between gap-3 text-xs">
+                  <div className="pt-3 border-t border-[#E3E7EC] flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="flex -space-x-1.5 overflow-hidden">
                         {members.slice(0, 3).map((m: any, idx: number) => {
@@ -376,7 +376,7 @@ export function ProjectsListPage() {
                           return (
                             <div
                               key={u.id || idx}
-                              className="w-5 h-5 rounded-full bg-[#F8F9FB] border border-white text-[9px] font-semibold flex items-center justify-center text-[#60666F]"
+                              className="w-5 h-5 rounded-full bg-[#F2F4F7] border border-white text-[9px] font-semibold flex items-center justify-center text-[#626A73]"
                               title={`${u.firstName} ${u.lastName}`}
                             >
                               {getInitials(u.firstName, u.lastName)}
@@ -384,12 +384,12 @@ export function ProjectsListPage() {
                           );
                         })}
                       </div>
-                      <span className="text-[11px] text-[#8B929B]">
+                      <span className="text-[11.5px] text-[#929AA3]">
                         {members.length > 0 ? `${members.length} members` : '1 member'}
                       </span>
                     </div>
 
-                    <span className="text-[12px] font-medium text-[#2463EB] flex items-center gap-1 hover:text-[#1D4ED8] fx-transition">
+                    <span className="text-[12.5px] font-medium text-[#2563EB] flex items-center gap-1 hover:text-[#1D4ED8] transition-colors">
                       <span>Open</span>
                       <ArrowRight className="w-3 h-3" />
                     </span>
@@ -399,11 +399,11 @@ export function ProjectsListPage() {
             })}
           </div>
         ) : (
-          /* Table View: Open layout with #FAFBFC header */
-          <div className="overflow-x-auto">
+          /* Table View: Open layout with comfortable 44-50px rows */
+          <div className="overflow-x-auto border border-[#E3E7EC] rounded-[10px] bg-white">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="bg-[#FAFBFC] text-[#60666F] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E8EBEF]">
+                <tr className="bg-[#F7F8FA] text-[#626A73] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E3E7EC]">
                   <th className="py-3 px-4">Product Title</th>
                   <th className="py-3 px-3">Health</th>
                   <th className="py-3 px-3">Progress</th>
@@ -411,43 +411,43 @@ export function ProjectsListPage() {
                   <th className="py-3 px-4 text-right">Target Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
+              <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                 {projects.map((proj: any) => (
                   <tr
                     key={proj.id}
                     onClick={() => openProject(proj.id)}
-                    className="hover:bg-[#F8F9FB] cursor-pointer fx-transition"
+                    className="hover:bg-[#F7F8FA] cursor-pointer transition-colors h-[48px]"
                   >
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-sm text-[#17191C] hover:text-[#2463EB] fx-transition">
+                    <td className="py-2.5 px-4">
+                      <div className="font-semibold text-[13.5px] text-[#181B20] hover:text-[#2563EB] transition-colors">
                         {proj.name}
                       </div>
-                      <div className="text-[11px] text-[#8B929B] font-mono mt-0.5">
+                      <div className="text-[11px] text-[#626A73] font-mono mt-0.5">
                         {proj.cleanKey}
                       </div>
                     </td>
-                    <td className="py-3.5 px-3">
+                    <td className="py-2.5 px-3">
                       <HealthBadge health={proj.health} reason={proj.healthReason} />
                     </td>
-                    <td className="py-3.5 px-3 w-40">
+                    <td className="py-2.5 px-3 w-40">
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[11px] text-[#60666F]">
+                        <div className="flex justify-between text-[11px] text-[#626A73]">
                           <span>{Math.round(proj.progress || 0)}%</span>
                         </div>
-                        <div className="w-full bg-[#F3F5F7] rounded-full h-1.5 overflow-hidden">
+                        <div className="w-full bg-[#E3E7EC] rounded-full h-1.5 overflow-hidden">
                           <div
-                            className="bg-[#2463EB] h-full rounded-full"
+                            className="bg-[#2563EB] h-full rounded-full"
                             style={{ width: `${Math.min(100, Math.max(0, proj.progress || 0))}%` }}
                           />
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-3 text-[#60666F]">
+                    <td className="py-2.5 px-3 text-[#626A73]">
                       {proj.projectManager
                         ? `${proj.projectManager.firstName} ${proj.projectManager.lastName}`
                         : 'Unassigned'}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-[#60666F] font-medium">
+                    <td className="py-2.5 px-4 text-right font-mono text-[#626A73] font-medium">
                       {proj.targetDate ? formatDate(proj.targetDate) : '—'}
                     </td>
                   </tr>

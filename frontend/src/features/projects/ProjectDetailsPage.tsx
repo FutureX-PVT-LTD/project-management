@@ -164,7 +164,7 @@ export function ProjectDetailsPage({
         {(searchParams.get('created') ||
           searchParams.get('updated') ||
           searchParams.get('taskCreated')) && (
-            <div className="rounded-[8px] border border-[#E8EBEF] bg-[#F8F9FB] px-4 py-2.5 text-xs text-[#17191C]">
+            <div className="rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] px-4 py-2.5 text-xs text-[#181B20]">
               {searchParams.get('created')
                 ? 'Product created. Generate development checklist or add custom tasks.'
                 : searchParams.get('taskCreated')
@@ -174,19 +174,19 @@ export function ProjectDetailsPage({
           )}
 
         {pageError && (
-          <div className="rounded-[8px] border border-[#F9D1D1] bg-[#FCEEEE] px-4 py-2.5 text-xs font-medium text-[#B54747]">
+          <div className="rounded-[8px] border border-[#FECACA] bg-[#FDEEEE] px-4 py-2.5 text-xs font-medium text-[#C24141]">
             {pageError}
           </div>
         )}
 
-        {/* 28. Workspace Product Header */}
+        {/* Workspace Product Header */}
         {!project ? (
           <div className="py-16 text-center space-y-3">
-            <AlertCircle className="w-8 h-8 text-[#B54747] mx-auto" />
-            <h2 className="text-sm font-semibold text-[#17191C]">
+            <AlertCircle className="w-8 h-8 text-[#C24141] mx-auto" />
+            <h2 className="text-sm font-semibold text-[#181B20]">
               Product Not Found
             </h2>
-            <p className="text-xs text-[#60666F]">
+            <p className="text-xs text-[#626A73]">
               This product may have been removed or you do not have permission to view it.
             </p>
             <Link href="/projects">
@@ -196,18 +196,18 @@ export function ProjectDetailsPage({
             </Link>
           </div>
         ) : (
-          <div className="space-y-4 pb-4 border-b border-[#E8EBEF]">
+          <div className="space-y-4 pb-4 border-b border-[#E3E7EC]">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div className="space-y-1.5 min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <Link
                     href="/projects"
-                    className="text-xs text-[#60666F] hover:text-[#2463EB] fx-transition"
+                    className="text-xs text-[#626A73] hover:text-[#2563EB] transition-colors"
                   >
                     Products
                   </Link>
-                  <ChevronRight className="w-3 h-3 text-[#8B929B]" />
-                  <span className="font-mono text-[11px] font-medium text-[#60666F] bg-[#F8F9FB] px-1.5 py-0.5 rounded-[5px] border border-[#E8EBEF]">
+                  <ChevronRight className="w-3 h-3 text-[#929AA3]" />
+                  <span className="font-mono text-[11px] font-medium text-[#626A73] bg-[#F2F4F7] px-1.5 py-0.5 rounded-[5px] border border-[#E3E7EC]">
                     {project?.key || '...'}
                   </span>
                   <HealthBadge
@@ -219,12 +219,12 @@ export function ProjectDetailsPage({
                   {project?.name}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#60666F]">
+                <div className="flex flex-wrap items-center gap-3 text-[13px] text-[#626A73]">
                   <span>{(project?.productType || 'Product').replace('_', ' ')}</span>
-                  <span className="text-[#8B929B]">·</span>
+                  <span className="text-[#929AA3]">·</span>
                   <span>{project?.targetDate ? `Target ${formatDate(project.targetDate)}` : 'No target date'}</span>
-                  <span className="text-[#8B929B]">·</span>
-                  <span className="font-medium text-[#17191C]">{progressVal}% complete</span>
+                  <span className="text-[#929AA3]">·</span>
+                  <span className="font-medium text-[#181B20]">{progressVal}% complete</span>
                 </div>
               </div>
 
@@ -268,28 +268,28 @@ export function ProjectDetailsPage({
             </div>
 
             {/* Quick Metrics Bar (Quiet open row) */}
-            <div className="pt-2 flex flex-wrap items-center justify-between gap-4 text-xs text-[#60666F]">
+            <div className="pt-2 flex flex-wrap items-center justify-between gap-4 text-xs text-[#626A73]">
               <div className="flex items-center gap-6">
                 <div>
-                  <span className="text-[#8B929B]">Tasks:</span>{' '}
-                  <span className="font-mono font-semibold text-[#17191C]">
+                  <span className="text-[#929AA3]">Tasks:</span>{' '}
+                  <span className="font-mono font-semibold text-[#181B20]">
                     {tasks.length}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#8B929B]">Managing Admin:</span>{' '}
-                  <span className="font-medium text-[#17191C]">
+                  <span className="text-[#929AA3]">Managing Admin:</span>{' '}
+                  <span className="font-medium text-[#181B20]">
                     {project?.projectManager
                       ? `${project.projectManager.firstName} ${project.projectManager.lastName}`
                       : 'Unassigned'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[#8B929B]">Launch Readiness:</span>{' '}
-                  <span className={cn('font-semibold', productLaunchReady ? 'text-[#237A57]' : 'text-[#9A6515]')}>
+                  <span className="text-[#929AA3]">Launch Readiness:</span>{' '}
+                  <span className={cn('font-semibold', productLaunchReady ? 'text-[#237A57]' : 'text-[#A86B12]')}>
                     {productLaunchReady ? 'Ready' : 'Not ready'}
                   </span>
-                  <span className="ml-2 text-[11px] text-[#8B929B]">Dev {developmentReadiness}%{marketingEnabled ? ` · Marketing ${marketingSummary?.marketingReadiness === 'READY' ? 'Ready' : 'Not ready'}` : ''}</span>
+                  <span className="ml-2 text-[11px] text-[#929AA3]">Dev {developmentReadiness}%{marketingEnabled ? ` · Marketing ${marketingSummary?.marketingReadiness === 'READY' ? 'Ready' : 'Not ready'}` : ''}</span>
                 </div>
               </div>
 
@@ -300,8 +300,8 @@ export function ProjectDetailsPage({
           </div>
         )}
 
-        {/* 28. Tab Navigation */}
-        <div className="border-b border-[#E8EBEF] pb-2 flex items-center gap-1 overflow-x-auto no-scrollbar">
+        {/* Tab Navigation */}
+        <div className="border-b border-[#E3E7EC] pb-2 flex items-center gap-1 overflow-x-auto no-scrollbar">
           {[
             { id: 'overview', label: 'Overview', icon: Activity },
             {
@@ -317,24 +317,24 @@ export function ProjectDetailsPage({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 fx-transition',
+                  'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 transition-colors',
                   isActive
-                    ? 'bg-[#EEF4FF] text-[#245EC7] font-medium'
-                    : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
+                    ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold'
+                    : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
                 )}
               >
                 <Icon
                   className={cn(
                     'w-3.5 h-3.5',
-                    isActive ? 'text-[#245EC7]' : 'text-[#8B929B]',
+                    isActive ? 'text-[#2563EB]' : 'text-[#929AA3]',
                   )}
                 />
                 <span>{tab.label}</span>
               </button>
             );
           })}
-          <Link href={`/projects/${projectId}/marketing`} className="px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB] fx-transition">
-            <Megaphone className="h-3.5 w-3.5 text-[#8B929B]" /> Marketing
+          <Link href={`/projects/${projectId}/marketing`} className="px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA] transition-colors">
+            <Megaphone className="h-3.5 w-3.5 text-[#929AA3]" /> Marketing
           </Link>
           {[
             {
@@ -354,16 +354,16 @@ export function ProjectDetailsPage({
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
                 className={cn(
-                  'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 fx-transition',
+                  'px-3 py-1.5 text-xs font-medium whitespace-nowrap rounded-[6px] flex items-center gap-1.5 transition-colors',
                   isActive
-                    ? 'bg-[#EEF4FF] text-[#245EC7] font-medium'
-                    : 'text-[#60666F] hover:text-[#17191C] hover:bg-[#F8F9FB]',
+                    ? 'bg-[#EEF4FF] text-[#2563EB] font-semibold'
+                    : 'text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA]',
                 )}
               >
                 <Icon
                   className={cn(
                     'w-3.5 h-3.5',
-                    isActive ? 'text-[#245EC7]' : 'text-[#8B929B]',
+                    isActive ? 'text-[#2563EB]' : 'text-[#929AA3]',
                   )}
                 />
                 <span>{tab.label}</span>
@@ -372,42 +372,42 @@ export function ProjectDetailsPage({
           })}
         </div>
 
-        {/* 29. TAB 1: PRODUCT OVERVIEW */}
+        {/* TAB 1: PRODUCT OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Left Primary Column (8 cols) */}
             <div className="lg:col-span-8 space-y-8 min-w-0">
 
-              {/* 30. Progress by Phase: Calm Table/List (NOT one card per phase) */}
+              {/* Progress by Phase: Calm Table/List */}
               <section className="space-y-3">
-                <div className="pb-2 border-b border-[#E8EBEF] flex items-center justify-between">
+                <div className="pb-2 border-b border-[#E3E7EC] flex items-center justify-between">
                   <h2 className="fx-section-title">
                     Progress by Phase
                   </h2>
                   <button
                     type="button"
                     onClick={() => setActiveTab('development')}
-                    className="text-xs font-medium text-[#2463EB] hover:text-[#1D4ED8] fx-transition"
+                    className="text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors"
                   >
                     View checklist ({checklistTasks.length}) →
                   </button>
                 </div>
 
                 {phaseProgress.length === 0 ? (
-                  <div className="py-4 text-xs text-[#8B929B]">
+                  <div className="py-4 text-xs text-[#929AA3]">
                     No phase breakdown available. Generate the standard development checklist to track progress by phase.
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto border border-[#E3E7EC] rounded-[10px] bg-white">
                     <table className="w-full text-left text-xs">
                       <thead>
-                        <tr className="bg-[#FAFBFC] text-[#60666F] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E8EBEF]">
+                        <tr className="bg-[#F7F8FA] text-[#626A73] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E3E7EC]">
                           <th className="py-2.5 px-3">Phase</th>
                           <th className="py-2.5 px-3 w-48">Progress</th>
                           <th className="py-2.5 px-3 text-right">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
+                      <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                         {phaseProgress.map((phase: any) => {
                           const pct = Number(phase.progress ?? phase.completionPercent ?? 0);
                           const hasStarted = Boolean(
@@ -421,40 +421,40 @@ export function ProjectDetailsPage({
                             pct === 100 ? 'Complete' : hasStarted ? 'In Progress' : 'Not Started';
                           const statusColor =
                             pct === 100
-                              ? 'text-[#26715A] bg-[#EDF7F2]'
+                              ? 'text-[#237A57] bg-[#EDF8F2] border border-[#C6E7D2]'
                               : hasStarted
-                                ? 'text-[#245EC7] bg-[#EEF4FF]'
-                                : 'text-[#8B929B] bg-[#F1F3F5]';
+                                ? 'text-[#2563EB] bg-[#EEF4FF] border border-[#BFDBFE]'
+                                : 'text-[#626A73] bg-[#F2F4F7] border border-[#E3E7EC]';
 
                           return (
-                            <tr key={phase.phase} className="hover:bg-[#F8F9FB] fx-transition">
-                              <td className="py-2.5 px-3 font-medium text-[#17191C]">
+                            <tr key={phase.phase} className="hover:bg-[#F7F8FA] transition-colors h-[46px]">
+                              <td className="py-2 px-3 font-medium text-[#181B20]">
                                 <div className="flex items-center gap-2">
                                   {pct === 100 ? (
-                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EDF7F2] text-[#26715A] font-bold text-[10px]">
+                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EDF8F2] text-[#237A57] font-bold text-[10px]">
                                       ✓
                                     </span>
                                   ) : hasStarted ? (
-                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EEF4FF] text-[#245EC7] text-[10px]">
+                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#EEF4FF] text-[#2563EB] text-[10px]">
                                       ●
                                     </span>
                                   ) : (
-                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#F1F3F5] text-[#8B929B] text-[10px]">
+                                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#F2F4F7] text-[#929AA3] text-[10px]">
                                       ○
                                     </span>
                                   )}
                                   <span>{phase.phase}</span>
                                 </div>
                               </td>
-                              <td className="py-2.5 px-3">
+                              <td className="py-2 px-3">
                                 <div className="flex items-center gap-2">
                                   <Progress value={pct} size="xs" className="flex-1" />
-                                  <span className="font-mono text-[11px] text-[#60666F] w-9 text-right">
+                                  <span className="font-mono text-[11px] text-[#626A73] w-9 text-right">
                                     {pct}%
                                   </span>
                                 </div>
                               </td>
-                              <td className="py-2.5 px-3 text-right">
+                              <td className="py-2 px-3 text-right">
                                 <span className={cn('px-2 py-0.5 rounded-[5px] text-[11px] font-medium inline-block', statusColor)}>
                                   {statusLabel}
                                 </span>
@@ -470,14 +470,14 @@ export function ProjectDetailsPage({
 
               {/* Tasks In Progress & Review (Clean rows) */}
               <section className="space-y-3">
-                <div className="pb-2 border-b border-[#E8EBEF] flex items-center justify-between">
+                <div className="pb-2 border-b border-[#E3E7EC] flex items-center justify-between">
                   <h2 className="fx-section-title">
                     Active Deliverables
                   </h2>
                   <button
                     type="button"
                     onClick={() => setActiveTab('tasks')}
-                    className="text-xs font-medium text-[#2463EB] hover:text-[#1D4ED8] fx-transition"
+                    className="text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8] transition-colors"
                   >
                     View all ({tasks.length}) →
                   </button>
@@ -489,11 +489,11 @@ export function ProjectDetailsPage({
                     t.status === TaskStatus.IN_REVIEW ||
                     t.status === TaskStatus.READY,
                 ).length === 0 ? (
-                  <p className="text-xs text-[#8B929B] py-2">
+                  <p className="text-xs text-[#929AA3] py-2">
                     No active deliverables in progress right now.
                   </p>
                 ) : (
-                  <div className="divide-y divide-[#E8EBEF]">
+                  <div className="divide-y divide-[#E3E7EC]">
                     {tasks
                       .filter(
                         (t: any) =>
@@ -506,15 +506,14 @@ export function ProjectDetailsPage({
                         <div
                           key={task.id}
                           onClick={() => setSelectedTaskId(task.id)}
-                          className="py-3 hover:bg-[#F8F9FB] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition flex items-center justify-between gap-3 text-xs"
+                          className="py-2.5 hover:bg-[#F7F8FA] -mx-2 px-2.5 rounded-[8px] cursor-pointer transition-colors flex items-center justify-between gap-3 text-xs"
                         >
                           <div className="space-y-0.5 min-w-0 flex-1">
-                            {/* 33. Task title first, metadata second */}
-                            <p className="font-medium text-[13px] text-[#17191C] hover:text-[#2463EB] truncate fx-transition">
+                            <p className="font-medium text-[13.5px] text-[#181B20] hover:text-[#2563EB] truncate transition-colors">
                               {task.title}
                             </p>
-                            <p className="text-[11px] text-[#60666F]">
-                              <span className="font-mono text-[#8B929B]">{task.humanId}</span>
+                            <p className="text-[11.5px] text-[#626A73]">
+                              <span className="font-mono text-[#929AA3]">{task.humanId}</span>
                               {' · '}
                               <span>{task.phase || 'Core'}</span>
                               {' · '}
@@ -533,18 +532,18 @@ export function ProjectDetailsPage({
 
               {/* Milestones Roadmap (Clean divider list) */}
               <section className="space-y-3">
-                <div className="pb-2 border-b border-[#E8EBEF]">
+                <div className="pb-2 border-b border-[#E3E7EC]">
                   <h2 className="fx-section-title">
                     Milestones Roadmap
                   </h2>
                 </div>
 
                 {milestones.length === 0 ? (
-                  <p className="text-xs text-[#8B929B] py-2">
+                  <p className="text-xs text-[#929AA3] py-2">
                     No milestones established for this product.
                   </p>
                 ) : (
-                  <div className="divide-y divide-[#E8EBEF]">
+                  <div className="divide-y divide-[#E3E7EC]">
                     {milestones.map((m: any) => (
                       <div
                         key={m.id}
@@ -552,10 +551,10 @@ export function ProjectDetailsPage({
                       >
                         <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-medium text-[#17191C]">
+                            <span className="font-medium text-[#181B20]">
                               {m.name}
                             </span>
-                            <span className="font-mono text-[11px] text-[#8B929B]">
+                            <span className="font-mono text-[11px] text-[#929AA3]">
                               {m.targetDate ? `Target ${formatDate(m.targetDate)}` : 'TBD'}
                             </span>
                           </div>
@@ -564,7 +563,7 @@ export function ProjectDetailsPage({
                             size="xs"
                           />
                         </div>
-                        <span className="font-mono text-[11px] text-[#60666F] shrink-0 w-8 text-right">
+                        <span className="font-mono text-[11px] text-[#626A73] shrink-0 w-8 text-right">
                           {m.progress || 0}%
                         </span>
                       </div>
@@ -579,33 +578,33 @@ export function ProjectDetailsPage({
             <div className="lg:col-span-4 space-y-8 min-w-0">
               {/* Product Details */}
               <div className="space-y-2.5 text-xs">
-                <div className="pb-2 border-b border-[#E8EBEF]">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
+                <div className="pb-2 border-b border-[#E3E7EC]">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#626A73]">
                     Product Metadata
                   </h3>
                 </div>
-                <div className="divide-y divide-[#E8EBEF]">
+                <div className="divide-y divide-[#E3E7EC]">
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-[#60666F]">Code</span>
-                    <span className="font-mono font-medium text-[#17191C]">
+                    <span className="text-[#626A73]">Code</span>
+                    <span className="font-mono font-medium text-[#181B20]">
                       {project?.key}
                     </span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-[#60666F]">Health</span>
+                    <span className="text-[#626A73]">Health</span>
                     <HealthBadge
                       health={project?.health || ProjectHealth.ON_TRACK}
                     />
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-[#60666F]">Start Date</span>
-                    <span className="font-mono text-[#60666F]">
+                    <span className="text-[#626A73]">Start Date</span>
+                    <span className="font-mono text-[#626A73]">
                       {project?.startDate ? formatDate(project.startDate) : '—'}
                     </span>
                   </div>
                   <div className="py-2 flex items-center justify-between">
-                    <span className="text-[#60666F]">Target Delivery</span>
-                    <span className="font-mono text-[#60666F]">
+                    <span className="text-[#626A73]">Target Delivery</span>
+                    <span className="font-mono text-[#626A73]">
                       {project?.targetDate ? formatDate(project.targetDate) : '—'}
                     </span>
                   </div>
@@ -614,31 +613,31 @@ export function ProjectDetailsPage({
 
               {/* Assigned Team Members */}
               <div className="space-y-2.5 text-xs">
-                <div className="pb-2 border-b border-[#E8EBEF] flex items-center justify-between">
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#8B929B]">
+                <div className="pb-2 border-b border-[#E3E7EC] flex items-center justify-between">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-[#626A73]">
                     Team ({members.length})
                   </h3>
                 </div>
                 {members.length === 0 ? (
-                  <p className="text-xs text-[#8B929B] py-2">
+                  <p className="text-xs text-[#929AA3] py-2">
                     No members assigned yet.
                   </p>
                 ) : (
-                  <div className="divide-y divide-[#E8EBEF]">
+                  <div className="divide-y divide-[#E3E7EC]">
                     {members.map((m: any) => (
                       <div
                         key={m.id}
                         className="py-2 flex items-center gap-2.5"
                       >
-                        <div className="w-6 h-6 rounded-full bg-[#EEF4FF] text-[#2463EB] font-medium text-[10px] flex items-center justify-center shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-[#EEF4FF] text-[#2563EB] font-medium text-[10px] flex items-center justify-center shrink-0">
                           {m.user?.firstName?.[0]}
                           {m.user?.lastName?.[0]}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-[#17191C] truncate">
+                          <p className="font-medium text-[#181B20] truncate">
                             {m.user?.firstName} {m.user?.lastName}
                           </p>
-                          <p className="text-[11px] text-[#8B929B] truncate capitalize">
+                          <p className="text-[11.5px] text-[#929AA3] truncate capitalize">
                             {m.roleInProject || m.user?.jobTitle || 'Contributor'}
                           </p>
                         </div>
@@ -651,17 +650,17 @@ export function ProjectDetailsPage({
           </div>
         )}
 
-        {/* 31 & 32. TAB 2: DEVELOPMENT CHECKLIST — OPERATIONAL TABLE */}
+        {/* TAB 2: DEVELOPMENT CHECKLIST — OPERATIONAL TABLE */}
         {activeTab === 'development' && (
           <div className="space-y-6">
             {checklistTasks.length === 0 ? (
-              <div className="py-12 text-center text-xs text-[#60666F] space-y-3">
-                <ListChecks className="mx-auto h-8 w-8 text-[#2463EB]" />
+              <div className="py-12 text-center text-xs text-[#626A73] space-y-3">
+                <ListChecks className="mx-auto h-8 w-8 text-[#2563EB]" />
                 <div className="space-y-1">
-                  <p className="font-semibold text-sm text-[#17191C]">
+                  <p className="font-semibold text-sm text-[#181B20]">
                     Development checklist is not generated yet.
                   </p>
-                  <p className="text-[#60666F]">
+                  <p className="text-[#626A73]">
                     Generate standard product deliverables, then assign responsibilities across the team.
                   </p>
                 </div>
@@ -682,35 +681,35 @@ export function ProjectDetailsPage({
             ) : (
               <>
                 {/* Checklist Summary */}
-                <div className="flex flex-wrap items-center justify-between gap-4 border-y border-[#E8EBEF] bg-[#FAFBFC] px-3 py-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-y border-[#E3E7EC] bg-[#F7F8FA] px-3.5 py-3 text-xs rounded-[8px]">
                   <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                     <div>
-                      <span className="text-[#8B929B]">Applicable:</span>{' '}
-                      <span className="font-mono font-semibold text-[#17191C]">
+                      <span className="text-[#929AA3]">Applicable:</span>{' '}
+                      <span className="font-mono font-semibold text-[#181B20]">
                         {checklistSummary?.totalApplicable || checklistTasks.length}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[#8B929B]">Done:</span>{' '}
-                      <span className="font-mono font-semibold text-[#26715A]">
+                      <span className="text-[#929AA3]">Done:</span>{' '}
+                      <span className="font-mono font-semibold text-[#237A57]">
                         {checklistSummary?.completed || 0}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[#8B929B]">Not Started:</span>{' '}
-                      <span className="font-mono font-semibold text-[#60666F]">
+                      <span className="text-[#929AA3]">Not Started:</span>{' '}
+                      <span className="font-mono font-semibold text-[#626A73]">
                         {checklistSummary?.ready || 0}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[#8B929B]">Waiting:</span>{' '}
-                      <span className="font-mono font-semibold text-[#9A6515]">
+                      <span className="text-[#929AA3]">Waiting:</span>{' '}
+                      <span className="font-mono font-semibold text-[#A86B12]">
                         {checklistSummary?.waiting || 0}
                       </span>
                     </div>
                     <div>
-                      <span className="text-[#8B929B]">Unassigned:</span>{' '}
-                      <span className="font-mono font-semibold text-[#60666F]">
+                      <span className="text-[#929AA3]">Unassigned:</span>{' '}
+                      <span className="font-mono font-semibold text-[#626A73]">
                         {checklistSummary?.unassigned || 0}
                       </span>
                     </div>
@@ -724,17 +723,17 @@ export function ProjectDetailsPage({
                   )}
                 </div>
 
-                <div className="flex flex-wrap items-end gap-3 border-b border-[#E8EBEF] pb-3 text-xs">
+                <div className="flex flex-wrap items-end gap-3 border-b border-[#E3E7EC] pb-3 text-xs">
                   <label className="grid gap-1">
-                    <span className="text-[#8B929B]">Phase</span>
-                    <select value={developmentPhaseFilter} onChange={(event) => setDevelopmentPhaseFilter(event.target.value)} className="h-8 min-w-40 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs">
+                    <span className="text-[#929AA3]">Phase</span>
+                    <select value={developmentPhaseFilter} onChange={(event) => setDevelopmentPhaseFilter(event.target.value)} className="h-8 min-w-40 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none">
                       <option value="">All phases</option>
                       {developmentPhases.map((phase) => <option key={phase} value={phase}>{phase}</option>)}
                     </select>
                   </label>
                   <label className="grid gap-1">
-                    <span className="text-[#8B929B]">Assignee</span>
-                    <select value={developmentAssigneeFilter} onChange={(event) => setDevelopmentAssigneeFilter(event.target.value)} className="h-8 min-w-48 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs">
+                    <span className="text-[#929AA3]">Assignee</span>
+                    <select value={developmentAssigneeFilter} onChange={(event) => setDevelopmentAssigneeFilter(event.target.value)} className="h-8 min-w-48 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none">
                       <option value="">All assignees</option>
                       {members.map((member) => (
                         <option key={member.userId || member.user?.id} value={member.userId || member.user?.id}>
@@ -744,23 +743,23 @@ export function ProjectDetailsPage({
                     </select>
                   </label>
                   <label className="grid gap-1">
-                    <span className="text-[#8B929B]">Status</span>
-                    <select value={developmentStatusFilter} onChange={(event) => setDevelopmentStatusFilter(event.target.value)} className="h-8 min-w-36 rounded-md border border-[#E8EBEF] bg-white px-2 text-xs">
+                    <span className="text-[#929AA3]">Status</span>
+                    <select value={developmentStatusFilter} onChange={(event) => setDevelopmentStatusFilter(event.target.value)} className="h-8 min-w-36 rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none">
                       <option value="">All statuses</option>
                       {developmentStatuses.map((status) => <option key={status} value={status}>{status === TaskStatus.READY ? 'Not Started' : String(status).replace(/_/g, ' ')}</option>)}
                     </select>
                   </label>
-                  <label className="flex h-8 items-center gap-2 text-[#60666F]">
-                    <input type="checkbox" checked={developmentUnassignedOnly} onChange={(event) => setDevelopmentUnassignedOnly(event.target.checked)} className="rounded border-[#E8EBEF] text-[#2463EB]" />
+                  <label className="flex h-8 items-center gap-2 text-[#626A73]">
+                    <input type="checkbox" checked={developmentUnassignedOnly} onChange={(event) => setDevelopmentUnassignedOnly(event.target.checked)} className="rounded border-[#E3E7EC] text-[#2563EB]" />
                     Unassigned only
                   </label>
                 </div>
 
-                {/* 31 & 32. Operational Table: #FAFBFC header, 48–56px row height, horizontal row dividers only */}
-                <div className="overflow-x-auto">
+                {/* Operational Table: #F7F8FA header, 48–52px row height */}
+                <div className="overflow-x-auto border border-[#E3E7EC] rounded-[10px] bg-white">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="bg-[#FAFBFC] text-[#60666F] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E8EBEF]">
+                      <tr className="bg-[#F7F8FA] text-[#626A73] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E3E7EC]">
                         <th className="py-3 px-3">Item / Deliverable</th>
                         <th className="py-3 px-3">Phase</th>
                         <th className="py-3 px-3">Responsibility</th>
@@ -769,11 +768,11 @@ export function ProjectDetailsPage({
                         <th className="py-3 px-3 text-right">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
+                    <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                       {filteredChecklistTasks.map((task) => (
                         <tr
                           key={task.id}
-                          className="hover:bg-[#F8F9FB] fx-transition h-[52px]"
+                          className="hover:bg-[#F7F8FA] transition-colors h-[50px]"
                         >
                           <td className="py-2.5 px-3">
                             <button
@@ -781,24 +780,23 @@ export function ProjectDetailsPage({
                               onClick={() => setSelectedTaskId(task.id)}
                               className="text-left"
                             >
-                              {/* 33. Title first, metadata second */}
-                              <span className="font-medium text-[13px] text-[#17191C] hover:text-[#2463EB] block">
+                              <span className="font-medium text-[13.5px] text-[#181B20] hover:text-[#2563EB] block transition-colors">
                                 {task.title}
                               </span>
-                              <span className="font-mono text-[11px] text-[#8B929B] block">
+                              <span className="font-mono text-[11px] text-[#929AA3] block">
                                 {task.checklistCode || task.humanId}
                                 {task.checklistDoneWhen && (
-                                  <span className="text-[#60666F] ml-2 font-sans">
+                                  <span className="text-[#626A73] ml-2 font-sans">
                                     · Done when: {task.checklistDoneWhen}
                                   </span>
                                 )}
                               </span>
                             </button>
                           </td>
-                          <td className="py-2.5 px-3 text-[#60666F]">
+                          <td className="py-2.5 px-3 text-[#626A73]">
                             {task.checklistPhase || '-'}
                           </td>
-                          <td className="py-2.5 px-3 text-[#60666F]">
+                          <td className="py-2.5 px-3 text-[#626A73]">
                             {formatTemplateLabel(task.checklistOwnerRole)}
                           </td>
                           <td className="py-2.5 px-3">
@@ -808,7 +806,7 @@ export function ProjectDetailsPage({
                             {task.assignee ? (
                               `${task.assignee.firstName} ${task.assignee.lastName}`
                             ) : (
-                              'Unassigned'
+                              <span className="text-[#929AA3]">Unassigned</span>
                             )}
                           </td>
                           <td className="py-2.5 px-3 text-right">
@@ -830,7 +828,7 @@ export function ProjectDetailsPage({
                       ))}
                       {filteredChecklistTasks.length === 0 && (
                         <tr>
-                          <td colSpan={6} className="py-10 text-center text-[#8B929B]">
+                          <td colSpan={6} className="py-10 text-center text-[#929AA3]">
                             No Development checklist items match these filters.
                           </td>
                         </tr>
@@ -846,10 +844,10 @@ export function ProjectDetailsPage({
         {/* TAB 3: TASKS LIST VIEW */}
         {activeTab === 'tasks' && (
           <div className="space-y-4">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border border-[#E3E7EC] rounded-[10px] bg-white">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="bg-[#FAFBFC] text-[#60666F] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E8EBEF]">
+                  <tr className="bg-[#F7F8FA] text-[#626A73] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E3E7EC]">
                     <th className="py-3 px-3">Task</th>
                     <th className="py-3 px-3">Status</th>
                     <th className="py-3 px-3">Assignee</th>
@@ -858,12 +856,12 @@ export function ProjectDetailsPage({
                     <th className="py-3 px-3 text-right">Due Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E8EBEF] text-[#17191C]">
+                <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                   {tasks.length === 0 ? (
                     <tr>
                       <td
                         colSpan={6}
-                        className="py-8 text-center text-[#8B929B]"
+                        className="py-8 text-center text-[#929AA3]"
                       >
                         No tasks created for this product yet.
                       </td>
@@ -873,37 +871,37 @@ export function ProjectDetailsPage({
                       <tr
                         key={task.id}
                         onClick={() => setSelectedTaskId(task.id)}
-                        className="hover:bg-[#F8F9FB] cursor-pointer fx-transition h-[52px]"
+                        className="hover:bg-[#F7F8FA] cursor-pointer transition-colors h-[48px]"
                       >
-                        <td className="py-2.5 px-3">
+                        <td className="py-2 px-3">
                           <div className="space-y-0.5">
-                            <span className="font-medium text-[13px] text-[#17191C] hover:text-[#2463EB] truncate block max-w-md fx-transition">
+                            <span className="font-medium text-[13.5px] text-[#181B20] hover:text-[#2563EB] truncate block max-w-md transition-colors">
                               {task.title}
                             </span>
-                            <span className="font-mono text-[11px] text-[#8B929B] block">
+                            <span className="font-mono text-[11px] text-[#929AA3] block">
                               {task.humanId}
                             </span>
                           </div>
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2 px-3">
                           <StatusPill status={task.status} size="xs" />
                         </td>
-                        <td className="py-2.5 px-3 text-[#60666F]">
+                        <td className="py-2 px-3 text-[#626A73]">
                           {task.assignee
                             ? `${task.assignee.firstName} ${task.assignee.lastName}`
                             : 'Unassigned'}
                         </td>
-                        <td className="py-2.5 px-3">
+                        <td className="py-2 px-3">
                           <PriorityBadge priority={task.priority} compact />
                         </td>
-                        <td className="py-2.5 px-3 w-28">
+                        <td className="py-2 px-3 w-28">
                           <Progress
                             value={task.progress || 0}
                             showLabel={true}
                             size="xs"
                           />
                         </td>
-                        <td className="py-2.5 px-3 text-right font-mono text-[#60666F]">
+                        <td className="py-2 px-3 text-right font-mono text-[#626A73]">
                           {task.dueDate ? formatDate(task.dueDate) : '—'}
                         </td>
                       </tr>
@@ -918,7 +916,7 @@ export function ProjectDetailsPage({
         {/* TAB 4: KANBAN BOARD */}
         {activeTab === 'board' && (
           <div className="overflow-x-auto pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 items-start gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-3 items-start gap-4">
               {[
                 { id: 'todo', label: 'To Do', statuses: [TaskStatus.UNASSIGNED, TaskStatus.TODO, TaskStatus.PLANNED, TaskStatus.BACKLOG, TaskStatus.WAITING, TaskStatus.READY] },
                 { id: 'doing', label: 'In Progress', statuses: [TaskStatus.IN_PROGRESS, TaskStatus.IN_REVIEW, TaskStatus.BLOCKED] },
@@ -929,13 +927,13 @@ export function ProjectDetailsPage({
                 return (
                   <div
                     key={col.id}
-                    className="min-w-0 bg-[#F8F9FB] border border-[#E8EBEF] rounded-[8px] p-3 space-y-2.5"
+                    className="min-w-0 bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] p-3 space-y-2.5"
                   >
-                    <div className="flex items-center justify-between pb-1.5 border-b border-[#E8EBEF]">
-                      <h3 className="text-xs font-semibold text-[#17191C]">
+                    <div className="flex items-center justify-between pb-1.5 border-b border-[#E3E7EC]">
+                      <h3 className="text-xs font-semibold text-[#181B20]">
                         {col.label}
                       </h3>
-                      <span className="text-[11px] font-mono text-[#60666F]">
+                      <span className="text-[11px] font-mono text-[#626A73]">
                         {colTasks.length}
                       </span>
                     </div>
@@ -945,24 +943,24 @@ export function ProjectDetailsPage({
                         <div
                           key={task.id}
                           onClick={() => setSelectedTaskId(task.id)}
-                          className="bg-white border border-[#E8EBEF] rounded-[8px] p-2.5 hover:border-[#2463EB] cursor-pointer fx-transition space-y-2 text-xs"
+                          className="bg-white border border-[#E3E7EC] rounded-[8px] p-3 hover:border-[#D4DAE1] cursor-pointer transition-colors space-y-2 text-xs"
                         >
                           <div className="space-y-0.5">
-                            <h4 className="font-medium text-xs text-[#17191C] hover:text-[#2463EB] line-clamp-2">
+                            <h4 className="font-medium text-[13px] text-[#181B20] hover:text-[#2563EB] line-clamp-2 transition-colors">
                               {task.title}
                             </h4>
-                            <span className="font-mono text-[10px] text-[#8B929B]">
+                            <span className="font-mono text-[10.5px] text-[#929AA3]">
                               {task.humanId}
                             </span>
                           </div>
 
-                          <div className="pt-1.5 border-t border-[#E8EBEF] flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                          <div className="pt-2 border-t border-[#E3E7EC] flex flex-wrap items-center justify-between gap-2 text-[11px]">
                             <PriorityBadge
                               priority={task.priority}
                               compact={true}
                             />
                             <StatusPill status={task.status} size="xs" />
-                            <span className="text-[#8B929B] font-mono">
+                            <span className="text-[#929AA3] font-mono">
                               {task.dueDate ? formatDate(task.dueDate) : ''}
                             </span>
                           </div>
@@ -978,7 +976,7 @@ export function ProjectDetailsPage({
 
         {/* TAB 5: CALENDAR */}
         {activeTab === 'calendar' && (
-          <div className="divide-y divide-[#E8EBEF]">
+          <div className="divide-y divide-[#E3E7EC]">
             {[...tasks]
               .filter((task) => (task.workstream || 'DEVELOPMENT') === 'DEVELOPMENT')
               .filter((task) => task.dueDate)
@@ -987,13 +985,13 @@ export function ProjectDetailsPage({
                 <div
                   key={task.id}
                   onClick={() => setSelectedTaskId(task.id)}
-                  className="py-3 flex items-center justify-between gap-3 text-xs hover:bg-[#F8F9FB] -mx-2 px-2 rounded-[8px] cursor-pointer fx-transition"
+                  className="py-2.5 flex items-center justify-between gap-3 text-xs hover:bg-[#F7F8FA] -mx-2 px-2.5 rounded-[8px] cursor-pointer transition-colors"
                 >
                   <div className="space-y-0.5 min-w-0 flex-1">
-                    <p className="font-medium text-[13px] text-[#17191C]">
+                    <p className="font-medium text-[13.5px] text-[#181B20]">
                       {task.title}
                     </p>
-                    <p className="font-mono text-[11px] text-[#8B929B]">
+                    <p className="font-mono text-[11.5px] text-[#626A73]">
                       {task.humanId} · Due {formatDate(task.dueDate)}
                     </p>
                   </div>
@@ -1004,7 +1002,7 @@ export function ProjectDetailsPage({
                 </div>
               ))}
             {tasks.filter((task) => task.dueDate).length === 0 && (
-              <p className="py-8 text-center text-xs text-[#8B929B]">
+              <p className="py-8 text-center text-xs text-[#929AA3]">
                 No task due dates scheduled for this product.
               </p>
             )}
@@ -1013,9 +1011,9 @@ export function ProjectDetailsPage({
 
         {/* TAB 6: TIMELINE */}
         {activeTab === 'timeline' && (
-          <div className="py-12 text-center text-xs text-[#60666F] space-y-2">
-            <GanttChartSquare className="w-8 h-8 text-[#2463EB] mx-auto" />
-            <p className="font-semibold text-[#17191C]">
+          <div className="py-12 text-center text-xs text-[#626A73] space-y-2">
+            <GanttChartSquare className="w-8 h-8 text-[#2563EB] mx-auto" />
+            <p className="font-semibold text-sm text-[#181B20]">
               Product Timeline View
             </p>
             <p>
@@ -1031,21 +1029,21 @@ export function ProjectDetailsPage({
 
         {/* TAB 7: ACTIVITY */}
         {activeTab === 'activity' && (
-          <div className="divide-y divide-[#E8EBEF]">
+          <div className="divide-y divide-[#E3E7EC]">
             {(project?.latestDailyUpdates || []).length === 0 ? (
-              <p className="py-8 text-center text-xs text-[#8B929B]">
+              <p className="py-8 text-center text-xs text-[#929AA3]">
                 No recent activity recorded for this product yet.
               </p>
             ) : (
               (project.latestDailyUpdates || []).map((update: any) => (
-                <div key={update.id} className="py-3 text-xs space-y-0.5">
-                  <p className="font-medium text-[#17191C]">
+                <div key={update.id} className="py-2.5 text-xs space-y-0.5">
+                  <p className="font-medium text-[#181B20]">
                     {update.user?.firstName} {update.user?.lastName} updated deliverable {update.task?.humanId}
                   </p>
                   {update.completedToday && (
-                    <p className="text-[#60666F]">{update.completedToday}</p>
+                    <p className="text-[#626A73]">{update.completedToday}</p>
                   )}
-                  <p className="font-mono text-[11px] text-[#8B929B]">
+                  <p className="font-mono text-[11px] text-[#929AA3]">
                     {update.progressBefore}% → {update.progressAfter}% · {formatDate(update.createdAt)}
                   </p>
                 </div>

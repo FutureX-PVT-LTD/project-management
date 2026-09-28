@@ -33,20 +33,20 @@ export function MyProductsSection({ products }: MyProductsSectionProps) {
 
   return (
     <section className="space-y-2" aria-labelledby="my-products-heading">
-      <div className="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
-        <h2 id="my-products-heading" className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">
+      <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
+        <h2 id="my-products-heading" className="text-[12px] font-semibold uppercase tracking-wider text-[#626A73]">
           My Products ({products.length})
         </h2>
         <Link
           href="/projects"
-          className="text-xs font-medium text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors"
+          className="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors"
         >
           <span>View all products</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 
-      <div className="divide-y divide-[#F1F5F9]">
+      <div className="divide-y divide-[#F2F4F7]">
         {products.map((p) => {
           const pw = p.personalWork;
           const personalWorkParts = [];
@@ -63,22 +63,22 @@ export function MyProductsSection({ products }: MyProductsSectionProps) {
           return (
             <div
               key={p.id}
-              className="py-3.5 hover:bg-[#F8FAFC] -mx-2 px-2.5 rounded-[8px] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs"
+              className="py-3.5 hover:bg-[#F7F8FA] -mx-2 px-2.5 rounded-[10px] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs"
             >
               {/* Product Identity & Name */}
               <div className="min-w-0 md:w-56 flex items-center gap-2.5">
-                <span className="w-7 h-7 rounded-[6px] bg-[#EFF6FF] border border-[#DBEAFE] text-[#1D4ED8] font-bold font-mono text-[11px] flex items-center justify-center shrink-0">
+                <span className="w-7 h-7 rounded-[7px] bg-[#EEF4FF] border border-[#BFDBFE] text-[#2563EB] font-bold font-mono text-[11px] flex items-center justify-center shrink-0">
                   {p.key.slice(0, 3)}
                 </span>
                 <div className="min-w-0">
                   <Link
                     href={`/projects/${p.id}`}
-                    className="font-semibold text-sm text-[#0F172A] hover:text-[#2563EB] truncate block transition-colors"
+                    className="font-semibold text-[14px] text-[#181B20] hover:text-[#2563EB] truncate block transition-colors"
                   >
                     {p.name}
                   </Link>
                   {p.targetDate && (
-                    <span className="font-mono text-[11px] text-[#64748B] flex items-center gap-1">
+                    <span className="font-mono text-[11.5px] text-[#626A73] flex items-center gap-1 mt-0.5">
                       <Calendar className="w-3 h-3" />
                       Target {formatDate(p.targetDate)}
                     </span>
@@ -89,16 +89,16 @@ export function MyProductsSection({ products }: MyProductsSectionProps) {
               {/* Progress: Development & Marketing */}
               <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-sm">
                 <div>
-                  <div className="flex items-center justify-between text-[11px] text-[#64748B] mb-1">
+                  <div className="flex items-center justify-between text-[11.5px] text-[#626A73] mb-1">
                     <span>Development</span>
-                    <span className="font-mono font-medium text-[#0F172A]">{p.devProgress}%</span>
+                    <span className="font-mono font-medium text-[#181B20]">{p.devProgress}%</span>
                   </div>
                   <Progress value={p.devProgress} size="xs" showLabel={false} />
                 </div>
                 <div>
-                  <div className="flex items-center justify-between text-[11px] text-[#64748B] mb-1">
+                  <div className="flex items-center justify-between text-[11.5px] text-[#626A73] mb-1">
                     <span>Marketing</span>
-                    <span className="font-mono font-medium text-[#0F172A]">{p.mktgProgress}%</span>
+                    <span className="font-mono font-medium text-[#181B20]">{p.mktgProgress}%</span>
                   </div>
                   <Progress value={p.mktgProgress} size="xs" showLabel={false} />
                 </div>
@@ -107,8 +107,8 @@ export function MyProductsSection({ products }: MyProductsSectionProps) {
               {/* Personal Work Summary & Action */}
               <div className="flex items-center justify-between md:justify-end gap-3 shrink-0">
                 <div className="text-right">
-                  <span className="text-[11px] text-[#64748B] block">Your work:</span>
-                  <span className="font-medium text-[12px] text-[#0F172A]">
+                  <span className="text-[11px] text-[#626A73] block">Your work:</span>
+                  <span className="font-medium text-[12.5px] text-[#181B20]">
                     {personalWorkText}
                   </span>
                 </div>

@@ -24,17 +24,17 @@ export function EmptyState({
       )}
     >
       {icon && (
-        <div className="h-8 w-8 rounded-full bg-[#F8F9FB] border border-[#E8EBEF] flex items-center justify-center text-[#8B929B] mb-2.5">
+        <div className="h-9 w-9 rounded-full bg-[#F7F8FA] border border-[#E3E7EC] flex items-center justify-center text-[#626A73] mb-3">
           {icon}
         </div>
       )}
-      <p className="text-[13px] font-medium text-[#17191C]">{title}</p>
+      <p className="text-[13.5px] font-semibold text-[#181B20]">{title}</p>
       {description && (
-        <p className="text-[12px] text-[#60666F] mt-0.5 max-w-sm leading-normal">
+        <p className="text-[12.5px] text-[#626A73] mt-1 max-w-sm leading-normal">
           {description}
         </p>
       )}
-      {action && <div className="mt-3">{action}</div>}
+      {action && <div className="mt-3.5">{action}</div>}
     </div>
   );
 }

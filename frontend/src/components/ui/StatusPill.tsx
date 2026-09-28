@@ -16,69 +16,73 @@ const statusConfig: Record<
 > = {
   [TaskStatus.UNASSIGNED]: {
     label: 'Unassigned',
-    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
-    text: 'text-[#64748B]',
+    bg: 'bg-[#F7F8FA] border border-[#E3E7EC]',
+    text: 'text-[#626A73]',
+    dot: 'bg-[#929AA3]',
   },
   [TaskStatus.TODO]: {
     label: 'To Do',
-    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
-    text: 'text-[#64748B]',
+    bg: 'bg-[#F7F8FA] border border-[#E3E7EC]',
+    text: 'text-[#626A73]',
+    dot: 'bg-[#929AA3]',
   },
   [TaskStatus.PLANNED]: {
     label: 'Planned',
-    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
-    text: 'text-[#64748B]',
+    bg: 'bg-[#F7F8FA] border border-[#E3E7EC]',
+    text: 'text-[#626A73]',
+    dot: 'bg-[#929AA3]',
   },
   [TaskStatus.WAITING]: {
     label: 'Waiting',
-    bg: 'bg-[#FFFBEB] border border-[#FEF3C7]',
-    text: 'text-[#B45309]',
-    icon: <Lock className="w-2.5 h-2.5 text-[#B45309] shrink-0" />,
+    bg: 'bg-[#FFF6E5] border border-[#FEEBCA]',
+    text: 'text-[#A86B12]',
+    icon: <Lock className="w-2.5 h-2.5 text-[#A86B12] shrink-0" />,
   },
   [TaskStatus.READY]: {
     label: 'Not Started',
-    bg: 'bg-[#F1F5F9] border border-[#E2E8F0]',
-    text: 'text-[#475569]',
-    dot: 'bg-[#94A3B8]',
+    bg: 'bg-[#F2F4F7] border border-[#E3E7EC]',
+    text: 'text-[#626A73]',
+    dot: 'bg-[#929AA3]',
   },
   [TaskStatus.IN_PROGRESS]: {
     label: 'In Progress',
-    bg: 'bg-[#EFF6FF] border border-[#DBEAFE]',
-    text: 'text-[#1D4ED8]',
+    bg: 'bg-[#EEF4FF] border border-[#D8E6FD]',
+    text: 'text-[#2563EB]',
     dot: 'bg-[#2563EB]',
   },
   [TaskStatus.IN_REVIEW]: {
     label: 'In Review',
-    bg: 'bg-[#F5F3FF] border border-[#EDE9FE]',
-    text: 'text-[#6D28D9]',
-    dot: 'bg-[#7C3AED]',
+    bg: 'bg-[#F4F0FC] border border-[#E6DEFA]',
+    text: 'text-[#7557B5]',
+    dot: 'bg-[#7557B5]',
   },
   [TaskStatus.BLOCKED]: {
     label: 'Blocked',
-    bg: 'bg-[#FEF2F2] border border-[#FEE2E2]',
-    text: 'text-[#DC2626]',
-    dot: 'bg-[#EF4444]',
+    bg: 'bg-[#FDEEEE] border border-[#FBD4D4]',
+    text: 'text-[#C24141]',
+    dot: 'bg-[#C24141]',
   },
   [TaskStatus.BACKLOG]: {
     label: 'Backlog',
-    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
-    text: 'text-[#64748B]',
+    bg: 'bg-[#F7F8FA] border border-[#E3E7EC]',
+    text: 'text-[#626A73]',
+    dot: 'bg-[#929AA3]',
   },
   [TaskStatus.DONE]: {
     label: 'Completed',
-    bg: 'bg-[#F0FDF4] border border-[#DCFCE7]',
-    text: 'text-[#15803D]',
-    dot: 'bg-[#16A34A]',
+    bg: 'bg-[#EDF8F2] border border-[#D5EFE3]',
+    text: 'text-[#237A57]',
+    dot: 'bg-[#237A57]',
   },
   [TaskStatus.N_A]: {
     label: 'N/A',
-    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
-    text: 'text-[#64748B]',
+    bg: 'bg-[#F7F8FA] border border-[#E3E7EC]',
+    text: 'text-[#626A73]',
   },
   [TaskStatus.CANCELED]: {
     label: 'Cancelled',
-    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
-    text: 'text-[#64748B]',
+    bg: 'bg-[#F7F8FA] border border-[#E3E7EC]',
+    text: 'text-[#626A73]',
   },
 };
 
@@ -86,14 +90,14 @@ export function StatusPill({ status, size = 'sm', className, showDot = true }: S
   const safeStatus = status || 'UNKNOWN';
   const config = statusConfig[safeStatus] || {
     label: safeStatus.replace(/_/g, ' '),
-    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
-    text: 'text-[#64748B]',
+    bg: 'bg-[#F7F8FA] border border-[#E3E7EC]',
+    text: 'text-[#626A73]',
   };
 
   const sizeStyles = {
-    xs: 'h-[19px] px-1.5 text-[10.5px] gap-1 rounded-[5px]',
-    sm: 'h-[21px] px-2 text-[11px] gap-1.5 rounded-[5px]',
-    md: 'h-[24px] px-2.5 text-[11.5px] gap-1.5 rounded-[6px]',
+    xs: 'h-[20px] px-1.5 text-[11px] gap-1 rounded-[5px]',
+    sm: 'h-[22px] px-2 text-[11.5px] gap-1.5 rounded-[6px]',
+    md: 'h-[26px] px-2.5 text-[12px] gap-1.5 rounded-[6px]',
   };
 
   return (

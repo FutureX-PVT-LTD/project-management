@@ -13,27 +13,27 @@ interface HealthBadgeProps {
 const healthConfig: Record<string, { label: string; dot: string; text: string; bg: string }> = {
   [ProjectHealth.ON_TRACK]: {
     label: 'On Track',
-    dot: 'bg-[#16A34A]',
-    text: 'text-[#15803D]',
-    bg: 'bg-[#F0FDF4] border border-[#DCFCE7]',
+    dot: 'bg-[#237A57]',
+    text: 'text-[#237A57]',
+    bg: 'bg-[#EDF8F2] border border-[#D5EFE3]',
   },
   [ProjectHealth.AT_RISK]: {
     label: 'At Risk',
-    dot: 'bg-[#F59E0B]',
-    text: 'text-[#B45309]',
-    bg: 'bg-[#FFFBEB] border border-[#FEF3C7]',
+    dot: 'bg-[#A86B12]',
+    text: 'text-[#A86B12]',
+    bg: 'bg-[#FFF6E5] border border-[#FEEBCA]',
   },
   [ProjectHealth.OFF_TRACK]: {
     label: 'Blocked',
-    dot: 'bg-[#EF4444]',
-    text: 'text-[#DC2626]',
-    bg: 'bg-[#FEF2F2] border border-[#FEE2E2]',
+    dot: 'bg-[#C24141]',
+    text: 'text-[#C24141]',
+    bg: 'bg-[#FDEEEE] border border-[#FBD4D4]',
   },
   [ProjectHealth.COMPLETED]: {
     label: 'Completed',
-    dot: 'bg-[#16A34A]',
-    text: 'text-[#15803D]',
-    bg: 'bg-[#F0FDF4] border border-[#DCFCE7]',
+    dot: 'bg-[#237A57]',
+    text: 'text-[#237A57]',
+    bg: 'bg-[#EDF8F2] border border-[#D5EFE3]',
   },
 };
 
@@ -45,9 +45,9 @@ export function HealthBadge({
 }: HealthBadgeProps) {
   const config = healthConfig[health] || {
     label: health || 'Unknown',
-    dot: 'bg-[#94A3B8]',
-    text: 'text-[#64748B]',
-    bg: 'bg-[#F8FAFC] border border-[#E2E8F0]',
+    dot: 'bg-[#929AA3]',
+    text: 'text-[#626A73]',
+    bg: 'bg-[#F7F8FA] border border-[#E3E7EC]',
   };
 
   return (

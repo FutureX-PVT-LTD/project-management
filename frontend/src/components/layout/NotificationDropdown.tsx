@@ -87,12 +87,12 @@ export function NotificationDropdown() {
     <Popover.Root>
       <Popover.Trigger asChild>
         <button
-          className="relative p-2 text-fx-text-secondary hover:text-fx-text-primary hover:bg-gray-100 rounded-md fx-transition focus:outline-none"
+          className="relative p-1.5 text-[#626A73] hover:text-[#181B20] hover:bg-[#F7F8FA] rounded-[6px] transition-colors focus:outline-none"
           title="Notifications"
         >
           <Bell className="w-4 h-4" />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#2563EB] px-1 text-[9px] font-semibold text-white leading-none">
+            <span className="absolute top-1 right-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-[#2563EB] px-1 text-[9px] font-semibold text-white leading-none">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -103,13 +103,13 @@ export function NotificationDropdown() {
         <Popover.Content
           align="end"
           sideOffset={8}
-          className="z-50 w-80 sm:w-96 rounded-lg bg-white p-0 shadow-popover border border-fx-border focus:outline-none animate-fadeIn"
+          className="z-50 w-80 sm:w-96 rounded-[10px] bg-white p-0 shadow-lg border border-[#E3E7EC] focus:outline-none animate-fadeIn"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-fx-border">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#E3E7EC]">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-fx-text-primary">Notifications</span>
+              <span className="text-sm font-semibold text-[#181B20]">Notifications</span>
               {unreadCount > 0 && (
-                <span className="text-xs bg-[#EEF4FF] text-[#2563EB] font-semibold px-2 py-0.5 rounded-full">
+                <span className="text-xs bg-[#EEF4FF] text-[#2563EB] font-semibold px-2 py-0.5 rounded-[4px]">
                   {unreadCount} new
                 </span>
               )}
@@ -117,22 +117,22 @@ export function NotificationDropdown() {
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllReadMutation.mutate()}
-                className="text-xs text-[#2563EB] hover:text-[#1D4ED8] hover:underline flex items-center gap-1 font-medium"
+                className="text-xs text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 font-medium transition-colors"
               >
                 <CheckCheck className="w-3.5 h-3.5" /> Mark all read
               </button>
             )}
           </div>
 
-          <div className="max-h-80 overflow-y-auto divide-y divide-fx-border/50">
+          <div className="max-h-80 overflow-y-auto divide-y divide-[#E3E7EC]">
             {isLoading && (
-              <div className="p-6 text-center text-xs text-fx-text-muted">Loading notifications...</div>
+              <div className="p-6 text-center text-xs text-[#929AA3]">Loading notifications...</div>
             )}
 
             {!isLoading && notifications.length === 0 && (
               <div className="p-8 text-center">
-                <p className="text-sm text-fx-text-secondary">All caught up!</p>
-                <p className="text-xs text-fx-text-muted mt-0.5">No notifications at the moment.</p>
+                <p className="text-sm font-medium text-[#181B20]">All caught up</p>
+                <p className="text-xs text-[#929AA3] mt-0.5">No notifications at the moment.</p>
               </div>
             )}
 
@@ -140,32 +140,32 @@ export function NotificationDropdown() {
               <div
                 key={n.id}
                 onClick={() => handleItemClick(n)}
-                className={`p-3.5 hover:bg-fx-bg/70 cursor-pointer fx-transition text-xs flex gap-3 ${
-                  !n.isRead ? 'bg-[#EEF4FF]/50' : ''
+                className={`p-3.5 hover:bg-[#F7F8FA] cursor-pointer transition-colors text-xs flex gap-3 ${
+                  !n.isRead ? 'bg-[#F6F9FF]' : ''
                 }`}
               >
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold text-fx-text-primary">{n.title}</p>
-                    <span className="text-[11px] text-fx-text-muted shrink-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-[#181B20] truncate">{n.title}</p>
+                    <span className="text-[10.5px] font-mono text-[#929AA3] shrink-0">
                       {formatTimeAgo(n.createdAt)}
                     </span>
                   </div>
-                  <p className="text-fx-text-secondary mt-1 line-clamp-2">{n.message}</p>
+                  <p className="text-[#626A73] mt-1 line-clamp-2 leading-relaxed">{n.message}</p>
                 </div>
                 {!n.isRead && (
-                  <span className="h-2 w-2 rounded-full bg-[#2563EB] mt-1 shrink-0" />
+                  <span className="h-2 w-2 rounded-full bg-[#2563EB] mt-1.5 shrink-0" />
                 )}
               </div>
             ))}
           </div>
 
-          <div className="p-2 border-t border-fx-border text-center bg-gray-50/50 rounded-b-lg">
+          <div className="p-2.5 border-t border-[#E3E7EC] text-center bg-[#F7F8FA] rounded-b-[10px]">
             <button
               onClick={() => router.push('/notifications')}
-              className="text-xs text-fx-text-secondary hover:text-fx-text-primary font-medium"
+              className="text-xs text-[#626A73] hover:text-[#181B20] font-medium transition-colors"
             >
-              View all notifications
+              View all notifications →
             </button>
           </div>
         </Popover.Content>

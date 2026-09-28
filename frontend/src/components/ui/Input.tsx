@@ -5,15 +5,22 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  inputSize?: 'sm' | 'md' | 'lg';
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type = 'text', error, leftIcon, rightIcon, disabled, ...props }, ref) => {
+  ({ className, type = 'text', error, leftIcon, rightIcon, inputSize = 'md', disabled, ...props }, ref) => {
+    const sizeClasses = {
+      sm: 'h-[34px] px-3 text-[12.5px]',
+      md: 'h-[42px] px-3.5 text-[13.5px]',
+      lg: 'h-[46px] px-4 text-[14px]',
+    };
+
     return (
       <div className="w-full relative">
         <div className="relative flex items-center">
           {leftIcon && (
-            <div className="absolute left-3 text-[#94A3B8] pointer-events-none flex items-center justify-center">
+            <div className="absolute left-3 text-[#929AA3] pointer-events-none flex items-center justify-center">
               {leftIcon}
             </div>
           )}
@@ -22,23 +29,24 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             disabled={disabled}
             className={cn(
-              'w-full h-9 px-3 py-1.5 bg-[#F8FAFC] text-[13px] text-[#0F172A] rounded-[8px] border border-[#E2E8F0] placeholder:text-[#94A3B8] fx-transition',
+              'w-full bg-[#FFFFFF] text-[#181B20] rounded-[9px] border border-[#E3E7EC] placeholder:text-[#929AA3] fx-transition',
+              sizeClasses[inputSize],
               'focus:outline-none focus:bg-white focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15',
-              'disabled:bg-[#F1F5F9] disabled:text-[#94A3B8] disabled:cursor-not-allowed',
+              'disabled:bg-[#F2F4F7] disabled:text-[#929AA3] disabled:cursor-not-allowed',
               leftIcon && 'pl-9',
               rightIcon && 'pr-9',
-              error && 'border-[#DC2626] focus:border-[#DC2626] focus:ring-[#DC2626]/20',
+              error && 'border-[#C24141] focus:border-[#C24141] focus:ring-[#C24141]/20',
               className,
             )}
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-3 text-[#94A3B8] flex items-center justify-center">
+            <div className="absolute right-3 text-[#929AA3] flex items-center justify-center">
               {rightIcon}
             </div>
           )}
         </div>
-        {error && <p className="mt-1 text-[11.5px] text-[#DC2626]">{error}</p>}
+        {error && <p className="mt-1 text-[12px] text-[#C24141] font-medium">{error}</p>}
       </div>
     );
   },

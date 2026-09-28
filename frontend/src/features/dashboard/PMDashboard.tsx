@@ -6,10 +6,6 @@ import {
   ArrowRight,
   Plus,
   CheckCircle2,
-  AlertTriangle,
-  Clock,
-  ChevronRight,
-  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray } from '@/lib/api-data';
@@ -54,7 +50,6 @@ export function PMDashboard() {
     staleTime: 20000,
   });
 
-  const teamMembers = asArray<any>(dashboardData, 'teamWorkload');
   const attentionItems = asArray<any>(dashboardData, 'needsAttention');
   const reviewQueue = attentionItems.filter((item) => item.type === 'REVIEW');
   const operationalAttentionItems = attentionItems.filter((item) => item.type !== 'REVIEW');
@@ -127,39 +122,39 @@ export function PMDashboard() {
         onSelectTask={(id) => setSelectedTaskId(id)}
       />
 
-      {/* 5. TOP PAGE HEADER */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 pb-4 border-b border-[#E2E8F0]">
+      {/* TOP PAGE HEADER */}
+      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 pb-4 border-b border-[#E3E7EC]">
         <div>
-          <h1 className="text-2xl sm:text-[26px] font-semibold text-[#0F172A] tracking-tight">
+          <h1 className="fx-page-title">
             <DashboardGreeting userName={user?.firstName} />
           </h1>
-          <p className="text-[13px] text-[#475569] mt-1">
+          <p className="text-[13px] text-[#626A73] mt-1 font-normal">
             Project Delivery · Track product execution, reviews and upcoming releases.
           </p>
-          <div className="flex items-center gap-2 text-[12px] text-[#64748B] mt-1.5 font-medium">
+          <div className="flex items-center gap-2 text-[12px] text-[#929AA3] mt-1.5 font-medium">
             <span>{activeProjectsCount} active {activeProjectsCount === 1 ? 'product' : 'products'}</span>
-            <span className="text-[#CBD5E1]">·</span>
+            <span className="text-[#D4DAE1]">·</span>
             <span>
               {attentionCount === 0
                 ? '0 items need attention'
                 : `${attentionCount} ${attentionCount === 1 ? 'item needs' : 'items need'} attention`}
             </span>
-            <span className="text-[#CBD5E1]">·</span>
+            <span className="text-[#D4DAE1]">·</span>
             <span>{reviewQueue.length} awaiting review</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Time Scope Segmented Control */}
-          <div className="inline-flex items-center p-0.5 rounded-[8px] bg-[#F1F5F9] border border-[#E2E8F0] text-xs">
+          <div className="inline-flex items-center p-0.5 rounded-[8px] bg-[#F2F4F7] border border-[#E3E7EC] text-xs">
             <button
               type="button"
               onClick={() => setTimeScope('today')}
               className={cn(
                 'px-2.5 py-1 rounded-[6px] text-[11.5px] font-medium fx-transition',
                 timeScope === 'today'
-                  ? 'bg-white text-[#0F172A] shadow-xs font-semibold'
-                  : 'text-[#64748B] hover:text-[#0F172A]',
+                  ? 'bg-white text-[#181B20] font-semibold'
+                  : 'text-[#626A73] hover:text-[#181B20]',
               )}
             >
               Today
@@ -170,8 +165,8 @@ export function PMDashboard() {
               className={cn(
                 'px-2.5 py-1 rounded-[6px] text-[11.5px] font-medium fx-transition',
                 timeScope === 'week'
-                  ? 'bg-white text-[#0F172A] shadow-xs font-semibold'
-                  : 'text-[#64748B] hover:text-[#0F172A]',
+                  ? 'bg-white text-[#181B20] font-semibold'
+                  : 'text-[#626A73] hover:text-[#181B20]',
               )}
             >
               This Week
@@ -182,8 +177,8 @@ export function PMDashboard() {
               className={cn(
                 'px-2.5 py-1 rounded-[6px] text-[11.5px] font-medium fx-transition',
                 timeScope === 'month'
-                  ? 'bg-white text-[#0F172A] shadow-xs font-semibold'
-                  : 'text-[#64748B] hover:text-[#0F172A]',
+                  ? 'bg-white text-[#181B20] font-semibold'
+                  : 'text-[#626A73] hover:text-[#181B20]',
               )}
             >
               This Month
@@ -198,15 +193,15 @@ export function PMDashboard() {
         </div>
       </div>
 
-      {/* 6. DELIVERY OVERVIEW STRIP: One compact high-level delivery strip */}
-      <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-        <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-[#F1F5F9]">
+      {/* DELIVERY OVERVIEW STRIP: One compact high-level delivery strip with subtle dividers */}
+      <div className="rounded-[14px] bg-white border border-[#E3E7EC] p-4 sm:p-5">
+        <div className="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-[#E3E7EC]">
           {/* Active Products */}
           <div className="px-3 sm:px-5 py-2 sm:py-1 first:pl-0 last:pr-0">
-            <p className="font-mono text-2xl sm:text-[24px] font-semibold text-[#0F172A] leading-none">
+            <p className="font-mono text-2xl sm:text-[24px] font-semibold text-[#181B20] leading-none">
               {activeProjectsCount}
             </p>
-            <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] mt-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#626A73] mt-2">
               Active Products
             </p>
           </div>
@@ -216,27 +211,27 @@ export function PMDashboard() {
             <p className="font-mono text-2xl sm:text-[24px] font-semibold text-[#2563EB] leading-none">
               {totalInProgress}
             </p>
-            <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] mt-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#626A73] mt-2">
               In Progress
             </p>
           </div>
 
           {/* Waiting */}
           <div className="px-3 sm:px-5 py-2 sm:py-1 first:pl-0 last:pr-0">
-            <p className="font-mono text-2xl sm:text-[24px] font-semibold text-[#B45309] leading-none">
+            <p className="font-mono text-2xl sm:text-[24px] font-semibold text-[#A86B12] leading-none">
               {totalWaiting}
             </p>
-            <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] mt-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#626A73] mt-2">
               Waiting
             </p>
           </div>
 
           {/* In Review */}
           <div className="px-3 sm:px-5 py-2 sm:py-1 first:pl-0 last:pr-0">
-            <p className="font-mono text-2xl sm:text-[24px] font-semibold text-[#6D28D9] leading-none">
+            <p className="font-mono text-2xl sm:text-[24px] font-semibold text-[#7557B5] leading-none">
               {totalInReview}
             </p>
-            <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] mt-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#626A73] mt-2">
               In Review
             </p>
           </div>
@@ -245,85 +240,85 @@ export function PMDashboard() {
           <div className="px-3 sm:px-5 py-2 sm:py-1 first:pl-0 last:pr-0">
             <p className={cn(
               "font-mono text-2xl sm:text-[24px] font-semibold leading-none",
-              totalBlocked > 0 ? "text-[#DC2626]" : "text-[#0F172A]"
+              totalBlocked > 0 ? "text-[#C24141]" : "text-[#181B20]"
             )}>
               {totalBlocked}
             </p>
-            <p className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] mt-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#626A73] mt-2">
               Blocked
             </p>
           </div>
         </div>
       </div>
 
-      {/* 4. MAIN WORKSPACE (72%) & RIGHT RAIL (28% / 320px) WITH INDEPENDENT VERTICAL FLOW */}
+      {/* MAIN WORKSPACE & RIGHT RAIL */}
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-7 lg:gap-8 items-start">
 
         {/* MAIN WORKSPACE COLUMN */}
         <div className="flex flex-col gap-7 min-w-0">
 
-          {/* 8. NEEDS ATTENTION: One soft rounded container */}
-          <section className="rounded-[14px] bg-white border border-[#E2E8F0] p-5 sm:p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-4">
-            <div className="flex items-start justify-between gap-4 pb-3.5 border-b border-[#F1F5F9]">
+          {/* NEEDS ATTENTION: Clean operational section */}
+          <section className="rounded-[14px] bg-white border border-[#E3E7EC] p-5 sm:p-6 space-y-4">
+            <div className="flex items-start justify-between gap-4 pb-3.5 border-b border-[#E3E7EC]">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-[16px] font-semibold text-[#0F172A]">
+                  <h2 className="text-[16px] font-semibold text-[#181B20]">
                     Needs Attention
                   </h2>
                   {attentionCount > 0 && (
-                    <span className="font-mono text-[11px] font-semibold text-[#DC2626] px-2 py-0.5 bg-[#FEF2F2] border border-[#FEE2E2] rounded-[5px]">
+                    <span className="font-mono text-[11px] font-semibold text-[#C24141] px-2 py-0.5 bg-[#FDEEEE] border border-[#FBD4D4] rounded-[5px]">
                       {attentionCount}
                     </span>
                   )}
                 </div>
-                <p className="text-[12.5px] text-[#64748B] mt-0.5">
+                <p className="text-[12.5px] text-[#626A73] mt-0.5">
                   Work that requires your decision.
                 </p>
               </div>
 
-              <span className="text-[12px] text-[#94A3B8] font-medium shrink-0 pt-0.5">
+              <span className="text-[12px] text-[#929AA3] font-medium shrink-0 pt-0.5">
                 {reviewQueue.length} {reviewQueue.length === 1 ? 'review' : 'reviews'} · {operationalAttentionItems.length} {operationalAttentionItems.length === 1 ? 'blocker' : 'blockers'}
               </span>
             </div>
 
             {attentionItems.length === 0 ? (
-              <div className="py-2.5 flex items-center gap-2.5 text-[13px] text-[#64748B]">
-                <CheckCircle2 className="w-4 h-4 text-[#16A34A] shrink-0" />
+              <div className="py-2.5 flex items-center gap-2.5 text-[13px] text-[#626A73]">
+                <CheckCircle2 className="w-4 h-4 text-[#237A57] shrink-0" />
                 <span>Everything is on track. No items currently require escalation.</span>
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {/* Review Required Rows */}
                 {reviewQueue.map((item: any) => (
                   <div
                     key={item.id}
                     onClick={() => item.taskId && setSelectedTaskId(item.taskId)}
-                    className="p-3 sm:p-3.5 rounded-[10px] bg-[#FAFAFD] border border-[#EDE9FE] hover:border-[#DDD6FE] fx-transition flex items-center justify-between gap-4 cursor-pointer group shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                    className="p-3 sm:p-3.5 rounded-[10px] bg-white border border-[#E3E7EC] hover:border-[#D4DAE1] fx-transition flex items-center justify-between gap-4 cursor-pointer group"
                   >
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#7C3AED] shrink-0" />
-                        <span className="text-[11px] font-semibold text-[#6D28D9]">Review Required</span>
-                        <span className="text-[12px] font-mono text-[#CBD5E1]">·</span>
-                        <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-white border border-[#E2E8F0] text-[#64748B]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#7557B5] shrink-0" />
+                        <span className="text-[11.5px] font-semibold text-[#7557B5]">Review Required</span>
+                        <span className="text-[12px] font-mono text-[#D4DAE1]">·</span>
+                        <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[#F7F8FA] border border-[#E3E7EC] text-[#626A73]">
                           {item.humanId || item.projectKey}
                         </span>
                       </div>
-                      <p className="text-[13px] font-semibold text-[#0F172A] group-hover:text-[#6D28D9] fx-transition truncate">
+                      <p className="text-[13px] font-semibold text-[#181B20] group-hover:text-[#2563EB] fx-transition truncate">
                         {item.title}
                       </p>
-                      <p className="text-[12px] text-[#64748B] truncate">
-                        <span className="font-medium text-[#0F172A]">{item.assigneeName || 'Team member'}</span> submitted work at {item.progress || 95}% {item.projectName ? `· ${item.projectName}` : ''}
+                      <p className="text-[12px] text-[#626A73] truncate">
+                        <span className="font-medium text-[#181B20]">{item.assigneeName || 'Team member'}</span> submitted work at {item.progress || 95}% {item.projectName ? `· ${item.projectName}` : ''}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="font-mono text-[11.5px] font-semibold text-[#6D28D9]">
+                      <span className="font-mono text-[11.5px] font-semibold text-[#7557B5]">
                         {item.progress || 95}% complete
                       </span>
                       <button
                         type="button"
-                        className="px-2.5 py-1 text-[11.5px] font-medium text-[#6D28D9] bg-white border border-[#DDD6FE] rounded-[6px] group-hover:bg-[#6D28D9] group-hover:text-white fx-transition flex items-center gap-1 shadow-xs"
+                        className="px-2.5 py-1 text-[11.5px] font-semibold text-[#7557B5] bg-white border border-[#E6DEFA] rounded-[6px] group-hover:bg-[#7557B5] group-hover:text-white fx-transition flex items-center gap-1"
                       >
                         <span>Review</span>
                         <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 fx-transition" />
@@ -337,28 +332,28 @@ export function PMDashboard() {
                   <div
                     key={item.id}
                     onClick={() => item.taskId && setSelectedTaskId(item.taskId)}
-                    className="p-3 sm:p-3.5 rounded-[10px] bg-[#FEFBFB] border border-[#FEE2E2] hover:border-[#FECACA] fx-transition flex items-center justify-between gap-4 cursor-pointer group shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                    className="p-3 sm:p-3.5 rounded-[10px] bg-white border border-[#E3E7EC] hover:border-[#D4DAE1] fx-transition flex items-center justify-between gap-4 cursor-pointer group"
                   >
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#EF4444] shrink-0" />
-                        <span className="text-[11px] font-semibold text-[#DC2626]">Blocked</span>
-                        <span className="text-[12px] font-mono text-[#CBD5E1]">·</span>
-                        <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-white border border-[#E2E8F0] text-[#64748B]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#C24141] shrink-0" />
+                        <span className="text-[11.5px] font-semibold text-[#C24141]">Blocked</span>
+                        <span className="text-[12px] font-mono text-[#D4DAE1]">·</span>
+                        <span className="font-mono text-[10.5px] px-1.5 py-0.5 rounded-[4px] bg-[#F7F8FA] border border-[#E3E7EC] text-[#626A73]">
                           {item.humanId || item.projectKey}
                         </span>
                       </div>
-                      <p className="text-[13px] font-semibold text-[#0F172A] group-hover:text-[#DC2626] fx-transition truncate">
+                      <p className="text-[13px] font-semibold text-[#181B20] group-hover:text-[#C24141] fx-transition truncate">
                         {item.title}
                       </p>
-                      <p className="text-[12px] text-[#64748B] truncate">
+                      <p className="text-[12px] text-[#626A73] truncate">
                         {item.reason || item.projectName || 'Waiting for resolution'}
                       </p>
                     </div>
 
                     <button
                       type="button"
-                      className="px-2.5 py-1 text-[11.5px] font-medium text-[#DC2626] bg-white border border-[#FECACA] rounded-[6px] group-hover:bg-[#DC2626] group-hover:text-white fx-transition flex items-center gap-1 shadow-xs shrink-0"
+                      className="px-2.5 py-1 text-[11.5px] font-semibold text-[#C24141] bg-white border border-[#FBD4D4] rounded-[6px] group-hover:bg-[#C24141] group-hover:text-white fx-transition flex items-center gap-1 shrink-0"
                     >
                       <span>View</span>
                       <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 fx-transition" />
@@ -369,21 +364,21 @@ export function PMDashboard() {
             )}
           </section>
 
-          {/* 10. ACTIVE PRODUCTS: Stacked Product Surfaces (Option A) */}
+          {/* ACTIVE PRODUCTS: Structured rows/cards */}
           <section className="space-y-3.5">
             <div className="flex items-center justify-between pb-1">
               <div>
-                <h2 className="text-[16px] font-semibold text-[#0F172A]">
+                <h2 className="text-[16px] font-semibold text-[#181B20]">
                   Active Products
                 </h2>
-                <p className="text-[12.5px] text-[#64748B] mt-0.5">
+                <p className="text-[12.5px] text-[#626A73] mt-0.5">
                   Deliverable tracking across core product workstreams.
                 </p>
               </div>
 
               <Link
                 href="/projects"
-                className="text-[12px] font-medium text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 fx-transition"
+                className="text-[12px] font-semibold text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 fx-transition"
               >
                 <span>View all products</span>
                 <ArrowRight className="w-3 h-3" />
@@ -391,9 +386,9 @@ export function PMDashboard() {
             </div>
 
             {projects.length === 0 ? (
-              <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-8 text-center space-y-2 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-                <p className="text-[14px] font-semibold text-[#0F172A]">No active products yet</p>
-                <p className="text-[12.5px] text-[#64748B] max-w-sm mx-auto">
+              <div className="rounded-[14px] bg-white border border-[#E3E7EC] p-8 text-center space-y-2">
+                <p className="text-[14px] font-semibold text-[#181B20]">No active products yet</p>
+                <p className="text-[12.5px] text-[#626A73] max-w-sm mx-auto">
                   Create your first product to generate standard delivery checklists and monitor deliverables.
                 </p>
                 <div className="pt-2">
@@ -420,26 +415,26 @@ export function PMDashboard() {
                     <Link
                       key={proj.id}
                       href={`/projects/${proj.id}`}
-                      className="block rounded-[14px] bg-white border border-[#E2E8F0] p-5 hover:border-[#CBD5E1] hover:shadow-[0_2px_8px_rgba(15,23,42,0.04)] fx-transition cursor-pointer group space-y-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]"
+                      className="block rounded-[14px] bg-white border border-[#E3E7EC] p-5 hover:border-[#D4DAE1] fx-transition cursor-pointer group space-y-3.5"
                     >
                       {/* Product Identity Header */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0 flex-1">
-                          {/* SQUIRCLE ICON CONTAINER */}
-                          <div className="w-10 h-10 rounded-[10px] bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center font-bold text-xs text-[#2563EB] shrink-0 group-hover:bg-[#DBEAFE]/40 fx-transition">
+                          {/* Monogram */}
+                          <div className="w-9 h-9 rounded-[8px] bg-[#EEF4FF] border border-[#D8E6FD] flex items-center justify-center font-bold text-xs text-[#2563EB] shrink-0 group-hover:bg-[#E0ECFE] fx-transition">
                             {monogram}
                           </div>
 
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="text-[15px] font-semibold text-[#0F172A] group-hover:text-[#2563EB] fx-transition truncate">
+                              <span className="text-[15px] font-semibold text-[#181B20] group-hover:text-[#2563EB] fx-transition truncate">
                                 {proj.name}
                               </span>
-                              <span className="font-mono text-[10.5px] text-[#64748B] px-1.5 py-0.5 bg-[#F8FAFC] rounded-[4px] border border-[#E2E8F0]">
+                              <span className="font-mono text-[10.5px] text-[#626A73] px-1.5 py-0.5 bg-[#F7F8FA] rounded-[4px] border border-[#E3E7EC]">
                                 {proj.cleanKey || proj.key}
                               </span>
                             </div>
-                            <p className="text-[12px] text-[#64748B] mt-0.5 truncate">
+                            <p className="text-[12px] text-[#626A73] mt-0.5 truncate">
                               {(proj.productType || 'Product').replace('_', ' ')} · {currentMilestone ? currentMilestone.name : 'Core Development'}
                             </p>
                           </div>
@@ -448,43 +443,43 @@ export function PMDashboard() {
                         {/* Health Badge & Progress Percentage */}
                         <div className="flex items-center gap-3 shrink-0">
                           <HealthBadge health={proj.health} reason={proj.healthReason} />
-                          <span className="font-mono text-[13px] font-semibold text-[#0F172A]">
+                          <span className="font-mono text-[13px] font-semibold text-[#181B20]">
                             {progressVal}%
                           </span>
                         </div>
                       </div>
 
-                      {/* ELEGANT 5PX PROGRESS RAIL */}
-                      <div className="w-full bg-[#F1F5F9] rounded-full h-[5px] overflow-hidden">
+                      {/* Clean 5px progress track */}
+                      <div className="w-full bg-[#E3E7EC] rounded-full h-[5px] overflow-hidden">
                         <div
                           className="bg-[#2563EB] h-full rounded-full fx-transition duration-300"
                           style={{ width: `${progressVal}%` }}
                         />
                       </div>
 
-                      {/* PRODUCT STATUS SUMMARY & INLINE METADATA */}
+                      {/* Product status summary and metadata */}
                       <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[11.5px]">
-                        <div className="flex flex-wrap items-center gap-2.5 text-[#64748B]">
-                          <span className="font-medium text-[#0F172A]">
+                        <div className="flex flex-wrap items-center gap-2.5 text-[#626A73]">
+                          <span className="font-medium text-[#181B20]">
                             {doneCount} of {totalCount} checklist items complete
                           </span>
-                          <span className="text-[#CBD5E1]">·</span>
+                          <span className="text-[#D4DAE1]">·</span>
                           <span>{inProgressCount} active</span>
-                          <span className="text-[#CBD5E1]">·</span>
+                          <span className="text-[#D4DAE1]">·</span>
                           <span>{waitingCount} waiting</span>
                           {reviewCount > 0 && (
                             <>
-                              <span className="text-[#CBD5E1]">·</span>
-                              <span className="text-[#6D28D9] font-semibold">{reviewCount} review</span>
+                              <span className="text-[#D4DAE1]">·</span>
+                              <span className="text-[#7557B5] font-semibold">{reviewCount} review</span>
                             </>
                           )}
                         </div>
 
                         <div className="flex items-center gap-3 text-[11.5px] shrink-0">
-                          <span className="text-[#64748B]">
+                          <span className="text-[#626A73]">
                             {proj.targetDate ? `Target ${formatDate(proj.targetDate)}` : 'No deadline'}
                           </span>
-                          <span className="text-[12px] font-medium text-[#2563EB] group-hover:text-[#1D4ED8] flex items-center gap-1 fx-transition">
+                          <span className="text-[12px] font-semibold text-[#2563EB] group-hover:text-[#1D4ED8] flex items-center gap-1 fx-transition">
                             <span>Open</span>
                             <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 fx-transition" />
                           </span>
@@ -497,23 +492,23 @@ export function PMDashboard() {
             )}
           </section>
 
-          {/* 21. RECENT ACTIVITY: Soft rounded container with clean timeline rows */}
-          <section className="rounded-[14px] bg-white border border-[#E2E8F0] p-5 sm:p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-3.5">
-            <div className="pb-3 border-b border-[#F1F5F9] flex items-center justify-between">
+          {/* RECENT ACTIVITY: Soft rounded container with clean timeline rows */}
+          <section className="rounded-[14px] bg-white border border-[#E3E7EC] p-5 sm:p-6 space-y-3.5">
+            <div className="pb-3 border-b border-[#E3E7EC] flex items-center justify-between">
               <div>
-                <h2 className="text-[16px] font-semibold text-[#0F172A]">
+                <h2 className="text-[16px] font-semibold text-[#181B20]">
                   Recent Activity
                 </h2>
-                <p className="text-[12.5px] text-[#64748B] mt-0.5">
+                <p className="text-[12.5px] text-[#626A73] mt-0.5">
                   Latest updates across product deliverables.
                 </p>
               </div>
             </div>
 
             {recentActivities.length === 0 ? (
-              <p className="py-2.5 text-[12.5px] text-[#94A3B8]">No task updates recorded today.</p>
+              <p className="py-2.5 text-[12.5px] text-[#929AA3]">No task updates recorded today.</p>
             ) : (
-              <div className="divide-y divide-[#F1F5F9]">
+              <div className="divide-y divide-[#E3E7EC]">
                 {recentActivities.slice(0, 5).map((act: any) => {
                   const actor = act.user || {};
                   const task = act.task || {};
@@ -525,21 +520,21 @@ export function PMDashboard() {
                       className="py-2.5 flex items-center justify-between gap-3 text-[12.5px] first:pt-1 last:pb-1"
                     >
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className="w-6 h-6 rounded-full bg-[#F1F5F9] text-[#475569] font-semibold text-[10px] flex items-center justify-center shrink-0 border border-[#E2E8F0]">
+                        <div className="w-6 h-6 rounded-full bg-[#F2F4F7] text-[#626A73] font-semibold text-[10px] flex items-center justify-center shrink-0 border border-[#E3E7EC]">
                           {getInitials(actor.firstName, actor.lastName)}
                         </div>
-                        <p className="text-[#0F172A] truncate text-[12.5px]">
-                          <span className="font-semibold text-[#0F172A]">{actor.firstName} {actor.lastName}</span>{' '}
-                          <span className="text-[#64748B]">{act.description || 'updated deliverable'}</span>
+                        <p className="text-[#181B20] truncate text-[12.5px]">
+                          <span className="font-semibold text-[#181B20]">{actor.firstName} {actor.lastName}</span>{' '}
+                          <span className="text-[#626A73]">{act.description || 'updated deliverable'}</span>
                           {task.humanId && (
-                            <span className="font-mono text-[10.5px] ml-1.5 px-1.5 py-0.5 rounded-[4px] bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
+                            <span className="font-mono text-[10.5px] ml-1.5 px-1.5 py-0.5 rounded-[4px] bg-[#F7F8FA] border border-[#E3E7EC] text-[#626A73]">
                               {cleanTaskId}
                             </span>
                           )}
                         </p>
                       </div>
 
-                      <span className="font-mono text-[11px] text-[#94A3B8] shrink-0">
+                      <span className="font-mono text-[11px] text-[#929AA3] shrink-0">
                         {formatTimeAgo(act.createdAt)}
                       </span>
                     </div>
@@ -551,114 +546,114 @@ export function PMDashboard() {
 
         </div>
 
-        {/* 17-20. RIGHT UTILITY RAIL: Independent Vertical Flow (Snapshot, Deadlines, Calendar, Review Queue) */}
+        {/* RIGHT UTILITY RAIL */}
         <div className="flex flex-col gap-5 min-w-0">
 
-          {/* 17. DELIVERY SNAPSHOT: Subtle rounded utility panel */}
-          <section className="rounded-[14px] bg-white border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-3">
-            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#94A3B8]">
+          {/* DELIVERY SNAPSHOT */}
+          <section className="rounded-[14px] bg-white border border-[#E3E7EC] p-4 sm:p-5 space-y-3">
+            <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[#929AA3]">
               Delivery Snapshot
             </h2>
 
-            <div className="divide-y divide-[#F1F5F9] text-[12.5px]">
+            <div className="divide-y divide-[#E3E7EC] text-[12.5px]">
               <Link
                 href="/my-work?tab=READY"
-                className="py-2 flex items-center justify-between hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] fx-transition group first:pt-1"
+                className="py-2 flex items-center justify-between hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[6px] fx-transition group first:pt-1"
               >
-                <div className="flex items-center gap-2.5 text-[#475569] group-hover:text-[#0F172A]">
-                  <span className="w-2 h-2 rounded-full bg-[#94A3B8] shrink-0" />
+                <div className="flex items-center gap-2.5 text-[#626A73] group-hover:text-[#181B20]">
+                  <span className="w-2 h-2 rounded-full bg-[#929AA3] shrink-0" />
                   <span className="font-medium">Not Started</span>
                 </div>
-                <span className="font-mono font-semibold text-[#0F172A]">{totalReady}</span>
+                <span className="font-mono font-semibold text-[#181B20]">{totalReady}</span>
               </Link>
 
               <Link
                 href="/my-work?tab=IN_PROGRESS"
-                className="py-2 flex items-center justify-between hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] fx-transition group"
+                className="py-2 flex items-center justify-between hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[6px] fx-transition group"
               >
-                <div className="flex items-center gap-2.5 text-[#475569] group-hover:text-[#0F172A]">
+                <div className="flex items-center gap-2.5 text-[#626A73] group-hover:text-[#181B20]">
                   <span className="w-2 h-2 rounded-full bg-[#2563EB] shrink-0" />
                   <span className="font-medium">In Progress</span>
                 </div>
-                <span className="font-mono font-semibold text-[#0F172A]">{totalInProgress}</span>
+                <span className="font-mono font-semibold text-[#181B20]">{totalInProgress}</span>
               </Link>
 
               <Link
                 href="/my-work?tab=WAITING"
-                className="py-2 flex items-center justify-between hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] fx-transition group"
+                className="py-2 flex items-center justify-between hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[6px] fx-transition group"
               >
-                <div className="flex items-center gap-2.5 text-[#475569] group-hover:text-[#0F172A]">
-                  <span className="w-2 h-2 rounded-full bg-[#B45309] shrink-0" />
+                <div className="flex items-center gap-2.5 text-[#626A73] group-hover:text-[#181B20]">
+                  <span className="w-2 h-2 rounded-full bg-[#A86B12] shrink-0" />
                   <span className="font-medium">Waiting</span>
                 </div>
-                <span className="font-mono font-semibold text-[#0F172A]">{totalWaiting}</span>
+                <span className="font-mono font-semibold text-[#181B20]">{totalWaiting}</span>
               </Link>
 
               <Link
                 href="/admin/submissions"
-                className="py-2 flex items-center justify-between hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] fx-transition group"
+                className="py-2 flex items-center justify-between hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[6px] fx-transition group"
               >
-                <div className="flex items-center gap-2.5 text-[#475569] group-hover:text-[#0F172A]">
-                  <span className="w-2 h-2 rounded-full bg-[#6D28D9] shrink-0" />
+                <div className="flex items-center gap-2.5 text-[#626A73] group-hover:text-[#181B20]">
+                  <span className="w-2 h-2 rounded-full bg-[#7557B5] shrink-0" />
                   <span className="font-medium">In Review</span>
                 </div>
-                <span className="font-mono font-semibold text-[#0F172A]">{totalInReview}</span>
+                <span className="font-mono font-semibold text-[#181B20]">{totalInReview}</span>
               </Link>
 
               <Link
                 href="/my-work?tab=BLOCKED"
-                className="py-2 flex items-center justify-between hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] fx-transition group last:pb-1"
+                className="py-2 flex items-center justify-between hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[6px] fx-transition group last:pb-1"
               >
-                <div className="flex items-center gap-2.5 text-[#475569] group-hover:text-[#0F172A]">
-                  <span className="w-2 h-2 rounded-full bg-[#DC2626] shrink-0" />
+                <div className="flex items-center gap-2.5 text-[#626A73] group-hover:text-[#181B20]">
+                  <span className="w-2 h-2 rounded-full bg-[#C24141] shrink-0" />
                   <span className="font-medium">Blocked</span>
                 </div>
-                <span className={cn("font-mono font-semibold", totalBlocked > 0 ? "text-[#DC2626]" : "text-[#0F172A]")}>
+                <span className={cn("font-mono font-semibold", totalBlocked > 0 ? "text-[#C24141]" : "text-[#181B20]")}>
                   {totalBlocked}
                 </span>
               </Link>
             </div>
           </section>
 
-          {/* 20. REVIEW QUEUE: Quiet rounded utility panel */}
+          {/* REVIEW QUEUE */}
           {reviewQueue.length > 0 && (
-            <section className="rounded-[14px] bg-white border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-3">
+            <section className="rounded-[14px] bg-white border border-[#E3E7EC] p-4 sm:p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-[13px] font-semibold text-[#0F172A]">
+                  <h2 className="text-[13px] font-semibold text-[#181B20]">
                     Review Queue
                   </h2>
-                  <span className="font-mono text-[10.5px] font-semibold text-[#6D28D9] px-1.5 py-0.2 bg-[#F5F3FF] border border-[#EDE9FE] rounded-[4px]">
+                  <span className="font-mono text-[10.5px] font-semibold text-[#7557B5] px-1.5 py-0.2 bg-[#F4F0FC] border border-[#E6DEFA] rounded-[4px]">
                     {reviewQueue.length}
                   </span>
                 </div>
                 <Link
                   href="/admin/submissions"
-                  className="text-[11.5px] font-medium text-[#2563EB] hover:text-[#1D4ED8] fx-transition"
+                  className="text-[11.5px] font-semibold text-[#2563EB] hover:text-[#1D4ED8] fx-transition"
                 >
                   View All →
                 </Link>
               </div>
 
-              <div className="divide-y divide-[#F1F5F9] text-[12px]">
+              <div className="divide-y divide-[#E3E7EC] text-[12px]">
                 {reviewQueue.slice(0, 4).map((item: any) => (
                   <div
                     key={item.id}
                     onClick={() => item.taskId && setSelectedTaskId(item.taskId)}
-                    className="py-2 cursor-pointer hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] fx-transition space-y-0.5 first:pt-1 last:pb-1 group"
+                    className="py-2 cursor-pointer hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[6px] fx-transition space-y-0.5 first:pt-1 last:pb-1 group"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[10.5px] font-medium text-[#6D28D9]">
+                      <span className="font-mono text-[10.5px] font-medium text-[#7557B5]">
                         {item.humanId || item.projectKey}
                       </span>
-                      <span className="font-mono text-[10.5px] text-[#94A3B8]">
+                      <span className="font-mono text-[10.5px] text-[#929AA3]">
                         {item.progress || 95}%
                       </span>
                     </div>
-                    <p className="font-medium text-[#0F172A] group-hover:text-[#2563EB] truncate text-[12.5px]">
+                    <p className="font-medium text-[#181B20] group-hover:text-[#2563EB] truncate text-[12.5px]">
                       {item.title}
                     </p>
-                    <p className="text-[11px] text-[#64748B] truncate">
+                    <p className="text-[11px] text-[#626A73] truncate">
                       {item.assigneeName || 'Team member'}
                     </p>
                   </div>
@@ -667,37 +662,37 @@ export function PMDashboard() {
             </section>
           )}
 
-          {/* 18. UPCOMING DEADLINES: Timeline style with date markers */}
-          <section className="rounded-[14px] bg-white border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-3">
+          {/* UPCOMING DEADLINES */}
+          <section className="rounded-[14px] bg-white border border-[#E3E7EC] p-4 sm:p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-[13px] font-semibold text-[#0F172A]">
+              <h2 className="text-[13px] font-semibold text-[#181B20]">
                 Upcoming
               </h2>
               <Link
                 href="/calendar"
-                className="text-[11.5px] font-medium text-[#2563EB] hover:text-[#1D4ED8] fx-transition"
+                className="text-[11.5px] font-semibold text-[#2563EB] hover:text-[#1D4ED8] fx-transition"
               >
                 Calendar →
               </Link>
             </div>
 
             {allUpcomingItems.length === 0 ? (
-              <p className="text-[12px] text-[#94A3B8] py-2">No upcoming deadlines.</p>
+              <p className="text-[12px] text-[#929AA3] py-2">No upcoming deadlines.</p>
             ) : (
-              <div className="divide-y divide-[#F1F5F9]">
+              <div className="divide-y divide-[#E3E7EC]">
                 {allUpcomingItems.map((item) => (
                   <div
                     key={item.id}
                     onClick={() => item.type === 'TASK' && setSelectedTaskId(item.id)}
-                    className="py-2 cursor-pointer hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] fx-transition space-y-1 first:pt-1 last:pb-1 group"
+                    className="py-2 cursor-pointer hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[6px] fx-transition space-y-1 first:pt-1 last:pb-1 group"
                   >
-                    <span className="font-mono text-[10px] font-semibold text-[#475569] px-1.5 py-0.5 bg-[#F1F5F9] rounded-[4px] border border-[#E2E8F0] uppercase inline-block">
+                    <span className="font-mono text-[10px] font-semibold text-[#626A73] px-1.5 py-0.5 bg-[#F2F4F7] rounded-[4px] border border-[#E3E7EC] uppercase inline-block">
                       {formatTimelineDate(item.date)}
                     </span>
-                    <p className="font-medium text-[#0F172A] group-hover:text-[#2563EB] truncate text-[12.5px]">
+                    <p className="font-medium text-[#181B20] group-hover:text-[#2563EB] truncate text-[12.5px]">
                       {item.title}
                     </p>
-                    <p className="text-[11px] text-[#64748B] truncate">
+                    <p className="text-[11px] text-[#626A73] truncate">
                       {item.projectName ? `${item.projectName} · ` : ''}{item.humanId}
                     </p>
                   </div>
@@ -706,8 +701,8 @@ export function PMDashboard() {
             )}
           </section>
 
-          {/* 19. MINI CALENDAR: Quiet rounded utility surface */}
-          <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          {/* MINI CALENDAR */}
+          <div className="rounded-[14px] bg-white border border-[#E3E7EC] p-4">
             <CalendarWidget
               tasks={projects.flatMap((p: any) => p.tasks || [])}
               milestones={projects.flatMap((p: any) => p.milestones || [])}

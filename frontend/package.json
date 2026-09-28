@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test:calendar": "node scripts/test-calendar.cjs",
     "test:greeting": "node scripts/test-greeting.cjs",
+    "test:board": "node scripts/test-my-work-board.cjs",
+    "test:isolation": "node scripts/test-user-isolation-and-workflow.cjs",
     "lint": "next lint"
   },
   "dependencies": {

@@ -43,89 +43,89 @@ export function ProfilePopover({ children }: ProfilePopoverProps) {
           side="top"
           sideOffset={8}
           className={cn(
-            'w-72 rounded-[8px] bg-white border border-fx-border p-2 shadow-popover z-50 animate-fadeIn focus:outline-none',
+            'w-72 rounded-[10px] bg-white border border-[#E3E7EC] p-2 shadow-lg z-50 animate-fadeIn focus:outline-none',
           )}
         >
           {/* User Header */}
-          <div className="p-3 border-b border-fx-border/70 flex items-center gap-3">
+          <div className="p-3 border-b border-[#E3E7EC] flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#EEF4FF] text-[#2563EB] border border-[#2563EB]/20 font-semibold text-xs flex items-center justify-center shrink-0">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-fx-text-primary truncate">{fullName}</p>
-              <p className="text-xs text-fx-text-secondary truncate">{user.email}</p>
-              <span className="inline-block mt-1 text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-fx-bg-subtle text-fx-text-muted border border-fx-border/60">
+              <p className="text-sm font-semibold text-[#181B20] truncate">{fullName}</p>
+              <p className="text-xs text-[#626A73] truncate">{user.email}</p>
+              <span className="inline-block mt-1 text-[10px] uppercase font-medium px-1.5 py-0.5 rounded bg-[#F7F8FA] text-[#626A73] border border-[#E3E7EC]">
                 {roleDisplay}
               </span>
             </div>
           </div>
 
           {/* Active Workspace */}
-          <div className="px-3 py-2.5 my-1.5 bg-fx-bg-subtle rounded-lg border border-fx-border/60 flex items-center justify-between">
+          <div className="px-3 py-2 my-1.5 bg-[#F7F8FA] rounded-[8px] border border-[#E3E7EC] flex items-center justify-between">
             <div className="flex items-center gap-2 min-w-0">
               <FutureXLogo size="small" />
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-fx-text-primary truncate">FutureX Studio</p>
-                <p className="text-[11px] text-fx-text-muted truncate">Production Workspace</p>
+                <p className="text-xs font-semibold text-[#181B20] truncate">FutureX Studio</p>
+                <p className="text-[11px] text-[#929AA3] truncate">Production Workspace</p>
               </div>
             </div>
             <Check className="w-3.5 h-3.5 text-[#2563EB] shrink-0" />
           </div>
 
           {/* Navigation Links */}
-          <div className="py-1 space-y-0.5 text-xs text-fx-text-primary">
+          <div className="py-1 space-y-0.5 text-xs text-[#181B20]">
             <Link
               href="/my-work"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center justify-between px-2.5 py-2 rounded-md hover:bg-fx-bg-hover fx-transition"
+              className="w-full flex items-center justify-between px-2.5 py-2 rounded-[6px] hover:bg-[#F7F8FA] transition-colors"
             >
               <span className="flex items-center gap-2.5">
-                <Briefcase className="w-3.5 h-3.5 text-fx-text-muted" />
+                <Briefcase className="w-3.5 h-3.5 text-[#929AA3]" />
                 <span>My Active Work</span>
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-fx-text-muted" />
+              <ChevronRight className="w-3.5 h-3.5 text-[#929AA3]" />
             </Link>
 
             <Link
               href="/notifications"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center justify-between px-2.5 py-2 rounded-md hover:bg-fx-bg-hover fx-transition"
+              className="w-full flex items-center justify-between px-2.5 py-2 rounded-[6px] hover:bg-[#F7F8FA] transition-colors"
             >
               <span className="flex items-center gap-2.5">
-                <Bell className="w-3.5 h-3.5 text-fx-text-muted" />
+                <Bell className="w-3.5 h-3.5 text-[#929AA3]" />
                 <span>Notification Alerts</span>
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-fx-text-muted" />
+              <ChevronRight className="w-3.5 h-3.5 text-[#929AA3]" />
             </Link>
 
             <Link
               href="/account/security"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center justify-between px-2.5 py-2 rounded-md hover:bg-fx-bg-hover fx-transition"
+              className="w-full flex items-center justify-between px-2.5 py-2 rounded-[6px] hover:bg-[#F7F8FA] transition-colors"
             >
               <span className="flex items-center gap-2.5">
-                <KeyRound className="w-3.5 h-3.5 text-fx-text-muted" />
+                <KeyRound className="w-3.5 h-3.5 text-[#929AA3]" />
                 <span>Change Password</span>
               </span>
-              <ChevronRight className="w-3.5 h-3.5 text-fx-text-muted" />
+              <ChevronRight className="w-3.5 h-3.5 text-[#929AA3]" />
             </Link>
 
             {canViewAdminSettings && (
               <Link
                 href="/admin/settings"
                 onClick={() => setOpen(false)}
-                className="w-full flex items-center justify-between px-2.5 py-2 rounded-md hover:bg-fx-bg-hover fx-transition"
+                className="w-full flex items-center justify-between px-2.5 py-2 rounded-[6px] hover:bg-[#F7F8FA] transition-colors"
               >
                 <span className="flex items-center gap-2.5">
-                  <Shield className="w-3.5 h-3.5 text-fx-text-muted" />
+                  <Shield className="w-3.5 h-3.5 text-[#929AA3]" />
                   <span>Security & Workspace</span>
                 </span>
-                <ChevronRight className="w-3.5 h-3.5 text-fx-text-muted" />
+                <ChevronRight className="w-3.5 h-3.5 text-[#929AA3]" />
               </Link>
             )}
           </div>
 
-          <div className="h-px bg-fx-border/70 my-1" />
+          <div className="h-px bg-[#E3E7EC] my-1" />
 
           {/* Sign Out */}
           <button
@@ -134,7 +134,7 @@ export function ProfilePopover({ children }: ProfilePopoverProps) {
               setOpen(false);
               logout();
             }}
-            className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-fx-semantic-danger hover:bg-red-50/70 rounded-md fx-transition"
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 text-xs font-medium text-[#C24141] hover:bg-[#FDEEEE] rounded-[6px] transition-colors"
           >
             <LogOut className="w-3.5 h-3.5 shrink-0" />
             <span>Sign Out</span>

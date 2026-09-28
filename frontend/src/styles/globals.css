@@ -4,57 +4,61 @@
 
 @layer base {
   :root {
-    /* FutureX Refined SaaS Design System Tokens */
+    /* FutureX Enterprise Design System Tokens */
 
-    /* Background System (Soft Neutral Canvas + Clean White Surfaces) */
-    --bg-app: #F8F9FA;
-    --bg-subtle: #F1F5F9;
-    --bg-muted: #E2E8F0;
-    --bg-canvas: #F8F9FA;
+    /* Core Surface System */
+    --bg-app: #FFFFFF;
+    --bg-secondary: #F7F8FA;
+    --bg-soft: #F2F4F7;
+    --bg-canvas: #F7F8FA;
     --bg-surface: #FFFFFF;
-    --bg-hover: #F8FAFC;
+    --bg-hover: #F2F4F7;
+    --bg-subtle: #F7F8FA;
+    --bg-muted: #E3E7EC;
 
     /* Backward compatibility aliases */
-    --fx-bg: #F8F9FA;
+    --fx-bg: #F7F8FA;
     --fx-surface: #FFFFFF;
-    --fx-surface-secondary: #F8FAFC;
-    --fx-surface-soft: #F1F5F9;
+    --fx-surface-secondary: #F7F8FA;
+    --fx-surface-soft: #F2F4F7;
 
-    /* Text & Typography Tokens (Slate/Charcoal Hierarchy) */
-    --text-primary: #0F172A;
-    --text-secondary: #475569;
-    --text-tertiary: #64748B;
-    --text-muted: #94A3B8;
+    /* Text & Typography Tokens (Calm Slate/Charcoal Hierarchy) */
+    --text-primary: #181B20;
+    --text-secondary: #626A73;
+    --text-tertiary: #626A73;
+    --text-muted: #929AA3;
     --text-disabled: #CBD5E1;
 
-    --fx-text: #0F172A;
-    --fx-text-primary: #0F172A;
-    --fx-text-secondary: #475569;
-    --fx-text-muted: #94A3B8;
+    --fx-text: #181B20;
+    --fx-text-primary: #181B20;
+    --fx-text-secondary: #626A73;
+    --fx-text-muted: #929AA3;
     --fx-text-disabled: #CBD5E1;
 
-    /* Calm, Subtle Borders */
-    --border-subtle: #E2E8F0;
-    --border-medium: #CBD5E1;
-    --border: #E2E8F0;
-    --border-strong: #94A3B8;
+    /* Borders: Restrained, Precise */
+    --border-subtle: #E3E7EC;
+    --border-medium: #D4DAE1;
+    --border: #E3E7EC;
+    --border-strong: #D4DAE1;
 
-    --fx-border: #E2E8F0;
-    --fx-border-strong: #CBD5E1;
-    --fx-border-subtle: #E2E8F0;
+    --fx-border: #E3E7EC;
+    --fx-border-strong: #D4DAE1;
+    --fx-border-subtle: #E3E7EC;
 
-    /* Refined Primary Accent Blue System */
+    /* Primary FutureX Blue System */
+    --blue-500: #2563EB;
     --blue-600: #2563EB;
     --blue-700: #1D4ED8;
-    --blue-100: #EFF6FF;
-    --blue-50: #F8FAFC;
+    --blue-800: #1E40AF;
+    --blue-100: #EEF4FF;
+    --blue-50: #F6F9FF;
 
     --fx-primary: #2563EB;
     --fx-primary-hover: #1D4ED8;
     --fx-primary-pressed: #1E40AF;
-    --fx-primary-soft: #EFF6FF;
-    --fx-primary-very-soft: #F8FAFC;
-    --fx-deep-navy: #0F172A;
+    --fx-primary-soft: #EEF4FF;
+    --fx-primary-very-soft: #F6F9FF;
+    --fx-deep-navy: #163A5F;
 
     --fx-accent: var(--fx-primary);
     --fx-accent-hover: var(--fx-primary-hover);
@@ -63,34 +67,34 @@
     --fx-accent-very-soft: var(--fx-primary-very-soft);
     --fx-accent-subtle: var(--bg-subtle);
 
-    /* Semantic Status System (Soft, Clean, Restrained Tones) */
-    --status-completed-text: #15803D;
-    --status-completed-bg: #F0FDF4;
-    --status-completed-border: #DCFCE7;
+    /* Strict Semantic Status System (Restrained, Independent from Brand Blue) */
+    --status-completed-text: #237A57;
+    --status-completed-bg: #EDF8F2;
+    --status-completed-border: #D5EFE3;
 
-    --status-ready-text: #475569;
-    --status-ready-bg: #F1F5F9;
-    --status-ready-border: #E2E8F0;
+    --status-ready-text: #237A57;
+    --status-ready-bg: #EDF8F2;
+    --status-ready-border: #D5EFE3;
 
-    --status-inprogress-text: #1D4ED8;
-    --status-inprogress-bg: #EFF6FF;
-    --status-inprogress-border: #DBEAFE;
+    --status-inprogress-text: #2563EB;
+    --status-inprogress-bg: #EEF4FF;
+    --status-inprogress-border: #D8E6FD;
 
-    --status-waiting-text: #B45309;
-    --status-waiting-bg: #FFFBEB;
-    --status-waiting-border: #FEF3C7;
+    --status-waiting-text: #A86B12;
+    --status-waiting-bg: #FFF6E5;
+    --status-waiting-border: #FEEBCA;
 
-    --status-inreview-text: #6D28D9;
-    --status-inreview-bg: #F5F3FF;
-    --status-inreview-border: #EDE9FE;
+    --status-inreview-text: #7557B5;
+    --status-inreview-bg: #F4F0FC;
+    --status-inreview-border: #E6DEFA;
 
-    --status-blocked-text: #DC2626;
-    --status-blocked-bg: #FEF2F2;
-    --status-blocked-border: #FEE2E2;
+    --status-blocked-text: #C24141;
+    --status-blocked-bg: #FDEEEE;
+    --status-blocked-border: #FBD4D4;
 
-    --status-unassigned-text: #64748B;
-    --status-unassigned-bg: #F8FAFC;
-    --status-unassigned-border: #E2E8F0;
+    --status-unassigned-text: #626A73;
+    --status-unassigned-bg: #F7F8FA;
+    --status-unassigned-border: #E3E7EC;
 
     --fx-status-ready-text: var(--status-ready-text);
     --fx-status-ready-bg: var(--status-ready-bg);
@@ -118,10 +122,18 @@
     --semantic-done: var(--status-completed-text);
     --semantic-done-bg: var(--status-completed-bg);
 
-    /* Motion Tokens */
-    --motion-fast: 140ms;
-    --motion-standard: 180ms;
-    --motion-panel: 220ms;
+    /* Controlled Radii System */
+    --radius-btn: 9px;
+    --radius-input: 9px;
+    --radius-tag: 6px;
+    --radius-row: 10px;
+    --radius-panel: 14px;
+    --radius-dialog: 16px;
+
+    /* Controlled Motion Tokens */
+    --motion-fast: 130ms;
+    --motion-standard: 170ms;
+    --motion-panel: 200ms;
     --ease-standard: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
@@ -130,48 +142,56 @@
   }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-app);
+    font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background-color: var(--bg-canvas);
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-size: 13.5px;
+    font-size: 14px;
     line-height: 1.5;
   }
 
-  /* Typography Scale Classes */
+  /* Typography Scale Classes - Exact Prompt Hierarchy */
   .fx-page-title {
     font-size: 26px;
-    font-weight: 600;
-    line-height: 1.2;
-    letter-spacing: -0.025em;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
     color: var(--text-primary);
   }
 
-  .fx-section-title {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.35;
+  .fx-product-title {
+    font-size: 24px;
+    font-weight: 650;
+    line-height: 1.3;
     letter-spacing: -0.015em;
     color: var(--text-primary);
   }
 
+  .fx-section-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+  }
+
   .fx-entity-title {
-    font-size: 13.5px;
+    font-size: 14.5px;
     font-weight: 600;
     line-height: 1.4;
     color: var(--text-primary);
   }
 
   .fx-body {
-    font-size: 13.5px;
+    font-size: 14px;
     font-weight: 400;
     line-height: 1.5;
     color: var(--text-primary);
   }
 
   .fx-metadata {
-    font-size: 12px;
+    font-size: 12.5px;
     font-weight: 400;
     line-height: 1.4;
     color: var(--text-secondary);
@@ -180,19 +200,19 @@
   .fx-small-label {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--text-tertiary);
+    color: var(--text-muted);
   }
 
-  /* Monospace font strictly for task codes (e.g. BG-101) */
+  /* Monospace font strictly for codes and IDs */
   .font-mono,
   .task-id {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     letter-spacing: -0.01em;
   }
 
-  /* Restrained Enterprise Scrollbar (4px) */
+  /* Restrained Enterprise Scrollbar (5px) */
   ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -208,10 +228,10 @@
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-tertiary);
+    background: var(--text-secondary);
   }
 
-  /* Accessible Subtle Focus Outline */
+  /* Accessible Focus Ring */
   :focus-visible {
     outline: 2px solid var(--blue-600);
     outline-offset: 1px;
@@ -241,7 +261,7 @@
 
   /* Surface System Helper Classes */
   .fx-surface-subtle {
-    background-color: var(--bg-subtle);
+    background-color: var(--bg-secondary);
     border: 1px solid var(--border-subtle);
     border-radius: 10px;
   }
@@ -249,8 +269,8 @@
   .fx-surface-panel {
     background-color: #FFFFFF;
     border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+    border-radius: 14px;
+    box-shadow: none;
   }
 
   .fx-row-divider {
@@ -260,7 +280,7 @@
   @keyframes fxLoginFadeIn {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(4px);
     }
     to {
       opacity: 1;
@@ -269,10 +289,9 @@
   }
 
   .animate-fxLoginFadeIn {
-    animation: fxLoginFadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: fxLoginFadeIn 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 }
-
 
 /* Accessibility: Respect Reduced Motion Preferences */
 @media (prefers-reduced-motion: reduce) {

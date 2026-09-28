@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight,
   Plus,
+  ShieldCheck,
 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray } from '@/lib/api-data';
@@ -38,9 +39,16 @@ export function OwnerDashboard() {
     staleTime: 30000,
   });
 
+  // Recent system activity for security / audit oversight
+  const { data: recentAuditData } = useQuery({
+    queryKey: ['admin', 'audit-recent'],
+    queryFn: () => api.get('/audit-logs?limit=4'),
+    staleTime: 20000,
+  });
+
   const projects = asArray<any>(projectsData);
   const urgentTasks = asArray<any>(ownerData, 'needsAttention');
-
+  const recentLogs = asArray<any>(recentAuditData, 'logs');
 
   if (isLoading && !ownerData) {
     return <DashboardSkeleton />;
@@ -52,7 +60,7 @@ export function OwnerDashboard() {
   const completedCount = projects.filter((p: any) => p.status === 'COMPLETED').length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-7">
       <TaskDetailSlideOver
         taskId={selectedTaskId}
         open={!!selectedTaskId}
@@ -61,59 +69,59 @@ export function OwnerDashboard() {
       />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-[#E2E8F0] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-4 border-b border-[#E3E7EC] pb-5">
         <div>
-          <h1 className="text-2xl sm:text-[26px] font-semibold text-[#0F172A] tracking-tight">
+          <h1 className="fx-page-title">
             <DashboardGreeting userName={user?.firstName} />
           </h1>
-          <p className="text-[13px] text-[#475569] mt-1">
-            Executive Studio Overview · Portfolio health, release readiness, and strategic deliverable governance.
+          <p className="text-[13px] text-[#626A73] mt-1 font-normal">
+            Portfolio Health & Organization Oversight · Release governance, delivery health, and system activity.
           </p>
         </div>
 
         <Link href="/projects/new">
           <Button variant="primary" size="sm" type="button" leftIcon={<Plus className="w-3.5 h-3.5" />}>
-            New Project
+            New Product
           </Button>
         </Link>
       </div>
 
-      {/* KPI Strip */}
-      <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-[#F1F5F9]">
+      {/* Portfolio Overview Strip */}
+      <div className="rounded-[14px] bg-white border border-[#E3E7EC] p-4 sm:p-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-[#E3E7EC]">
           <div className="py-1 px-3 sm:px-4 first:pl-0">
-            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] block">Active Projects</span>
-            <span className="text-2xl font-semibold text-[#0F172A] font-mono mt-1.5 block">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#626A73] block">Active Products</span>
+            <span className="text-2xl font-semibold text-[#181B20] font-mono mt-1.5 block">
               {projects.length}
             </span>
           </div>
           <div className="py-1 px-3 sm:px-4">
-            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] block">On Track</span>
-            <span className="text-2xl font-semibold text-[#15803D] font-mono mt-1.5 block">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#626A73] block">On Track</span>
+            <span className="text-2xl font-semibold text-[#237A57] font-mono mt-1.5 block">
               {onTrackCount}
             </span>
           </div>
           <div className="py-1 px-3 sm:px-4">
-            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] block">At Risk</span>
-            <span className="text-2xl font-semibold text-[#B45309] font-mono mt-1.5 block">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#626A73] block">At Risk</span>
+            <span className="text-2xl font-semibold text-[#A86B12] font-mono mt-1.5 block">
               {atRiskCount}
             </span>
           </div>
           <div className="py-1 px-3 sm:px-4">
-            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] block">Blocked</span>
-            <span className="text-2xl font-semibold text-[#DC2626] font-mono mt-1.5 block">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#626A73] block">Blocked</span>
+            <span className="text-2xl font-semibold text-[#C24141] font-mono mt-1.5 block">
               {offTrackCount}
             </span>
           </div>
           <div className="py-1 px-3 sm:px-4">
-            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] block">Completed</span>
-            <span className="text-2xl font-semibold text-[#475569] font-mono mt-1.5 block">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#626A73] block">Completed</span>
+            <span className="text-2xl font-semibold text-[#181B20] font-mono mt-1.5 block">
               {completedCount}
             </span>
           </div>
           <div className="py-1 px-3 sm:px-4 last:pr-0">
-            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#64748B] block">Escalations</span>
-            <span className="text-2xl font-semibold text-[#DC2626] font-mono mt-1.5 block">
+            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-[#626A73] block">Escalations</span>
+            <span className="text-2xl font-semibold text-[#C24141] font-mono mt-1.5 block">
               {urgentTasks.length}
             </span>
           </div>
@@ -123,14 +131,14 @@ export function OwnerDashboard() {
       {/* 2-Column Independent Architecture */}
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-7 items-start">
         {/* Main Column: Portfolio Table with Calm Rows */}
-        <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-4 min-w-0">
-          <div className="flex items-center justify-between pb-2 border-b border-[#F1F5F9]">
-            <h2 className="text-[16px] font-semibold text-[#0F172A]">
+        <div className="rounded-[14px] bg-white border border-[#E3E7EC] p-5 space-y-4 min-w-0">
+          <div className="flex items-center justify-between pb-2 border-b border-[#E3E7EC]">
+            <h2 className="text-[16px] font-semibold text-[#181B20]">
               Studio Portfolio ({projects.length})
             </h2>
             <Link
               href="/projects"
-              className="text-[12px] text-[#2563EB] font-medium hover:text-[#1D4ED8] flex items-center gap-1 fx-transition"
+              className="text-[12px] text-[#2563EB] font-semibold hover:text-[#1D4ED8] flex items-center gap-1 fx-transition"
             >
               <span>Full Directory</span>
               <ArrowRight className="w-3 h-3" />
@@ -140,7 +148,7 @@ export function OwnerDashboard() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[13px]">
               <thead>
-                <tr className="bg-[#F8FAFC] text-[#64748B] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E2E8F0]">
+                <tr className="bg-[#F7F8FA] text-[#626A73] font-semibold text-[11px] uppercase tracking-wider border-b border-[#E3E7EC]">
                   <th className="py-2.5 px-3">Product Title</th>
                   <th className="py-2.5 px-3">Health</th>
                   <th className="py-2.5 px-3">Progress</th>
@@ -148,25 +156,25 @@ export function OwnerDashboard() {
                   <th className="py-2.5 px-3 text-right">Target Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F1F5F9] text-[#0F172A]">
+              <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                 {projects.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-[#94A3B8]">
-                      No studio projects found. Create your first project using the button above.
+                    <td colSpan={5} className="py-8 text-center text-[#929AA3]">
+                      No studio projects found. Create your first product using the button above.
                     </td>
                   </tr>
                 ) : (
                   projects.map((proj: any) => (
                     <tr
                       key={proj.id}
-                      className="hover:bg-[#F8FAFC] cursor-pointer fx-transition"
+                      className="hover:bg-[#F7F8FA] cursor-pointer fx-transition"
                     >
                       <td className="py-3 px-3">
                         <Link href={`/projects/${proj.id}`} className="block">
-                          <p className="font-semibold text-[#0F172A] hover:text-[#2563EB] text-[13px]">
+                          <p className="font-semibold text-[#181B20] hover:text-[#2563EB] text-[13px] fx-transition">
                             {proj.name}
                           </p>
-                          <p className="text-[11px] text-[#64748B] font-mono mt-0.5">{proj.key || proj.code}</p>
+                          <p className="text-[11px] text-[#626A73] font-mono mt-0.5">{proj.key || proj.code}</p>
                         </Link>
                       </td>
                       <td className="py-3 px-3">
@@ -175,12 +183,12 @@ export function OwnerDashboard() {
                       <td className="py-3 px-3 w-32">
                         <Progress value={proj.progress || 0} size="xs" />
                       </td>
-                      <td className="py-3 px-3 text-[#475569] text-[12px]">
+                      <td className="py-3 px-3 text-[#626A73] text-[12.5px]">
                         {proj.projectManager
                           ? `${proj.projectManager.firstName} ${proj.projectManager.lastName}`
                           : proj.projectManagerName || 'Unassigned'}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono text-[#64748B] text-[12px]">
+                      <td className="py-3 px-3 text-right font-mono text-[#626A73] text-[12px]">
                         {proj.targetDate ? formatDate(proj.targetDate) : '—'}
                       </td>
                     </tr>
@@ -191,9 +199,9 @@ export function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Utility Column: Calendar & Escalations */}
+        {/* Utility Column: Schedule, Needs Attention & Recent System Activity */}
         <div className="space-y-6 min-w-0">
-          <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-4 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="rounded-[14px] bg-white border border-[#E3E7EC] p-4">
             <CalendarWidget
               projects={projects}
               tasks={urgentTasks}
@@ -204,36 +212,77 @@ export function OwnerDashboard() {
           </div>
 
           {/* Needs Attention Feed */}
-          <div className="rounded-[14px] bg-white border border-[#E2E8F0] p-4 sm:p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] space-y-3">
+          <div className="rounded-[14px] bg-white border border-[#E3E7EC] p-4 sm:p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-[13px] font-semibold text-[#0F172A]">
+              <h3 className="text-[13px] font-semibold text-[#181B20]">
                 Needs Attention
               </h3>
               {urgentTasks.length > 0 && (
-                <span className="font-mono text-[10.5px] font-semibold text-[#DC2626] px-1.5 py-0.2 bg-[#FEF2F2] border border-[#FEE2E2] rounded-[4px]">
+                <span className="font-mono text-[10.5px] font-semibold text-[#C24141] px-1.5 py-0.2 bg-[#FDEEEE] border border-[#FBD4D4] rounded-[4px]">
                   {urgentTasks.length}
                 </span>
               )}
             </div>
 
             {urgentTasks.length === 0 ? (
-              <p className="text-[12px] text-[#15803D] py-1">
+              <p className="text-[12px] text-[#237A57] py-1 font-medium">
                 ✓ All studio deliverables on schedule.
               </p>
             ) : (
-              <div className="divide-y divide-[#F1F5F9]">
-                {urgentTasks.slice(0, 5).map((task: any) => (
+              <div className="divide-y divide-[#E3E7EC]">
+                {urgentTasks.slice(0, 4).map((task: any) => (
                   <div
                     key={task.id}
                     onClick={() => task.taskId && setSelectedTaskId(task.taskId)}
-                    className="py-2.5 hover:bg-[#F8FAFC] -mx-2 px-2 rounded-[6px] fx-transition cursor-pointer text-xs"
+                    className="py-2 hover:bg-[#F7F8FA] -mx-2 px-2 rounded-[6px] fx-transition cursor-pointer text-xs"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-[#0F172A] truncate">{task.title}</span>
+                      <span className="font-medium text-[#181B20] truncate">{task.title}</span>
                       <PriorityBadge priority={task.priority || TaskPriority.HIGH} compact />
                     </div>
-                    <p className="text-[11px] text-[#64748B] mt-0.5 truncate">
+                    <p className="text-[11px] text-[#626A73] mt-0.5 truncate">
                       {task.project?.name || task.subtitle || task.reason || task.projectKey}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent System Activity (Security & Audit Oversight) */}
+          <div className="rounded-[14px] bg-white border border-[#E3E7EC] p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[13px] font-semibold text-[#181B20] flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#2563EB]" />
+                Recent System Activity
+              </h3>
+              <Link
+                href="/admin/audit"
+                className="text-[11.5px] font-semibold text-[#2563EB] hover:text-[#1D4ED8] fx-transition"
+              >
+                View Audit Log →
+              </Link>
+            </div>
+
+            {recentLogs.length === 0 ? (
+              <p className="text-[12px] text-[#929AA3] py-1">No recent security events logged.</p>
+            ) : (
+              <div className="divide-y divide-[#E3E7EC] text-xs">
+                {recentLogs.slice(0, 4).map((log: any) => (
+                  <div key={log.id} className="py-2 first:pt-0 last:pb-0 space-y-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-[#181B20] truncate">
+                        {String(log.action).replace(/_/g, ' ')}
+                      </span>
+                      <span className={cn(
+                        'text-[10px] font-medium font-mono px-1 rounded',
+                        String(log.action).endsWith('_FAILED') ? 'text-[#C24141] bg-[#FDEEEE]' : 'text-[#237A57] bg-[#EDF8F2]'
+                      )}>
+                        {String(log.action).endsWith('_FAILED') ? 'Failed' : 'Success'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#626A73] truncate">
+                      {log.actor ? `${log.actor.firstName} ${log.actor.lastName}` : 'System'} · {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                 ))}

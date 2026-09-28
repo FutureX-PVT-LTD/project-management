@@ -105,79 +105,135 @@ export function ProjectMembersPage() {
         }
       >
         {error && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-800 flex gap-2">
+          <div className="rounded-[8px] border border-[#FECACA] bg-[#FDEEEE] p-3 text-xs font-medium text-[#C24141] flex gap-2">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <section className="bg-white border border-fx-border rounded-lg p-4 space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">
+        <section className="bg-white border border-[#E3E7EC] rounded-[10px] p-4 space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#626A73]">
             Current Team
           </h2>
           {projectLoading ? (
-            <p className="p-4 text-center text-xs text-fx-text-muted">Loading project team...</p>
+            <p className="p-4 text-center text-xs text-[#929AA3]">Loading project team...</p>
           ) : currentMembers.length === 0 ? (
-            <p className="rounded border border-fx-border bg-fx-bg p-4 text-center text-xs text-fx-text-muted">
+            <p className="rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] p-4 text-center text-xs text-[#929AA3]">
               No team members currently assigned.
             </p>
           ) : (
-            <div className="rounded-lg border border-fx-border divide-y divide-fx-border/60 overflow-hidden">
+            <div className="rounded-[8px] border border-[#E3E7EC] divide-y divide-[#E3E7EC] overflow-hidden">
               {currentMembers.map((m) => (
-                <div key={m.id || m.userId} className="flex items-center justify-between gap-3 p-3 text-xs">
+                <div key={m.id || m.userId} className="flex items-center justify-between gap-3 p-3 text-xs hover:bg-[#F7F8FA] transition-colors">
                   <div>
-                    <p className="font-semibold text-fx-text-primary">
+                    <p className="font-semibold text-[13.5px] text-[#181B20]">
                       {m.user?.firstName} {m.user?.lastName}
                     </p>
-                    <p className="text-[11px] font-medium text-[#245EC7]">{roleLabel(m.projectRoles, 'No project role assigned')}</p>
-                    {m.user?.jobTitle && <p className="text-[11px] text-fx-text-muted">{m.user.jobTitle}</p>}
-                    <p className="mt-1 text-[11px] text-fx-text-secondary">{m.activeAssignmentsCount || 0} active assignments</p>
-                    <div className="mt-2 flex flex-wrap gap-2">{(m.user?.functionalRoleLinks || m.user?.functionalRoles || []).map((entry: any) => { const role = entry.functionalRole || entry; const current = roleDrafts[m.userId] ?? (m.projectRoles || []).map((item: any) => item.id); return <label key={role.id} className="flex items-center gap-1 rounded border px-2 py-1 text-[11px]"><input type="checkbox" checked={current.includes(role.id)} onChange={(event) => setRoleDrafts((drafts) => ({ ...drafts, [m.userId]: event.target.checked ? [...current, role.id] : current.filter((id: string) => id !== role.id) }))} />{role.name}</label>; })}</div>
+                    <p className="text-[11.5px] font-medium text-[#2563EB]">{roleLabel(m.projectRoles, 'No project role assigned')}</p>
+                    {m.user?.jobTitle && <p className="text-[11.5px] text-[#626A73]">{m.user.jobTitle}</p>}
+                    <p className="mt-1 text-[11px] text-[#626A73]">{m.activeAssignmentsCount || 0} active assignments</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(m.user?.functionalRoleLinks || m.user?.functionalRoles || []).map((entry: any) => {
+                        const role = entry.functionalRole || entry;
+                        const current = roleDrafts[m.userId] ?? (m.projectRoles || []).map((item: any) => item.id);
+                        return (
+                          <label key={role.id} className="flex items-center gap-1.5 rounded-[6px] border border-[#E3E7EC] bg-[#F7F8FA] px-2 py-0.5 text-[11px] text-[#181B20]">
+                            <input
+                              type="checkbox"
+                              checked={current.includes(role.id)}
+                              onChange={(event) =>
+                                setRoleDrafts((drafts) => ({
+                                  ...drafts,
+                                  [m.userId]: event.target.checked
+                                    ? [...current, role.id]
+                                    : current.filter((id: string) => id !== role.id),
+                                }))
+                              }
+                              className="rounded border-[#E3E7EC] text-[#2563EB]"
+                            />
+                            {role.name}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex gap-2"><Button size="xs" variant="secondary" disabled={roleDrafts[m.userId] === undefined} loading={updateRolesMutation.isPending} onClick={() => updateRolesMutation.mutate({ userId: m.userId, functionalRoleIds: roleDrafts[m.userId] })}>Save Roles</Button><Button
-                    size="xs"
-                    variant="ghost"
-                    className="text-red-700 hover:bg-red-50"
-                    loading={removeMemberMutation.isPending}
-                    onClick={() => removeMemberMutation.mutate(m.userId)}
-                    leftIcon={<Trash2 className="h-3 w-3" />}
-                  >
-                    Remove
-                  </Button></div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      size="xs"
+                      variant="secondary"
+                      disabled={roleDrafts[m.userId] === undefined}
+                      loading={updateRolesMutation.isPending}
+                      onClick={() => updateRolesMutation.mutate({ userId: m.userId, functionalRoleIds: roleDrafts[m.userId] })}
+                    >
+                      Save Roles
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      className="text-[#C24141] hover:bg-[#FDEEEE]"
+                      loading={removeMemberMutation.isPending}
+                      onClick={() => removeMemberMutation.mutate(m.userId)}
+                      leftIcon={<Trash2 className="h-3 w-3" />}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </section>
 
-        <section className="bg-white border border-fx-border rounded-lg p-4 space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">
+        <section className="bg-white border border-[#E3E7EC] rounded-[10px] p-4 space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#626A73]">
             Add Member
           </h2>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fx-text-muted" />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#929AA3]" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search available team members..."
-              className="w-full rounded-md border border-fx-border bg-white py-2 pl-8 pr-3 text-xs focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
+              className="w-full rounded-[8px] border border-[#E3E7EC] bg-white py-2 pl-8 pr-3 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
             />
           </div>
           {usersLoading ? (
-            <p className="p-4 text-center text-xs text-fx-text-muted">Loading available members...</p>
+            <p className="p-4 text-center text-xs text-[#929AA3]">Loading available members...</p>
           ) : filteredAvailable.length === 0 ? (
-            <p className="rounded border border-fx-border bg-fx-bg p-4 text-center text-xs text-fx-text-muted">
+            <p className="rounded-[8px] border border-[#E3E7EC] bg-[#F7F8FA] p-4 text-center text-xs text-[#929AA3]">
               No active team members are available to add.
             </p>
           ) : (
-            <div className="rounded-lg border border-fx-border divide-y divide-fx-border/60 overflow-hidden">
+            <div className="rounded-[8px] border border-[#E3E7EC] divide-y divide-[#E3E7EC] overflow-hidden">
               {filteredAvailable.map((user) => (
-                <div key={user.id} className="flex items-center justify-between gap-3 p-3 text-xs">
+                <div key={user.id} className="flex items-center justify-between gap-3 p-3 text-xs hover:bg-[#F7F8FA] transition-colors">
                   <div>
-                    <p className="font-semibold text-fx-text-primary">{user.firstName} {user.lastName}</p>
-                    <p className="text-[11px] font-medium text-[#245EC7]">{roleLabel(user.functionalRoles)}</p>
-                    {user.jobTitle && <p className="text-[11px] text-fx-text-muted">{user.jobTitle}</p>}
-                    <div className="mt-2 flex flex-wrap gap-2">{(user.functionalRoles || []).map((role: any) => { const current = roleDrafts[user.id] || []; return <label key={role.id} className="flex items-center gap-1 rounded border px-2 py-1 text-[11px]"><input type="checkbox" checked={current.includes(role.id)} onChange={(event) => setRoleDrafts((drafts) => ({ ...drafts, [user.id]: event.target.checked ? [...current, role.id] : current.filter((id: string) => id !== role.id) }))} />{role.name}</label>; })}</div>
+                    <p className="font-semibold text-[13.5px] text-[#181B20]">{user.firstName} {user.lastName}</p>
+                    <p className="text-[11.5px] font-medium text-[#2563EB]">{roleLabel(user.functionalRoles)}</p>
+                    {user.jobTitle && <p className="text-[11.5px] text-[#626A73]">{user.jobTitle}</p>}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(user.functionalRoles || []).map((role: any) => {
+                        const current = roleDrafts[user.id] || [];
+                        return (
+                          <label key={role.id} className="flex items-center gap-1.5 rounded-[6px] border border-[#E3E7EC] bg-[#F7F8FA] px-2 py-0.5 text-[11px] text-[#181B20]">
+                            <input
+                              type="checkbox"
+                              checked={current.includes(role.id)}
+                              onChange={(event) =>
+                                setRoleDrafts((drafts) => ({
+                                  ...drafts,
+                                  [user.id]: event.target.checked
+                                    ? [...current, role.id]
+                                    : current.filter((id: string) => id !== role.id),
+                                }))
+                              }
+                              className="rounded border-[#E3E7EC] text-[#2563EB]"
+                            />
+                            {role.name}
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
                   <Button
                     size="xs"
