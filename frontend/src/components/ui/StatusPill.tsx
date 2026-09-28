@@ -51,7 +51,7 @@ const statusConfig: Record<
     dot: 'bg-[#2563EB]',
   },
   [TaskStatus.IN_REVIEW]: {
-    label: 'In Review',
+    label: 'Awaiting Review',
     bg: 'bg-[#F4F0FC] border border-[#E6DEFA]',
     text: 'text-[#7557B5]',
     dot: 'bg-[#7557B5]',

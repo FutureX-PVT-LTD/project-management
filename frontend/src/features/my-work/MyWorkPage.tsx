@@ -191,15 +191,15 @@ function MyWorkContent() {
 
       const groups = [];
       if (current.length > 0)
-        groups.push({ groupName: 'Current', items: current, dotColor: 'bg-[#2563EB]' });
+        groups.push({ groupName: 'In Progress', items: current, dotColor: 'bg-[#2563EB]' });
       if (ready.length > 0)
-        groups.push({ groupName: 'Ready', items: ready, dotColor: 'bg-[#237A57]' });
+        groups.push({ groupName: 'Not Started', items: ready, dotColor: 'bg-[#237A57]' });
       if (waiting.length > 0)
         groups.push({ groupName: 'Waiting', items: waiting, dotColor: 'bg-[#A86B12]' });
       if (blocked.length > 0)
         groups.push({ groupName: 'Blocked', items: blocked, dotColor: 'bg-[#C24141]' });
       if (inReview.length > 0)
-        groups.push({ groupName: 'In Review', items: inReview, dotColor: 'bg-[#7557B5]' });
+        groups.push({ groupName: 'Awaiting Review', items: inReview, dotColor: 'bg-[#7557B5]' });
       if (needsAttention.length > 0 && blocked.length === 0)
         groups.push({
           groupName: 'Needs Attention',
@@ -209,7 +209,7 @@ function MyWorkContent() {
       if (upcoming.length > 0)
         groups.push({ groupName: 'Upcoming', items: upcoming, dotColor: 'bg-[#929AA3]' });
       if (completed.length > 0)
-        groups.push({ groupName: 'Completed', items: completed, dotColor: 'bg-[#237A57]' });
+        groups.push({ groupName: 'Done', items: completed, dotColor: 'bg-[#237A57]' });
 
       return groups.length > 0 ? groups : [{ groupName: 'Assigned Work', items: [] }];
     }
@@ -239,12 +239,12 @@ function MyWorkContent() {
 
   const tabs = [
     { id: 'ALL', label: 'All' },
-    { id: 'IN_PROGRESS', label: 'Current' },
-    { id: 'READY', label: 'Ready' },
+    { id: 'IN_PROGRESS', label: 'In Progress' },
+    { id: 'READY', label: 'Not Started' },
     { id: 'WAITING', label: 'Waiting' },
     { id: 'BLOCKED', label: 'Blocked' },
-    { id: 'REVIEW', label: 'In Review' },
-    { id: 'COMPLETED', label: 'Completed' },
+    { id: 'REVIEW', label: 'Awaiting Review' },
+    { id: 'COMPLETED', label: 'Done' },
   ];
 
   const handleViewChange = (mode: 'list' | 'board') => {
@@ -361,23 +361,30 @@ function MyWorkContent() {
     }
   };
 
-  const waitingCount = allTasks.filter((t) => t.status === TaskStatus.WAITING).length;
+  const notStartedCount = allTasks.filter(
+    (t) =>
+      t.status === TaskStatus.READY ||
+      (t.status === TaskStatus.TODO && (!t.blockedBy || t.blockedBy.length === 0)),
+  ).length;
   const inProgressCount = allTasks.filter(
     (t) => t.status === TaskStatus.IN_PROGRESS,
   ).length;
-  const readyCount = allTasks.filter((t) => t.status === TaskStatus.READY).length;
+  const waitingTotalCount = allTasks.filter(
+    (t) =>
+      t.status === TaskStatus.WAITING ||
+      t.status === TaskStatus.BLOCKED ||
+      t.status === TaskStatus.IN_REVIEW,
+  ).length;
 
   const subtitle = isLoading
     ? 'Loading your assigned deliverables...'
     : `${allTasks.length} assigned deliverable${allTasks.length === 1 ? '' : 's'} · ${
-        readyCount > 0
-          ? `${readyCount} ready to start`
-          : inProgressCount > 0
-            ? `${inProgressCount} in progress`
-            : waitingCount > 0
-              ? `${waitingCount} waiting on prerequisites`
-              : 'All work complete'
-      }`;
+        notStartedCount > 0 ? `${notStartedCount} not started` : ''
+      }${notStartedCount > 0 && inProgressCount > 0 ? ' · ' : ''}${
+        inProgressCount > 0 ? `${inProgressCount} in progress` : ''
+      }${(notStartedCount > 0 || inProgressCount > 0) && waitingTotalCount > 0 ? ' · ' : ''}${
+        waitingTotalCount > 0 ? `${waitingTotalCount} waiting` : ''
+      }${notStartedCount === 0 && inProgressCount === 0 && waitingTotalCount === 0 ? 'All work complete' : ''}`;
 
   if (isLoading && allTasks.length === 0) {
     return (

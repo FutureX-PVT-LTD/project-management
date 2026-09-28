@@ -4,12 +4,10 @@ import React, { useState, useMemo } from 'react';
 import {
   Calendar,
   Play,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Clock,
   AlertCircle,
-  HelpCircle,
 } from 'lucide-react';
 import { TaskStatus, TaskPriority } from '@futurex/shared';
 import { PriorityBadge } from '@/components/ui/PriorityBadge';
@@ -219,6 +217,7 @@ function KanbanCard({
         );
 
       case TaskStatus.IN_REVIEW:
+        // Awaiting review safeguard: team members can only inspect submission
         return (
           <Button
             size="xs"
@@ -271,7 +270,7 @@ function KanbanCard({
       )}
       aria-label={`${cleanId}: ${task.title}`}
     >
-      {/* 1. Header: Task ID, Workstream, Priority & Subtle Status Tag */}
+      {/* 1. Header: Task ID, Workstream, Priority & Semantic Sub-status Tag */}
       <div className="flex items-center justify-between gap-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <span className="font-mono font-medium text-[11px] text-[#626A73] bg-[#F7F8FA] px-1.5 py-0.5 rounded-[4px] border border-[#E3E7EC] shrink-0">
@@ -283,7 +282,12 @@ function KanbanCard({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Subtle Semantic Status Tag inside shared WAITING / BLOCKED column */}
+          {/* Semantic Status Tags inside WAITING column */}
+          {task.status === TaskStatus.IN_REVIEW && (
+            <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[#7557B5] bg-[#F5F2FC] border border-[#DDD6FE] px-1.5 py-0.5 rounded-[4px]">
+              Awaiting review
+            </span>
+          )}
           {task.status === TaskStatus.BLOCKED && (
             <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-[#C24141] bg-[#FFF2F2] border border-[#FCD2D2] px-1.5 py-0.5 rounded-[4px]">
               Blocked
@@ -310,13 +314,13 @@ function KanbanCard({
 
         {/* Multi-Project & Phase Context */}
         <div className="mt-1 text-[11.5px] text-[#626A73] flex flex-wrap items-center gap-x-1.5">
-          <span className="font-medium text-[#323842] truncate max-w-[140px]">
+          <span className="font-medium text-[#323842] truncate max-w-[150px]">
             {task.project?.name || 'Project'}
           </span>
           {phaseName && (
             <>
               <span className="text-[#B0B7C1]">·</span>
-              <span className="text-[#626A73] truncate max-w-[120px]">{phaseName}</span>
+              <span className="text-[#626A73] truncate max-w-[130px]">{phaseName}</span>
             </>
           )}
         </div>
@@ -341,36 +345,46 @@ function KanbanCard({
       )}
 
       {task.status === TaskStatus.WAITING && (
-        <div className="text-[11px] text-[#A86B12] bg-[#FEF8EE] border border-[#F5E1B9] px-2 py-1 rounded-[6px] truncate flex items-center gap-1.5">
-          <Clock className="w-3 h-3 shrink-0" />
-          <span className="truncate">
+        <div className="text-[11px] text-[#A86B12] bg-[#FEF8EE] border border-[#F5E1B9] px-2 py-1.5 rounded-[6px] space-y-0.5">
+          <div className="flex items-center gap-1 font-medium text-[10.5px]">
+            <Clock className="w-3 h-3 shrink-0" />
+            <span>Waiting for prerequisite</span>
+          </div>
+          <p className="text-[11px] text-[#8C570D] truncate">
             {unfinishedDeps.length === 1
-              ? `Waiting for ${formatTaskId(
+              ? `Waiting for: ${formatTaskId(
                   unfinishedDeps[0].predecessorTask?.humanId,
                   unfinishedDeps[0].predecessorTask?.project?.key,
+                  unfinishedDeps[0].predecessorTask?.project?.name,
                 )}`
               : unfinishedDeps.length > 1
                 ? `${unfinishedDeps.length} prerequisites remaining`
-                : 'Waiting on prerequisites'}
-          </span>
+                : 'Waiting on prerequisite deliverables'}
+          </p>
         </div>
       )}
 
       {task.status === TaskStatus.BLOCKED && (
-        <div className="text-[11px] text-[#C24141] bg-[#FFF2F2] border border-[#FCD2D2] px-2 py-1 rounded-[6px] line-clamp-2 flex items-start gap-1.5">
-          <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
-          <span className="leading-tight">
-            {task.blockerReason || 'Blocked by unresolved impediment'}
-          </span>
+        <div className="text-[11px] text-[#C24141] bg-[#FFF2F2] border border-[#FCD2D2] px-2 py-1.5 rounded-[6px] space-y-0.5">
+          <div className="flex items-center gap-1 font-medium text-[10.5px]">
+            <AlertCircle className="w-3 h-3 shrink-0" />
+            <span>Blocked</span>
+          </div>
+          <p className="text-[11px] text-[#A82828] line-clamp-2">
+            {task.blockerReason || 'Waiting for resolution of blocking issue'}
+          </p>
         </div>
       )}
 
       {task.status === TaskStatus.IN_REVIEW && (
-        <div className="text-[11px] text-[#7557B5] bg-[#F5F2FC] border border-[#DDD6FE] px-2 py-1 rounded-[6px] truncate flex items-center gap-1.5">
-          <Clock className="w-3 h-3 shrink-0" />
-          <span className="truncate">
+        <div className="text-[11px] text-[#7557B5] bg-[#F5F2FC] border border-[#DDD6FE] px-2 py-1.5 rounded-[6px] space-y-0.5">
+          <div className="flex items-center gap-1 font-medium text-[10.5px]">
+            <Clock className="w-3 h-3 shrink-0" />
+            <span>Awaiting review</span>
+          </div>
+          <p className="text-[11px] text-[#5B3E9B] truncate">
             Submitted {formatTimeAgo(task.updatedAt) || 'recently'}
-          </span>
+          </p>
         </div>
       )}
 
@@ -415,8 +429,8 @@ export function MyWorkBoardView({
   const [showAllDone, setShowAllDone] = useState(false);
   const [doneCollapsed, setDoneCollapsed] = useState(false);
 
-  // Categorize tasks into 5 canonical Kanban columns
-  const readyTasks = useMemo(() => {
+  // 1. NOT STARTED: Backend READY (and unblocked TODO)
+  const notStartedTasks = useMemo(() => {
     return sortColumnTasks(
       tasks.filter(
         (t) =>
@@ -426,20 +440,24 @@ export function MyWorkBoardView({
     );
   }, [tasks]);
 
+  // 2. IN PROGRESS: Backend IN_PROGRESS
   const inProgressTasks = useMemo(() => {
     return sortColumnTasks(tasks.filter((t) => t.status === TaskStatus.IN_PROGRESS));
   }, [tasks]);
 
-  const waitingBlockedTasks = useMemo(() => {
+  // 3. WAITING: Visual grouping of WAITING (prerequisite), BLOCKED (issue), and IN_REVIEW (awaiting review)
+  const waitingTasks = useMemo(() => {
     return sortColumnTasks(
-      tasks.filter((t) => t.status === TaskStatus.WAITING || t.status === TaskStatus.BLOCKED),
+      tasks.filter(
+        (t) =>
+          t.status === TaskStatus.WAITING ||
+          t.status === TaskStatus.BLOCKED ||
+          t.status === TaskStatus.IN_REVIEW,
+      ),
     );
   }, [tasks]);
 
-  const inReviewTasks = useMemo(() => {
-    return sortColumnTasks(tasks.filter((t) => t.status === TaskStatus.IN_REVIEW));
-  }, [tasks]);
-
+  // 4. DONE: Backend DONE, CANCELED, N_A
   const doneTasks = useMemo(() => {
     return sortColumnTasks(
       tasks.filter(
@@ -505,12 +523,12 @@ export function MyWorkBoardView({
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
-    // Workflow Rule 1: Dropping to READY
-    if (targetColId === 'READY') {
+    // Workflow Rule 1: Dropping to NOT_STARTED
+    if (targetColId === 'NOT_STARTED') {
       if (sourceStatus === TaskStatus.READY) return;
       onActionNotice({
         type: 'error',
-        text: 'Deliverables currently active, in review, or completed cannot be reverted to Ready.',
+        text: 'Active, waiting, or completed deliverables cannot be reverted to Not Started.',
       });
       return;
     }
@@ -531,10 +549,18 @@ export function MyWorkBoardView({
         return;
       }
 
-      if (sourceStatus === TaskStatus.WAITING || sourceStatus === TaskStatus.BLOCKED) {
+      if (sourceStatus === TaskStatus.WAITING) {
         onActionNotice({
           type: 'error',
-          text: 'Unresolved prerequisites or blockers prevent starting this deliverable.',
+          text: 'Unresolved prerequisites prevent starting this deliverable.',
+        });
+        return;
+      }
+
+      if (sourceStatus === TaskStatus.BLOCKED) {
+        onActionNotice({
+          type: 'error',
+          text: 'Active blockers prevent starting this deliverable.',
         });
         return;
       }
@@ -542,7 +568,7 @@ export function MyWorkBoardView({
       if (sourceStatus === TaskStatus.IN_REVIEW) {
         onActionNotice({
           type: 'error',
-          text: 'This deliverable is currently undergoing review and cannot be restarted.',
+          text: 'Deliverables awaiting review cannot be moved until an Admin or Project Manager approves or returns them.',
         });
         return;
       }
@@ -556,46 +582,63 @@ export function MyWorkBoardView({
       }
     }
 
-    // Workflow Rule 3: Dropping to WAITING_BLOCKED
-    if (targetColId === 'WAITING_BLOCKED') {
-      if (sourceStatus === TaskStatus.WAITING || sourceStatus === TaskStatus.BLOCKED) return;
-      onSelectTask(task.id);
-      onActionNotice({
-        type: 'info',
-        text: 'To log an impediment or update dependencies, open the deliverable details.',
-      });
-      return;
-    }
-
-    // Workflow Rule 4: Dropping to IN_REVIEW
-    if (targetColId === 'IN_REVIEW') {
-      if (sourceStatus === TaskStatus.IN_REVIEW) return;
+    // Workflow Rule 3: Dropping to WAITING
+    if (targetColId === 'WAITING') {
+      if (
+        sourceStatus === TaskStatus.WAITING ||
+        sourceStatus === TaskStatus.BLOCKED ||
+        sourceStatus === TaskStatus.IN_REVIEW
+      ) {
+        return;
+      }
 
       if (sourceStatus === TaskStatus.IN_PROGRESS) {
-        // Submit for Review requires notes/evidence slideover flow
         onSelectTask(task.id);
         onActionNotice({
           type: 'info',
-          text: 'Opening deliverable to submit completion notes and evidence for review.',
+          text: 'Opening deliverable to submit notes and evidence for review or report an impediment.',
         });
         return;
       }
 
-      onActionNotice({
-        type: 'error',
-        text: 'Deliverable must be in progress before submitting for review.',
-      });
-      return;
+      if (sourceStatus === TaskStatus.READY) {
+        onSelectTask(task.id);
+        onActionNotice({
+          type: 'info',
+          text: 'To log an impediment or update dependencies, open the deliverable details.',
+        });
+        return;
+      }
+
+      if (sourceStatus === TaskStatus.DONE) {
+        onActionNotice({
+          type: 'error',
+          text: 'Completed deliverables cannot be moved back to Waiting.',
+        });
+        return;
+      }
     }
 
-    // Workflow Rule 5: Dropping to DONE
+    // Workflow Rule 4: Dropping to DONE
     if (targetColId === 'DONE') {
       if (sourceStatus === TaskStatus.DONE) return;
 
       if (sourceStatus === TaskStatus.IN_REVIEW) {
         onActionNotice({
           type: 'error',
-          text: 'Team Members cannot approve their own reviews. An Admin or Manager must complete review.',
+          text: 'Team Members cannot approve their own reviews. An Admin or Project Manager must complete review.',
+        });
+        return;
+      }
+
+      if (
+        sourceStatus === TaskStatus.WAITING ||
+        sourceStatus === TaskStatus.BLOCKED ||
+        sourceStatus === TaskStatus.READY
+      ) {
+        onActionNotice({
+          type: 'error',
+          text: 'Deliverables must be executed and reviewed before being completed.',
         });
         return;
       }
@@ -608,23 +651,18 @@ export function MyWorkBoardView({
         });
         return;
       }
-
-      onActionNotice({
-        type: 'error',
-        text: 'Deliverables must be executed and reviewed before being completed.',
-      });
-      return;
     }
   };
 
+  // 4 Canonical Kanban Columns: NOT STARTED, IN PROGRESS, WAITING, DONE
   const columns = [
     {
-      id: 'READY',
-      title: 'READY',
-      count: readyTasks.length,
+      id: 'NOT_STARTED',
+      title: 'NOT STARTED',
+      count: notStartedTasks.length,
       dotColor: 'bg-[#237A57]',
-      tasks: readyTasks,
-      emptyText: 'No ready deliverables',
+      tasks: notStartedTasks,
+      emptyText: 'No deliverables waiting to start',
     },
     {
       id: 'IN_PROGRESS',
@@ -635,20 +673,12 @@ export function MyWorkBoardView({
       emptyText: 'No active work',
     },
     {
-      id: 'WAITING_BLOCKED',
-      title: 'WAITING / BLOCKED',
-      count: waitingBlockedTasks.length,
+      id: 'WAITING',
+      title: 'WAITING',
+      count: waitingTasks.length,
       dotColor: 'bg-[#A86B12]',
-      tasks: waitingBlockedTasks,
-      emptyText: 'No waiting or blocked tasks',
-    },
-    {
-      id: 'IN_REVIEW',
-      title: 'IN REVIEW',
-      count: inReviewTasks.length,
-      dotColor: 'bg-[#7557B5]',
-      tasks: inReviewTasks,
-      emptyText: 'No work under review',
+      tasks: waitingTasks,
+      emptyText: 'No waiting deliverables',
     },
     {
       id: 'DONE',
@@ -663,7 +693,7 @@ export function MyWorkBoardView({
 
   return (
     <div className="w-full">
-      {/* Desktop & Tablet: Horizontal Kanban Board */}
+      {/* Desktop & Tablet: Horizontal 4-Column Kanban Board */}
       <div className="hidden md:flex gap-3.5 overflow-x-auto pb-6 items-start no-scrollbar">
         {columns.map((col) => {
           const isOver = dragOverColumn === col.id;
@@ -678,7 +708,7 @@ export function MyWorkBoardView({
               onDragLeave={() => handleDragLeave(col.id)}
               onDrop={(e) => handleDrop(e, col.id)}
               className={cn(
-                'w-[295px] min-w-[285px] max-w-[320px] shrink-0 bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] p-3 transition-colors flex flex-col',
+                'w-[310px] min-w-[295px] max-w-[340px] shrink-0 bg-[#F7F8FA] border border-[#E3E7EC] rounded-[10px] p-3 transition-colors flex flex-col',
                 isOver && 'border-[#2563EB]/40 bg-[#EEF4FF]/50 ring-2 ring-[#2563EB]/15',
                 isDone && doneCollapsed && 'w-[80px] min-w-[80px] max-w-[80px] p-2.5',
               )}
@@ -719,7 +749,7 @@ export function MyWorkBoardView({
 
               {/* Tasks List */}
               {!(isDone && doneCollapsed) && (
-                <div className="max-h-[calc(100vh-270px)] overflow-y-auto pr-1 space-y-2.5 min-h-[120px]">
+                <div className="max-h-[calc(100vh-270px)] overflow-y-auto pr-1 space-y-2.5 min-h-[140px]">
                   {col.tasks.length === 0 ? (
                     <div className="py-8 text-center text-xs text-[#929AA3]">
                       {col.emptyText}

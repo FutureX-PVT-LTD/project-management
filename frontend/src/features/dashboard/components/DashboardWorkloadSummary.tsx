@@ -91,7 +91,7 @@ export function DashboardWorkloadSummary({ counts }: DashboardWorkloadSummaryPro
           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] border border-[#DDD6FE] bg-[#F4F0FC] text-[#7557B5] font-medium hover:bg-[#DDD6FE]/40 transition-colors"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[#7557B5] shrink-0" />
-          <span>In Review:</span>
+          <span>Awaiting Review:</span>
           <span className="font-semibold font-mono text-[#181B20]">{counts.inReview}</span>
         </Link>
       )}

@@ -20,14 +20,14 @@ export function ReviewSection({ tasks, onSelectTask }: ReviewSectionProps) {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-[#7557B5]" />
           <h2 id="in-review-heading" className="text-[12px] font-semibold uppercase tracking-wider text-[#626A73]">
-            In Review ({tasks.length})
+            Awaiting Review ({tasks.length})
           </h2>
         </div>
         <Link
           href="/my-work?tab=REVIEW"
           className="text-[13px] font-medium text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1 transition-colors"
         >
-          <span>View review items</span>
+          <span>View items awaiting review</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>

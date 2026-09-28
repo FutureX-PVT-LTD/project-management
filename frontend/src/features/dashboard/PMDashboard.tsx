@@ -595,7 +595,7 @@ export function PMDashboard() {
               >
                 <div className="flex items-center gap-2.5 text-[#626A73] group-hover:text-[#181B20]">
                   <span className="w-2 h-2 rounded-full bg-[#7557B5] shrink-0" />
-                  <span className="font-medium">In Review</span>
+                  <span className="font-medium">Awaiting Review</span>
                 </div>
                 <span className="font-mono font-semibold text-[#181B20]">{totalInReview}</span>
               </Link>

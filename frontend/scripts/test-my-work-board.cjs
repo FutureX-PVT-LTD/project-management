@@ -109,8 +109,8 @@ assert.strictEqual(sorted[2].id, '1', 'Normal low priority task must come last')
 
 console.log('✅ sortColumnTasks passed!');
 
-// 3. Test Column Categorization
-console.log('Testing column categorization...');
+// 3. Test 4-Column Categorization (NOT STARTED, IN PROGRESS, WAITING, DONE)
+console.log('Testing 4-column categorization...');
 const sampleTasks = [
   { id: 't1', status: 'READY' },
   { id: 't2', status: 'IN_PROGRESS' },
@@ -120,18 +120,16 @@ const sampleTasks = [
   { id: 't6', status: 'DONE' },
 ];
 
-const ready = sampleTasks.filter(t => t.status === 'READY');
+const notStarted = sampleTasks.filter(t => t.status === 'READY');
 const inProgress = sampleTasks.filter(t => t.status === 'IN_PROGRESS');
-const waitingBlocked = sampleTasks.filter(t => t.status === 'WAITING' || t.status === 'BLOCKED');
-const inReview = sampleTasks.filter(t => t.status === 'IN_REVIEW');
+const waiting = sampleTasks.filter(t => t.status === 'WAITING' || t.status === 'BLOCKED' || t.status === 'IN_REVIEW');
 const done = sampleTasks.filter(t => t.status === 'DONE');
 
-assert.strictEqual(ready.length, 1);
-assert.strictEqual(inProgress.length, 1);
-assert.strictEqual(waitingBlocked.length, 2);
-assert.strictEqual(inReview.length, 1);
-assert.strictEqual(done.length, 1);
+assert.strictEqual(notStarted.length, 1, 'NOT STARTED must contain READY tasks');
+assert.strictEqual(inProgress.length, 1, 'IN PROGRESS must contain IN_PROGRESS tasks');
+assert.strictEqual(waiting.length, 3, 'WAITING must contain WAITING, BLOCKED, and IN_REVIEW tasks');
+assert.strictEqual(done.length, 1, 'DONE must contain DONE tasks');
 
-console.log('✅ column categorization passed!');
+console.log('✅ 4-column categorization passed!');
 
 console.log('All My Work Board unit tests passed successfully!');
