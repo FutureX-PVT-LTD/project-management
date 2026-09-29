@@ -11,6 +11,7 @@ import { AlertCircle, Shield, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/auth/AuthContext';
 import { JobRolePicker } from './JobRolePicker';
+import { TemporaryCredential, TemporaryPasswordDialog } from './TemporaryPasswordDialog';
 
 interface CreateUserDrawerProps {
   open: boolean;
@@ -27,8 +28,8 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
   const [jobTitle, setJobTitle] = useState('');
   const [functionalRoleIds, setFunctionalRoleIds] = useState<string[]>([]);
   const [role, setRole] = useState<UserRole>(UserRole.TEAM_MEMBER);
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [temporaryCredential, setTemporaryCredential] = useState<TemporaryCredential | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -37,7 +38,6 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
       setEmail('');
       setJobTitle('');
       setRole(UserRole.TEAM_MEMBER);
-      setPassword('');
       setFunctionalRoleIds([]);
       setError(null);
     }
@@ -45,7 +45,8 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
 
   const createUserMutation = useMutation({
     mutationFn: (dto: any) => api.post('/users', dto),
-    onSuccess: () => {
+    onSuccess: (result: any) => {
+      setTemporaryCredential(result);
       onOpenChange(false);
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
@@ -55,7 +56,7 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
     },
   });
 
-  if (!open) return null;
+  if (!open && !temporaryCredential) return null;
   const canCreateSuperAdmin = user?.globalRole === UserRole.OWNER;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -74,11 +75,10 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
       jobTitle: jobTitle.trim() || undefined,
       globalRole: role,
       functionalRoleIds,
-      password: password || undefined,
     });
   };
 
-  return (
+  return (<>
     <Drawer
       open={open}
       onOpenChange={onOpenChange}
@@ -231,22 +231,9 @@ export function CreateUserDrawer({ open, onOpenChange }: CreateUserDrawerProps) 
           </div>
         </div>
 
-        {/* Temporary Password */}
-        <div>
-          <label className="block text-xs font-medium text-fx-text-primary mb-1">
-            Initial / Temporary Password
-          </label>
-          <Input
-            type="text"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Temporary login password"
-          />
-          <p className="text-[11px] text-fx-text-muted mt-1">
-            Default: <span className="font-mono font-medium">FutureX2026!@#</span> (The user will use this for initial login).
-          </p>
-        </div>
+        <div className="rounded-[8px] border border-fx-border bg-[#F7F9FC] p-3 text-[11px] text-fx-text-secondary">A secure temporary password will be generated and shown once after creation.</div>
       </form>
     </Drawer>
-  );
+    <TemporaryPasswordDialog credential={temporaryCredential} onClose={() => setTemporaryCredential(null)} />
+  </>);
 }

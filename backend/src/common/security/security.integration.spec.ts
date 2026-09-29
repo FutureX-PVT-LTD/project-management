@@ -225,7 +225,7 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect(await db.projectWorkstream.count({ where: { projectId: draftId, workstream: 'DEVELOPMENT' } })).toBe(1);
   });
   it('blocks Admin resetting an Owner password or promoting themselves', async () => {
-    expect((await post(`/users/${users.owner.id}/reset-password`, 'admin').send({ newPassword: password })).status).toBe(403);
+    expect((await post(`/users/${users.owner.id}/reset-password`, 'admin').send({})).status).toBe(403);
     const res = await request(app.getHttpServer()).patch(`/api/v1/users/${users.admin.id}`).set('Cookie', cookies.admin)
       .set('X-Requested-With', 'FutureX').send({ globalRole: 'OWNER' });
     expect(res.status).toBe(403);

@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto } from './dto/create-user.dto';
 import { UserRole, AuditAction } from '@futurex/shared';
 import * as argon2 from 'argon2';
+import * as crypto from 'crypto';
 
 export interface AuditContext {
   ipAddress?: string;
@@ -17,6 +18,14 @@ export interface AuditContext {
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
+
+  private temporaryPassword() {
+    return `Fx!${crypto.randomBytes(12).toString('base64url')}9a`;
+  }
+
+  private temporaryPasswordExpiry() {
+    return new Date(Date.now() + 24 * 60 * 60 * 1000);
+  }
 
   jobRoles() { return this.prisma.functionalRole.findMany({ orderBy: [{ category: 'asc' }, { name: 'asc' }] }); }
 
@@ -92,6 +101,8 @@ export class UsersService {
         globalRole: true,
         isActive: true,
         lastLoginAt: true,
+        mustChangePassword: true,
+        temporaryPasswordExpires: true,
         createdAt: true,
         teamMemberships: {
           select: {
@@ -122,6 +133,8 @@ export class UsersService {
       globalRole: u.globalRole as UserRole,
       isActive: u.isActive,
       lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+      mustChangePassword: u.mustChangePassword,
+      temporaryPasswordExpires: u.temporaryPasswordExpires?.toISOString() || null,
       createdAt: u.createdAt.toISOString(),
       teams: u.teamMemberships.map((tm) => tm.team),
       activeTasksCount: u._count.assignedTasks,
@@ -201,6 +214,8 @@ export class UsersService {
       avatarUrl: user.avatarUrl,
       globalRole: user.globalRole as UserRole,
       isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword,
+      temporaryPasswordExpires: user.temporaryPasswordExpires?.toISOString() || null,
       lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
@@ -292,13 +307,13 @@ export class UsersService {
       throw new BadRequestException('A user with this email address already exists');
     }
 
-    if (!dto.password) throw new BadRequestException('An initial password is required');
     if (dto.globalRole === UserRole.TEAM_MEMBER && !dto.functionalRoleIds?.length) {
       throw new BadRequestException('Choose at least one functional role for a Team Member');
     }
-    const defaultPassword = dto.password;
+    const temporaryPassword = this.temporaryPassword();
+    const temporaryPasswordExpires = this.temporaryPasswordExpiry();
     await this.validateJobRoles(dto.functionalRoleIds);
-    const passwordHash = await argon2.hash(defaultPassword);
+    const passwordHash = await argon2.hash(temporaryPassword);
 
     const user = await this.prisma.user.create({
       data: {
@@ -310,6 +325,8 @@ export class UsersService {
         functionalRoleLinks: dto.functionalRoleIds ? { create: dto.functionalRoleIds.map((functionalRoleId) => ({ functionalRoleId })) } : undefined,
         avatarUrl: dto.avatarUrl?.trim(),
         globalRole: dto.globalRole,
+        mustChangePassword: true,
+        temporaryPasswordExpires,
         teamMemberships: dto.teamIds?.length
           ? {
               create: dto.teamIds.map((teamId) => ({ teamId })),
@@ -338,7 +355,11 @@ export class UsersService {
       await this.recordAudit(actorId, 'USER_FUNCTIONAL_ROLE_ADDED' as AuditAction, 'User', user.id, { functionalRoleId }, auditContext);
     }
 
-    return this.findById(user.id);
+    return {
+      ...(await this.findById(user.id)),
+      temporaryPassword,
+      temporaryPasswordExpires: temporaryPasswordExpires.toISOString(),
+    };
   }
 
   async update(
@@ -511,6 +532,8 @@ export class UsersService {
           deletedAt: new Date(),
           resetPasswordToken: null,
           resetPasswordExpires: null,
+          mustChangePassword: false,
+          temporaryPasswordExpires: null,
         },
       });
 
@@ -543,7 +566,6 @@ export class UsersService {
 
   async resetPassword(
     id: string,
-    newPassword: string,
     actorId: string,
     actorRole: UserRole,
     auditContext?: AuditContext,
@@ -556,15 +578,32 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    if (!user.isActive) {
+      throw new BadRequestException('Activate this account before resetting its password');
+    }
+    if (id === actorId) {
+      throw new ForbiddenException('Use Account Security to change your own password');
+    }
+    if (actorRole === UserRole.ADMIN && user.globalRole !== UserRole.TEAM_MEMBER) {
+      throw new ForbiddenException('Admins may only reset Team Member passwords');
+    }
     if (user.globalRole === UserRole.OWNER && actorRole !== UserRole.OWNER) {
       throw new ForbiddenException('Only a Super Admin may reset a Super Admin password');
     }
-    const passwordHash = await argon2.hash(newPassword);
+    const temporaryPassword = this.temporaryPassword();
+    const temporaryPasswordExpires = this.temporaryPasswordExpiry();
+    const passwordHash = await argon2.hash(temporaryPassword);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id },
-        data: { passwordHash, resetPasswordToken: null, resetPasswordExpires: null },
+        data: {
+          passwordHash,
+          resetPasswordToken: null,
+          resetPasswordExpires: null,
+          mustChangePassword: true,
+          temporaryPasswordExpires,
+        },
       });
 
       // Revoke sessions
@@ -574,9 +613,18 @@ export class UsersService {
       });
     });
 
-    await this.recordAudit(actorId, AuditAction.PASSWORD_RESET, 'User', id, undefined, auditContext);
+    await this.recordAudit(actorId, AuditAction.PASSWORD_RESET, 'User', id, {
+      mode: 'ADMIN_TEMPORARY_PASSWORD',
+      expiresAt: temporaryPasswordExpires.toISOString(),
+    }, auditContext);
 
-    return { success: true, message: 'Password reset successfully' };
+    return {
+      success: true,
+      message: 'Temporary password generated. It is shown only once.',
+      email: user.email,
+      temporaryPassword,
+      temporaryPasswordExpires: temporaryPasswordExpires.toISOString(),
+    };
   }
 
   private async recordAudit(

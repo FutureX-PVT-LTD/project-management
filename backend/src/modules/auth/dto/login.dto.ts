@@ -43,22 +43,3 @@ export class ChangePasswordDto {
   @Matches(PASSWORD_COMPLEXITY_REGEX, { message: PASSWORD_COMPLEXITY_MESSAGE })
   newPassword: string;
 }
-
-export class ForgotPasswordDto {
-  @IsEmail({}, { message: 'Please provide a valid work email address' })
-  @IsNotEmpty()
-  email: string;
-}
-
-export class ResetPasswordDto {
-  @IsString()
-  @IsNotEmpty({ message: 'Password reset token is required' })
-  token: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(12, { message: 'New password must be at least 12 characters long' })
-  @MaxLength(128)
-  @Matches(PASSWORD_COMPLEXITY_REGEX, { message: PASSWORD_COMPLEXITY_MESSAGE })
-  newPassword: string;
-}

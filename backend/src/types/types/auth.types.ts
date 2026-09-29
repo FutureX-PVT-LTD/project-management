@@ -9,6 +9,7 @@ export interface AuthUser {
   avatarUrl?: string;
   globalRole: UserRole;
   isActive: boolean;
+  mustChangePassword: boolean;
 }
 
 export interface LoginResponse {

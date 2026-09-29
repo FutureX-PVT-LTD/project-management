@@ -14,7 +14,9 @@ function LoginContent() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      if (returnTo && /^\/(?!\/)/.test(returnTo) && !/[\\\u0000-\u0020]/.test(returnTo)) {
+      if (user.mustChangePassword) {
+        router.push('/change-password');
+      } else if (returnTo && /^\/(?!\/)/.test(returnTo) && !/[\\\u0000-\u0020]/.test(returnTo)) {
         router.push(returnTo);
       } else if (user.globalRole === UserRole.TEAM_MEMBER) {
         router.push('/my-work');

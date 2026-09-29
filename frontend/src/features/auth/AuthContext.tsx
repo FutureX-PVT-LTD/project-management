@@ -76,6 +76,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshUser]);
 
+  useEffect(() => {
+    if (!isLoading && user?.mustChangePassword && pathname !== '/change-password') {
+      router.replace('/change-password');
+    }
+  }, [isLoading, pathname, router, user]);
+
   const login = async (
     email: string,
     password: string,
@@ -89,6 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear any previous query cache before fresh navigation
     queryClient.clear();
     notifyAuthChange();
+
+    if (authenticatedUser.mustChangePassword) {
+      router.push('/change-password');
+      return authenticatedUser;
+    }
 
     // Validate and handle safe redirection
     if (returnTo && /^\/(?!\/)/.test(returnTo) && !/[\\\u0000-\u0020]/.test(returnTo)) {

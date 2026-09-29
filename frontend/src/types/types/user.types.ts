@@ -9,6 +9,8 @@ export interface UserDto {
   avatarUrl?: string;
   globalRole: UserRole;
   isActive: boolean;
+  mustChangePassword?: boolean;
+  temporaryPasswordExpires?: string | null;
   lastLoginAt?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -20,7 +22,6 @@ export interface UserDto {
 
 export interface CreateUserDto {
   email: string;
-  password?: string;
   firstName: string;
   lastName: string;
   jobTitle?: string;

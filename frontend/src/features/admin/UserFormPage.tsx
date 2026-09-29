@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/AuthContext';
+import { TemporaryCredential, TemporaryPasswordDialog } from './TemporaryPasswordDialog';
 
 interface UserFormPageProps {
   mode: 'create' | 'edit';
@@ -32,8 +33,8 @@ export function UserFormPage({ mode }: UserFormPageProps) {
   const [jobTitle, setJobTitle] = useState('');
   const [functionalRoleIds, setFunctionalRoleIds] = useState<string[]>([]);
   const [role, setRole] = useState<UserRole>(UserRole.TEAM_MEMBER);
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [temporaryCredential, setTemporaryCredential] = useState<TemporaryCredential | null>(null);
 
   const { data: userData } = useQuery({
     queryKey: ['users', userId],
@@ -69,7 +70,6 @@ export function UserFormPage({ mode }: UserFormPageProps) {
             jobTitle: jobTitle.trim() || undefined,
             functionalRoleIds,
             globalRole: role,
-            password: password || undefined,
           })
         : api.patch(`/users/${userId}`, {
             firstName: firstName.trim(),
@@ -78,10 +78,14 @@ export function UserFormPage({ mode }: UserFormPageProps) {
             functionalRoleIds,
             globalRole: role,
           }),
-    onSuccess: () => {
+    onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      router.push('/admin/users');
+      if (mode === 'create' && result?.temporaryPassword) {
+        setTemporaryCredential(result);
+      } else {
+        router.push('/admin/users');
+      }
     },
     onError: (err: any) => setError(err.message || 'User could not be saved.'),
   });
@@ -105,6 +109,7 @@ export function UserFormPage({ mode }: UserFormPageProps) {
   };
 
   return (
+    <>
     <AppShell>
       <form id="user-form" onSubmit={handleSubmit}>
         <FormPageLayout
@@ -176,14 +181,11 @@ export function UserFormPage({ mode }: UserFormPageProps) {
             </select>
           </section>
 
-          {mode === 'create' && (
-            <section className="bg-white border border-fx-border rounded-lg p-4 space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-fx-text-secondary">Initial Password</h2>
-              <Input type="password" required minLength={12} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </section>
-          )}
+          {mode === 'create' && <section className="bg-[#F7F9FC] border border-fx-border rounded-lg p-4"><p className="text-xs text-fx-text-secondary">A secure temporary password will be generated after the account is created. The user must replace it during their first sign-in.</p></section>}
         </FormPageLayout>
       </form>
     </AppShell>
+    <TemporaryPasswordDialog credential={temporaryCredential} onClose={() => { setTemporaryCredential(null); router.push('/admin/users'); }} />
+    </>
   );
 }

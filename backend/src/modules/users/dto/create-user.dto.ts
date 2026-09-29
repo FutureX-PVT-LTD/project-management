@@ -12,10 +12,6 @@ import {
   Matches,
 } from 'class-validator';
 import { UserRole } from '@futurex/shared';
-import {
-  PASSWORD_COMPLEXITY_REGEX,
-  PASSWORD_COMPLEXITY_MESSAGE,
-} from '../../auth/dto/login.dto';
 
 export class CreateUserDto {
   @IsArray() @IsString({ each: true }) @IsOptional()
@@ -43,13 +39,6 @@ export class CreateUserDto {
   @IsEnum(UserRole, { message: 'Invalid user role' })
   @IsNotEmpty()
   globalRole: UserRole;
-
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(12, { message: 'Password must be at least 12 characters' })
-  @MaxLength(128)
-  @Matches(PASSWORD_COMPLEXITY_REGEX, { message: PASSWORD_COMPLEXITY_MESSAGE })
-  password: string;
 
   @IsArray()
   @IsOptional()
@@ -86,14 +75,6 @@ export class UpdateUserDto {
   @IsArray()
   @IsOptional()
   teamIds?: string[];
-}
-
-export class ResetUserPasswordDto {
-  @IsString()
-  @MinLength(12, { message: 'Password must be at least 12 characters' })
-  @MaxLength(128)
-  @Matches(PASSWORD_COMPLEXITY_REGEX, { message: PASSWORD_COMPLEXITY_MESSAGE })
-  newPassword: string;
 }
 
 export class ToggleUserActiveDto {

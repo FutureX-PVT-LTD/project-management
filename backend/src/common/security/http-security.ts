@@ -74,7 +74,7 @@ export function requestLimits() {
   return (req: Request, res: Response, next: NextFunction) => {
     const now = Date.now();
     for (const [key, value] of buckets) if (value.until <= now) buckets.delete(key);
-    const auth = /\/auth\/(login|forgot-password|reset-password)$/.test(req.path);
+    const auth = req.path.endsWith('/auth/login');
     const refresh = req.path.endsWith('/auth/refresh');
     const scope = auth ? 'auth' : refresh ? 'refresh' : 'api';
     const keys = [`${scope}:${req.ip}`];

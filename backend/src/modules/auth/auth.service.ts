@@ -11,8 +11,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   LoginDto,
   ChangePasswordDto,
-  ForgotPasswordDto,
-  ResetPasswordDto,
 } from './dto/login.dto';
 import { UserRole, AuditAction } from '@futurex/shared';
 import { getJwtAccessSecret, getJwtRefreshSecret } from './auth-secrets';
@@ -75,6 +73,13 @@ export class AuthService {
         { reason: 'Invalid password' },
       );
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (
+      user.mustChangePassword &&
+      (!user.temporaryPasswordExpires || user.temporaryPasswordExpires <= new Date())
+    ) {
+      throw new UnauthorizedException('Temporary password expired. Contact your administrator.');
     }
 
     // Determine expiration based on rememberMe
@@ -146,6 +151,7 @@ export class AuthService {
         avatarUrl: user.avatarUrl,
         globalRole: user.globalRole as UserRole,
         isActive: user.isActive,
+        mustChangePassword: user.mustChangePassword,
       },
       accessToken,
       refreshToken,
@@ -253,6 +259,7 @@ export class AuthService {
           avatarUrl: user.avatarUrl,
           globalRole: user.globalRole as UserRole,
           isActive: user.isActive,
+          mustChangePassword: user.mustChangePassword,
         },
         accessToken: newAccessToken,
         refreshToken: newRefreshToken,
@@ -282,6 +289,13 @@ export class AuthService {
       throw new BadRequestException('User not found');
     }
 
+    if (
+      user.mustChangePassword &&
+      (!user.temporaryPasswordExpires || user.temporaryPasswordExpires <= new Date())
+    ) {
+      throw new BadRequestException('Temporary password expired. Contact your administrator.');
+    }
+
     const isValid = await argon2.verify(user.passwordHash, dto.currentPassword);
     if (!isValid) {
       throw new BadRequestException('Current password is incorrect');
@@ -291,6 +305,9 @@ export class AuthService {
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id: userId }, data: {
         passwordHash: newHash, resetPasswordToken: null, resetPasswordExpires: null,
+        mustChangePassword: false,
+        temporaryPasswordExpires: null,
+        passwordChangedAt: new Date(),
       } });
       await tx.session.updateMany({ where: { userId }, data: { isRevoked: true } });
     });
@@ -298,98 +315,6 @@ export class AuthService {
     await this.recordAudit(userId, AuditAction.PASSWORD_RESET, 'User', userId);
 
     return { success: true, message: 'Password updated successfully' };
-  }
-
-  async forgotPassword(dto: ForgotPasswordDto, ipAddress?: string, userAgent?: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email.toLowerCase().trim() },
-    });
-
-    if (user && user.isActive) {
-      const resetToken = crypto.randomBytes(32).toString('hex');
-      const resetTokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-      const expires = new Date();
-      expires.setHours(expires.getHours() + 1); // 1 hour expiration
-
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          resetPasswordToken: resetTokenHash,
-          resetPasswordExpires: expires,
-        },
-      });
-
-      await this.recordAudit(
-        user.id,
-        AuditAction.PASSWORD_RESET,
-        'User',
-        user.id,
-        ipAddress,
-        userAgent,
-        { action: 'FORGOT_PASSWORD_REQUESTED', email: user.email },
-      );
-
-      this.logger.log('Password reset requested');
-    }
-
-    return {
-      success: true,
-      message:
-        'If an active account exists with that work email, password reset instructions have been generated.',
-    };
-  }
-
-  async resetPasswordWithToken(dto: ResetPasswordDto, ipAddress?: string, userAgent?: string) {
-    const resetTokenHash = crypto.createHash('sha256').update(dto.token.trim()).digest('hex');
-
-    const user = await this.prisma.user.findFirst({
-      where: {
-        resetPasswordToken: resetTokenHash,
-        resetPasswordExpires: { gt: new Date() },
-        isActive: true,
-      },
-    });
-
-    if (!user) {
-      throw new BadRequestException(
-        'Password reset link is invalid or has expired. Please request a new link.',
-      );
-    }
-
-    const newHash = await argon2.hash(dto.newPassword);
-
-    await this.prisma.$transaction(async (tx) => {
-    const consumed = await tx.user.updateMany({
-      where: { id: user.id, resetPasswordToken: resetTokenHash, resetPasswordExpires: { gt: new Date() }, isActive: true, deletedAt: null },
-      data: {
-        passwordHash: newHash,
-        resetPasswordToken: null,
-        resetPasswordExpires: null,
-      },
-    });
-
-    if (consumed.count !== 1) throw new BadRequestException('Reset link invalid or expired');
-    // Revoke all existing sessions
-    await tx.session.updateMany({
-      where: { userId: user.id, isRevoked: false },
-      data: { isRevoked: true },
-    });
-    });
-
-    await this.recordAudit(
-      user.id,
-      AuditAction.PASSWORD_RESET,
-      'User',
-      user.id,
-      ipAddress,
-      userAgent,
-      { action: 'PASSWORD_RESET_TOKEN_COMPLETED' },
-    );
-
-    return {
-      success: true,
-      message: 'Your password has been successfully reset. You may now sign in with your new password.',
-    };
   }
 
   async getProfile(userId: string) {
@@ -422,6 +347,8 @@ export class AuthService {
       avatarUrl: user.avatarUrl,
       globalRole: user.globalRole as UserRole,
       isActive: user.isActive,
+      mustChangePassword: user.mustChangePassword,
+      temporaryPasswordExpires: user.temporaryPasswordExpires?.toISOString() || null,
       lastLoginAt: user.lastLoginAt,
       teams: user.teamMemberships.map((tm) => ({
         id: tm.team.id,

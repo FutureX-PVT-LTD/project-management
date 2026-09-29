@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { roleLabel } from '@/lib/role-labels';
 import Link from 'next/link';
 import { useAuth } from '@/features/auth/AuthContext';
+import { TemporaryCredential, TemporaryPasswordDialog } from './TemporaryPasswordDialog';
 
 export function UserManagementPage() {
   const queryClient = useQueryClient();
@@ -20,6 +21,7 @@ export function UserManagementPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
   const [actionError, setActionError] = useState<string | null>(null);
+  const [temporaryCredential, setTemporaryCredential] = useState<TemporaryCredential | null>(null);
 
   const { data: usersData, isLoading } = useQuery({
     queryKey: ['admin', 'users', search, roleFilter],
@@ -56,15 +58,17 @@ export function UserManagementPage() {
 
   // Reset password mutation
   const resetPasswordMutation = useMutation({
-    mutationFn: (id: string) =>
-      api.post(`/users/${id}/reset-password`, { newPassword: 'FutureX2026!@#' }),
-    onSuccess: () => {
-      alert('Password reset to default "FutureX2026!@#" successfully.');
+    mutationFn: (id: string) => api.post(`/users/${id}/reset-password`),
+    onSuccess: (result: any) => {
+      setActionError(null);
+      setTemporaryCredential(result);
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     },
+    onError: (error: Error) => setActionError(error.message),
   });
 
   return (
+    <>
     <AppShell>
       <div className="space-y-5">
         {/* Header */}
@@ -148,6 +152,10 @@ export function UserManagementPage() {
                   {users.map((u: any) => {
                     const isAdminUser = u.globalRole === UserRole.ADMIN || u.globalRole === UserRole.OWNER;
                     const isActive = u.isActive !== false;
+                    const passwordSetupPending = isActive && u.mustChangePassword;
+                    const canResetPassword = isActive && u.id !== currentUser?.id && (
+                      currentUser?.globalRole === UserRole.OWNER || u.globalRole === UserRole.TEAM_MEMBER
+                    );
 
                     const rowActions: ActionMenuItem[] = [
                       {
@@ -155,12 +163,12 @@ export function UserManagementPage() {
                         icon: <Edit3 className="w-3.5 h-3.5" />,
                         href: `/admin/users/${u.id}/edit`,
                       },
-                      {
-                        label: 'Reset Password to Default',
+                      ...(canResetPassword ? [{
+                        label: 'Generate Temporary Password',
                         icon: <KeyRound className="w-3.5 h-3.5" />,
                         onClick: () => resetPasswordMutation.mutate(u.id),
                         dividerAfter: true,
-                      },
+                      }] : []),
                       ...(u.globalRole !== UserRole.OWNER
                         ? [
                             {
@@ -235,12 +243,14 @@ export function UserManagementPage() {
                           <span
                             className={cn(
                               'text-[10px] uppercase font-medium px-2 py-0.5 rounded-[4px] border',
-                              isActive
-                                ? 'bg-[#EDF8F2] text-[#237A57] border-[#237A57]/20'
-                                : 'bg-[#FDEEEE] text-[#C24141] border-[#C24141]/20',
+                              !isActive
+                                ? 'bg-[#FDEEEE] text-[#C24141] border-[#C24141]/20'
+                                : passwordSetupPending
+                                  ? 'bg-[#FFF7E8] text-[#9A6515] border-[#E8C882]/40'
+                                  : 'bg-[#EDF8F2] text-[#237A57] border-[#237A57]/20',
                             )}
                           >
-                            {isActive ? 'Active' : 'Inactive'}
+                            {!isActive ? 'Inactive' : passwordSetupPending ? 'Password setup' : 'Active'}
                           </span>
                         </td>
                         <td className="py-3 px-4 text-right">
@@ -256,5 +266,7 @@ export function UserManagementPage() {
         )}
       </div>
     </AppShell>
+    <TemporaryPasswordDialog credential={temporaryCredential} onClose={() => setTemporaryCredential(null)} />
+    </>
   );
 }

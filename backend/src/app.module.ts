@@ -21,6 +21,7 @@ import { MarketingModule } from './modules/marketing/marketing.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { PasswordChangeRequiredGuard } from './common/guards/password-change-required.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
@@ -50,6 +51,10 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PasswordChangeRequiredGuard,
     },
     {
       provide: APP_GUARD,

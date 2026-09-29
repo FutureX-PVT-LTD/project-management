@@ -143,7 +143,22 @@ export class ProjectsService {
             id: true,
             status: true,
             dueDate: true,
+            progress: true,
+            workstream: true,
+            checklistTemplateItem: { select: { sourceConfirmed: true } },
           },
+        },
+        marketingChannels: {
+          select: { requirement: true, status: true },
+        },
+        marketingContentItems: {
+          select: { assetStatus: true },
+        },
+        marketingGates: {
+          select: { status: true },
+        },
+        marketingSignoffItems: {
+          select: { finalStatus: true },
         },
       },
       orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
@@ -166,6 +181,34 @@ export class ProjectsService {
       const currentMilestone =
         p.milestones.find((m) => m.status !== "COMPLETED") || p.milestones[0];
       const visibleMembers = p.members;
+      const marketingEnabled = p.workstreams.some(
+        (workstream) => workstream.workstream === "MARKETING" && workstream.status !== "DISABLED",
+      );
+      const marketingTasks = p.tasks.filter(
+        (task) => task.workstream === "MARKETING" && task.status !== TaskStatus.N_A,
+      );
+      const requiredMarketingChannels = p.marketingChannels.filter(
+        (channel) => channel.requirement === "REQUIRED",
+      );
+      const marketingReady =
+        marketingEnabled &&
+        marketingTasks.length > 0 &&
+        marketingTasks.every(
+          (task) => task.status === TaskStatus.DONE && task.checklistTemplateItem?.sourceConfirmed,
+        ) &&
+        requiredMarketingChannels.every((channel) => channel.status === "READY") &&
+        p.marketingContentItems.length > 0 &&
+        p.marketingContentItems.every((item) => item.assetStatus === "READY") &&
+        p.marketingGates.length > 0 &&
+        p.marketingGates.every((gate) => gate.status === "APPROVED") &&
+        p.marketingSignoffItems.length > 0 &&
+        p.marketingSignoffItems.every((item) => item.finalStatus === "READY");
+      const marketingProgress = marketingTasks.length
+        ? Math.round(
+            marketingTasks.reduce((sum, task) => sum + task.progress, 0) /
+              marketingTasks.length,
+          )
+        : 0;
 
       return {
         id: p.id,
@@ -179,6 +222,13 @@ export class ProjectsService {
         manualHealthOverride: p.manualHealthOverride,
         progress: p.progress,
         launchReadiness: (p as any).launchReadiness,
+        developmentReadiness: Math.round((p as any).launchReadiness || 0),
+        marketingReadiness: !marketingEnabled
+          ? "NOT_ENABLED"
+          : marketingReady
+            ? "READY"
+            : "NOT_READY",
+        marketingProgress,
         targetMarket: p.targetMarket,
         targetLanguage: p.targetLanguage,
         workstreams: p.workstreams,

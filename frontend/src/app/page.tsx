@@ -12,7 +12,7 @@ export default function RootPage() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
-        router.push('/dashboard');
+        router.push(user.mustChangePassword ? '/change-password' : '/dashboard');
       } else {
         router.push('/login');
       }

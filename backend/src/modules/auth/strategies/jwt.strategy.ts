@@ -56,6 +56,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         avatarUrl: true,
         globalRole: true,
         isActive: true,
+        mustChangePassword: true,
       },
     });
 

@@ -14,8 +14,6 @@ import { AuthService } from './auth.service';
 import {
   LoginDto,
   ChangePasswordDto,
-  ForgotPasswordDto,
-  ResetPasswordDto,
 } from './dto/login.dto';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -124,27 +122,4 @@ export class AuthController {
     return this.authService.changePassword(userId, dto);
   }
 
-  @Public()
-  @Post('forgot-password')
-  @HttpCode(HttpStatus.OK)
-  async forgotPassword(
-    @Body() dto: ForgotPasswordDto,
-    @Req() req: Request,
-  ) {
-    const ipAddress = req.ip || req.socket.remoteAddress;
-    const userAgent = req.headers['user-agent'];
-    return this.authService.forgotPassword(dto, ipAddress, userAgent);
-  }
-
-  @Public()
-  @Post('reset-password')
-  @HttpCode(HttpStatus.OK)
-  async resetPassword(
-    @Body() dto: ResetPasswordDto,
-    @Req() req: Request,
-  ) {
-    const ipAddress = req.ip || req.socket.remoteAddress;
-    const userAgent = req.headers['user-agent'];
-    return this.authService.resetPasswordWithToken(dto, ipAddress, userAgent);
-  }
 }

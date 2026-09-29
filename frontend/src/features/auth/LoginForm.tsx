@@ -48,6 +48,8 @@ export function LoginForm() {
         setServerError(
           'Too many sign-in attempts. Please wait a few minutes before trying again.',
         );
+      } else if (String(err?.message || '').includes('Temporary password expired')) {
+        setServerError('Your temporary password has expired. Contact an administrator for a new one.');
       } else {
         setServerError(
           'We couldn’t sign you in. Check your email and password and try again.',

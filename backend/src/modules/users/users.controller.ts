@@ -10,11 +10,12 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Header,
   Req,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto, ResetUserPasswordDto, ToggleUserActiveDto, SaveJobRoleDto } from './dto/create-user.dto';
+import { CreateUserDto, UpdateUserDto, ToggleUserActiveDto, SaveJobRoleDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -97,6 +98,7 @@ export class UsersController {
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Header('Cache-Control', 'no-store')
   async create(
     @Body() dto: CreateUserDto,
     @CurrentUser() actor: AuthUser,
@@ -152,13 +154,13 @@ export class UsersController {
 
   @Roles(UserRole.ADMIN, UserRole.OWNER)
   @Post(':id/reset-password')
+  @Header('Cache-Control', 'no-store')
   async resetPassword(
     @Param('id') id: string,
-    @Body() dto: ResetUserPasswordDto,
     @CurrentUser() actor: AuthUser,
     @Req() req: Request,
   ) {
-    return this.usersService.resetPassword(id, dto.newPassword, actor.id, actor.globalRole, {
+    return this.usersService.resetPassword(id, actor.id, actor.globalRole, {
       ipAddress: req.ip,
       userAgent: req.get('user-agent'),
     });

@@ -22,6 +22,36 @@ import { useAuth } from '@/features/auth/AuthContext';
 import { DashboardGreeting } from './DashboardGreeting';
 import Link from 'next/link';
 
+function readinessBadge(status: 'READY' | 'NOT_READY' | 'NOT_ENABLED', progress?: number) {
+  if (status === 'READY') {
+    return <span className="inline-flex rounded-[5px] bg-[#EDF8F2] px-2 py-1 text-[11px] font-semibold text-[#237A57]">Ready</span>;
+  }
+  if (status === 'NOT_ENABLED') {
+    return <span className="inline-flex rounded-[5px] bg-[#F2F4F7] px-2 py-1 text-[11px] font-medium text-[#7A828C]">Not enabled</span>;
+  }
+  return <span className="inline-flex rounded-[5px] bg-[#FFF4E8] px-2 py-1 text-[11px] font-semibold text-[#A15C0A]">{progress ? `${progress}%` : 'Not ready'}</span>;
+}
+
+function deliveryReminder(targetDate?: string | null, completed = false) {
+  if (completed) {
+    return { label: 'Completed', className: 'text-[#237A57]' };
+  }
+  if (!targetDate) {
+    return { label: 'No target', className: 'text-[#929AA3]' };
+  }
+
+  const target = new Date(targetDate);
+  const today = new Date();
+  target.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  const days = Math.round((target.getTime() - today.getTime()) / 86_400_000);
+
+  if (days < 0) return { label: `${Math.abs(days)}d overdue`, className: 'text-[#C24141]' };
+  if (days === 0) return { label: 'Due today', className: 'text-[#C24141]' };
+  if (days <= 7) return { label: `${days}d left`, className: 'text-[#A15C0A]' };
+  return { label: `${days}d left`, className: 'text-[#237A57]' };
+}
+
 export function OwnerDashboard() {
   const { user } = useAuth();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -152,19 +182,24 @@ export function OwnerDashboard() {
                   <th className="py-2.5 px-3">Product Title</th>
                   <th className="py-2.5 px-3">Health</th>
                   <th className="py-2.5 px-3">Progress</th>
-                  <th className="py-2.5 px-3">Lead Admin</th>
+                  <th className="py-2.5 px-3">Dev Ready</th>
+                  <th className="py-2.5 px-3">Marketing Ready</th>
                   <th className="py-2.5 px-3 text-right">Target Date</th>
+                  <th className="py-2.5 px-3 text-right">Time Left</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E3E7EC] text-[#181B20]">
                 {projects.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-[#929AA3]">
+                    <td colSpan={7} className="py-8 text-center text-[#929AA3]">
                       No studio projects found. Create your first product using the button above.
                     </td>
                   </tr>
                 ) : (
-                  projects.map((proj: any) => (
+                  projects.map((proj: any) => {
+                    const developmentReadiness = Math.round(proj.developmentReadiness ?? proj.launchReadiness ?? 0);
+                    const reminder = deliveryReminder(proj.targetDate, proj.status === 'COMPLETED');
+                    return (
                     <tr
                       key={proj.id}
                       className="hover:bg-[#F7F8FA] cursor-pointer fx-transition"
@@ -183,16 +218,21 @@ export function OwnerDashboard() {
                       <td className="py-3 px-3 w-32">
                         <Progress value={proj.progress || 0} size="xs" />
                       </td>
-                      <td className="py-3 px-3 text-[#626A73] text-[12.5px]">
-                        {proj.projectManager
-                          ? `${proj.projectManager.firstName} ${proj.projectManager.lastName}`
-                          : proj.projectManagerName || 'Unassigned'}
+                      <td className="py-3 px-3">
+                        {readinessBadge(developmentReadiness >= 100 ? 'READY' : 'NOT_READY', developmentReadiness)}
+                      </td>
+                      <td className="py-3 px-3">
+                        {readinessBadge(proj.marketingReadiness || 'NOT_ENABLED', proj.marketingProgress)}
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-[#626A73] text-[12px]">
                         {proj.targetDate ? formatDate(proj.targetDate) : '—'}
                       </td>
+                      <td className={`py-3 px-3 text-right text-[11.5px] font-semibold whitespace-nowrap ${reminder.className}`}>
+                        {reminder.label}
+                      </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>

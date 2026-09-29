@@ -60,3 +60,49 @@ describe('UsersService.remove', () => {
     expect(result.released.tasks).toBe(2);
   });
 });
+
+describe('UsersService temporary password reset', () => {
+  function setup(target: { id: string; email: string; globalRole: string; isActive: boolean }) {
+    const tx = {
+      user: { update: jest.fn().mockResolvedValue(target) },
+      session: { updateMany: jest.fn().mockResolvedValue({ count: 2 }) },
+    };
+    const prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue(target) },
+      auditLog: { create: jest.fn().mockResolvedValue({ id: 'audit-1' }) },
+      $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
+    };
+    return { service: new UsersService(prisma as never), tx };
+  }
+
+  it('generates an expiring one-time credential and revokes active sessions', async () => {
+    const { service, tx } = setup({ id: 'member-1', email: 'member@futurex.local', globalRole: UserRole.TEAM_MEMBER, isActive: true });
+
+    const result = await service.resetPassword('member-1', 'admin-1', UserRole.ADMIN);
+
+    expect(result.temporaryPassword).toMatch(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/);
+    expect(new Date(result.temporaryPasswordExpires).getTime()).toBeGreaterThan(Date.now());
+    expect(tx.user.update).toHaveBeenCalledWith({
+      where: { id: 'member-1' },
+      data: expect.objectContaining({
+        passwordHash: expect.any(String),
+        mustChangePassword: true,
+        temporaryPasswordExpires: expect.any(Date),
+      }),
+    });
+    expect(tx.session.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'member-1' },
+      data: { isRevoked: true },
+    });
+  });
+
+  it('prevents an Admin from resetting another privileged account', async () => {
+    const { service } = setup({ id: 'admin-2', email: 'admin2@futurex.local', globalRole: UserRole.ADMIN, isActive: true });
+    await expect(service.resetPassword('admin-2', 'admin-1', UserRole.ADMIN)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('requires self-service for the current account', async () => {
+    const { service } = setup({ id: 'owner-1', email: 'owner@futurex.local', globalRole: UserRole.OWNER, isActive: true });
+    await expect(service.resetPassword('owner-1', 'owner-1', UserRole.OWNER)).rejects.toBeInstanceOf(ForbiddenException);
+  });
+});

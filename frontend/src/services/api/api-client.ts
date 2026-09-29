@@ -73,9 +73,7 @@ async function request<T = any>(
     const isAuthBypassEndpoint =
       endpoint.includes('/auth/login') ||
       endpoint.includes('/auth/refresh') ||
-      endpoint.includes('/auth/logout') ||
-      endpoint.includes('/auth/forgot-password') ||
-      endpoint.includes('/auth/reset-password');
+      endpoint.includes('/auth/logout');
 
     // Handle 401 Unauthorized with single-flight mutex
     if (response.status === 401 && !isAuthBypassEndpoint && !options._retry) {
