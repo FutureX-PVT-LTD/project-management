@@ -32,6 +32,12 @@ import { IdGeneratorUtil } from "../../common/utils/id-generator.util";
 import { projectScope } from '../../common/security/access-policy';
 import { MarketingService } from '../marketing/marketing.service';
 
+const MARKETING_PROJECT_ROLE_CODES = [
+  'MARKETING_MANAGER',
+  'MARKETING_EXECUTIVE',
+  'MARKETING_COORDINATOR',
+];
+
 @Injectable()
 export class ProjectsService {
   constructor(private prisma: PrismaService, private marketing: MarketingService) {}
@@ -1852,9 +1858,7 @@ export class ProjectsService {
     if (!task) throw new NotFoundException("Checklist item not found");
 
     const assigneeId = dto.assigneeId || null;
-    if (assigneeId) {
-      await this.ensureActiveProductMember(projectId, assigneeId);
-    }
+    if (assigneeId) await this.ensureEligibleWorkstreamAssignee(projectId, assigneeId, task.workstream);
     if (task.assigneeId !== assigneeId && task.status === TaskStatus.IN_REVIEW) throw new BadRequestException('Return or cancel the review before reassignment');
     if (task.assigneeId !== assigneeId && task.status === TaskStatus.DONE) throw new BadRequestException('Completed work ownership is historical and cannot be changed');
     if (task.assigneeId !== assigneeId && task.status === TaskStatus.IN_PROGRESS && !dto.confirmReassignment) throw new BadRequestException('Confirm reassignment of work in progress');
@@ -1958,6 +1962,13 @@ export class ProjectsService {
         id: member.userId,
         ...member.user,
         projectRoles: member.projectRoles.map((link) => link.functionalRole),
+        eligibleForWorkstream:
+          stream !== 'MARKETING' ||
+          member.projectRoles.some(
+            (link) =>
+              link.functionalRole.isActive &&
+              MARKETING_PROJECT_ROLE_CODES.includes(link.functionalRole.code),
+          ),
       })),
       phases: phaseRows,
     };
@@ -1976,11 +1987,11 @@ export class ProjectsService {
     });
     const validPhases = new Set(tasks.map((task) => task.checklistPhase?.trim() || 'Uncategorized'));
     const memberIds = [...new Set(dto.assignments.flatMap((item) => [item.defaultAssigneeId, ...(item.additionalMemberIds || [])]).filter(Boolean) as string[])];
-    const activeMembers = await this.prisma.projectMember.findMany({
-      where: { projectId, userId: { in: memberIds }, user: { isActive: true, deletedAt: null } },
-      select: { userId: true },
-    });
-    if (activeMembers.length !== memberIds.length) throw new BadRequestException('Every selected person must be an active Product Team member');
+    await Promise.all(
+      memberIds.map((userId) =>
+        this.ensureEligibleWorkstreamAssignee(projectId, userId, stream),
+      ),
+    );
 
     let assignedCount = 0;
     let reassignedCount = 0;
@@ -2275,6 +2286,43 @@ export class ProjectsService {
       throw new BadRequestException({
         code: 'INVALID_PRODUCT_ASSIGNEE',
         message: 'Select an active user who belongs to this Product Team.',
+      });
+    }
+  }
+
+  private async ensureEligibleWorkstreamAssignee(
+    projectId: string,
+    userId: string,
+    workstream?: string | null,
+  ) {
+    const member = await this.prisma.projectMember.findFirst({
+      where: { projectId, userId, user: { isActive: true, deletedAt: null } },
+      include: {
+        projectRoles: {
+          include: {
+            functionalRole: { select: { code: true, isActive: true } },
+          },
+        },
+      },
+    });
+    if (!member) {
+      throw new BadRequestException({
+        code: 'INVALID_PRODUCT_ASSIGNEE',
+        message: 'Select an active user who belongs to this Product Team.',
+      });
+    }
+    if (
+      workstream === 'MARKETING' &&
+      !member.projectRoles.some(
+        (link) =>
+          link.functionalRole.isActive &&
+          MARKETING_PROJECT_ROLE_CODES.includes(link.functionalRole.code),
+      )
+    ) {
+      throw new BadRequestException({
+        code: 'ASSIGNEE_ROLE_MISMATCH',
+        message:
+          'Marketing work can only be assigned to a Marketing Head, Marketing Executive, or Marketing Coordinator.',
       });
     }
   }

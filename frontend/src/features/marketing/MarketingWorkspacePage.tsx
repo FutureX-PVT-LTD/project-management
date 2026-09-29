@@ -96,6 +96,10 @@ export function MarketingWorkspacePage() {
       (!showUnassignedOnly || !row.assigneeId),
   );
   const assignedChecklistCount = rows.filter((row) => Boolean(row.assigneeId)).length;
+  const marketingMemberIds = new Set(marketingMembers.map((member) => member.id));
+  const invalidChecklistAssignments = rows.filter(
+    (row) => row.assigneeId && !marketingMemberIds.has(row.assigneeId),
+  );
 
   const refresh = () => {
     client.invalidateQueries({ queryKey: ['marketing', projectId] });
@@ -419,6 +423,15 @@ export function MarketingWorkspacePage() {
         {/* TAB 2: INFRASTRUCTURE CHECKLIST */}
         {tab === 'checklist' && (
           <section className="space-y-4">
+            {invalidChecklistAssignments.length > 0 && (
+              <div className="flex gap-2 rounded-[8px] border border-[#FDE68A] bg-[#FFF6E5] p-3 text-xs text-[#8A5A0A]">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>
+                  {invalidChecklistAssignments.length} tasks are assigned to members without an active Marketing role.
+                  Reassign them to a Marketing Head, Marketing Executive, or Marketing Coordinator.
+                </span>
+              </div>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-3 border-y border-[#E3E7EC] bg-[#F7F8FA] px-3.5 py-3 rounded-[8px]">
               <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs">
                 <span>
@@ -874,6 +887,7 @@ function MarketingAssigneeSelect({
 }) {
   const locked = ['IN_REVIEW', 'DONE'].includes(row.status);
   const mustKeepOwner = ['IN_PROGRESS', 'BLOCKED'].includes(row.status);
+  const currentAssigneeIsEligible = members.some((member) => member.id === row.assigneeId);
   const lockReason =
     row.status === 'DONE' ? 'Completed work cannot be reassigned' : 'Return the review before reassignment';
 
@@ -889,6 +903,11 @@ function MarketingAssigneeSelect({
       <option value="" disabled={mustKeepOwner}>
         Unassigned
       </option>
+      {row.assigneeId && !currentAssigneeIsEligible && (
+        <option value={row.assigneeId} disabled>
+          {ownerName(row.assignee)} · Role mismatch
+        </option>
+      )}
       {members.map((member) => (
         <option key={member.id} value={member.id}>
           {member.firstName} {member.lastName} · {roleLabel(member.projectRoles, 'No project role')}

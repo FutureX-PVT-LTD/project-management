@@ -8,7 +8,7 @@ import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/Button';
 import { roleLabel } from '@/lib/role-labels';
 
-type Person = { id: string; firstName: string; lastName: string; jobTitle?: string; projectRoles?: { id: string; name: string }[] };
+type Person = { id: string; firstName: string; lastName: string; jobTitle?: string; projectRoles?: { id: string; name: string }[]; eligibleForWorkstream?: boolean };
 type WorkItem = { id: string; humanId: string; title: string; phase: string; assigneeId?: string; status: string; progress: number; dueDate?: string };
 type Phase = { phaseKey: string; orderIndex: number; defaultAssigneeId?: string | null; memberIds: string[]; taskCount: number; assignedCount: number; unassignedCount: number; tasks: WorkItem[] };
 type Workspace = { totalItems: number; assignedItems: number; unassignedItems: number; readyItems: number; waitingItems: number; members: Person[]; phases: Phase[] };
@@ -48,6 +48,11 @@ export function PhaseAssignments({
   });
 
   const memberById = useMemo(() => new Map((data?.members || []).map((member) => [member.id, member])), [data]);
+  const eligibleMembers = useMemo(
+    () => (data?.members || []).filter((member) => member.eligibleForWorkstream !== false),
+    [data],
+  );
+  const eligibleMemberIds = useMemo(() => new Set(eligibleMembers.map((member) => member.id)), [eligibleMembers]);
   const valueFor = (phase: Phase) => defaults[phase.phaseKey] ?? phase.defaultAssigneeId ?? '';
   const additionalFor = (phase: Phase) => additional[phase.phaseKey] ?? phase.memberIds.filter((id) => id !== valueFor(phase));
   const changedPhases = (data?.phases || []).filter(
@@ -218,7 +223,12 @@ export function PhaseAssignments({
                       className="h-8 min-w-[210px] max-w-[260px] rounded-[8px] border border-[#E3E7EC] bg-white px-2.5 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none"
                     >
                       <option value="">Choose team member</option>
-                      {data?.members.map((member) => (
+                      {selectedId && !eligibleMemberIds.has(selectedId) && (
+                        <option value={selectedId} disabled>
+                          {nameOf(memberById.get(selectedId))} · Role mismatch
+                        </option>
+                      )}
+                      {eligibleMembers.map((member) => (
                         <option key={member.id} value={member.id}>
                           {optionLabel(member)}
                         </option>
@@ -262,7 +272,7 @@ export function PhaseAssignments({
                           className="h-8 rounded-[8px] border border-[#E3E7EC] bg-white px-2 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none"
                         >
                           <option value="">Choose member</option>
-                          {data?.members
+                          {eligibleMembers
                             .filter((member) => member.id !== selectedId && !extraIds.includes(member.id))
                             .map((member) => (
                               <option key={member.id} value={member.id}>
@@ -311,7 +321,7 @@ export function PhaseAssignments({
           })}
         </div>
 
-        {!data?.members.length && (
+        {!eligibleMembers.length && (
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E3E7EC] bg-[#F7F8FA] px-4 py-4">
             <div>
               <p className="text-sm font-medium text-[#181B20]">Add the Product Team before assigning phases</p>
@@ -450,7 +460,12 @@ export function PhaseAssignments({
                 className="h-8 w-full rounded-[8px] border border-[#E3E7EC] bg-white px-2 text-xs text-[#181B20]"
               >
                 <option value="">Unassigned</option>
-                {data?.members.map((member) => (
+                {task.assigneeId && !eligibleMemberIds.has(task.assigneeId) && (
+                  <option value={task.assigneeId} disabled>
+                    {nameOf(memberById.get(task.assigneeId))} · Role mismatch
+                  </option>
+                )}
+                {eligibleMembers.map((member) => (
                   <option key={member.id} value={member.id}>
                     {optionLabel(member)}
                   </option>
@@ -475,6 +490,9 @@ function TaskRow({
   pending: boolean;
   assign: (id: string) => void;
 }) {
+  const eligibleMembers = members.filter((member) => member.eligibleForWorkstream !== false);
+  const currentMember = members.find((member) => member.id === task.assigneeId);
+  const hasInvalidAssignee = Boolean(task.assigneeId && !eligibleMembers.some((member) => member.id === task.assigneeId));
   return (
     <tr className="hover:bg-[#F7F8FA] transition-colors h-[48px]">
       <td className="px-3 py-2 font-mono text-[11px] text-[#929AA3]">{task.humanId}</td>
@@ -489,7 +507,12 @@ function TaskRow({
           className="h-8 min-w-44 rounded-[8px] border border-[#E3E7EC] bg-white px-2 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none"
         >
           <option value="">Unassigned</option>
-          {members.map((member) => (
+          {hasInvalidAssignee && (
+            <option value={task.assigneeId} disabled>
+              {nameOf(currentMember)} · Role mismatch
+            </option>
+          )}
+          {eligibleMembers.map((member) => (
             <option key={member.id} value={member.id}>
               {optionLabel(member)}
             </option>
