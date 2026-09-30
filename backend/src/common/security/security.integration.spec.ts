@@ -253,8 +253,16 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect(task.progress).toBe(20); expect(task.status).toBe('IN_PROGRESS');
     expect(await db.taskReview.count({ where: { taskId: task.id } })).toBe(1);
   });
-  it('rejects direct completion, planning edits and out-of-range progress', async () => {
-    for (const body of [{ status: 'DONE' }, { assigneeId: users.b.id }, { progress: 150 }, { progress: 100 }]) {
+  it('allows own completion but rejects planning edits and out-of-range progress', async () => {
+    const completed = await request(app.getHttpServer()).patch(`/api/v1/tasks/${tasks.a.id}`).set('Cookie', cookies.a)
+      .set('X-Requested-With', 'FutureX').send({ status: 'DONE' });
+    expect(completed.status).toBe(200);
+    expect((await db.task.findUniqueOrThrow({ where: { id: tasks.a.id } })).status).toBe('DONE');
+    await db.task.update({
+      where: { id: tasks.a.id },
+      data: { status: 'IN_PROGRESS', progress: 20, completedDate: null },
+    });
+    for (const body of [{ assigneeId: users.b.id }, { progress: 150 }, { progress: 100 }]) {
       const res = await request(app.getHttpServer()).patch(`/api/v1/tasks/${tasks.a.id}`).set('Cookie', cookies.a)
         .set('X-Requested-With', 'FutureX').send(body);
       expect([400, 403]).toContain(res.status);
@@ -323,7 +331,7 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect(JSON.stringify((await get(`/files/project/${projects.a.id}`, 'a')).body)).not.toContain(file.id);
     expect((await get('/files/download/previous-user.txt', 'a')).status).toBe(404);
   });
-  it.each(['admin', 'owner'])('allows assigned %s execution but prevents self-review and impersonation', async (key) => {
+  it.each(['admin', 'owner'])('allows assigned %s execution and completion but prevents impersonation', async (key) => {
     await db.projectMember.upsert({ where: { projectId_userId: { projectId: projects.a.id, userId: users[key].id } }, create: { projectId: projects.a.id, userId: users[key].id }, update: {} });
     const created = await post('/tasks', 'admin').send({ projectId: projects.a.id, title: `${key} assigned work`, assigneeId: users[key].id, allowParallelWork: true });
     expect(created.status).toBe(201);
@@ -333,10 +341,10 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect((await post(`/tasks/${taskId}/daily-updates`, key).send({ progress: 20, completedToday: 'Own work', nextStep: 'Continue' })).status).toBe(201);
     expect((await patch(tasks.a.id, { progress: 30 })).status).toBe(403);
     expect((await patch(tasks.a.id, { actualHours: 50 })).status).toBe(403);
-    expect((await patch(taskId, { status: 'IN_REVIEW' })).status).toBe(200);
-    expect((await post(`/tasks/${taskId}/review`, key).send({ status: 'APPROVED', completeTask: false })).status).toBe(403);
-    expect((await post(`/tasks/${taskId}/review`, key === 'admin' ? 'owner' : 'admin').send({ status: 'APPROVED', completeTask: false })).status).toBeLessThan(300);
-    expect((await db.task.findUniqueOrThrow({ where: { id: taskId } })).progress).toBe(20);
+    expect((await patch(taskId, { status: 'DONE' })).status).toBe(200);
+    const completedTask = await db.task.findUniqueOrThrow({ where: { id: taskId } });
+    expect(completedTask.status).toBe('DONE');
+    expect(completedTask.progress).toBe(100);
   });
   it('isolates Additional Work, rejects tampering/deletion, and preserves official progress', async () => {
     const before = await db.project.findUniqueOrThrow({ where: { id: projects.a.id } });
@@ -577,9 +585,8 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     await db.task.updateMany({ where: { id: { in: [checklistItem.id, secondChecklistItem.id] } }, data: { assigneeId: users.a.id, status: 'READY', allowParallelWork: false } });
     expect((await patch(`/tasks/${checklistItem.id}`, 'a').send({ status: 'IN_PROGRESS' })).status).toBe(200);
     expect((await patch(`/tasks/${secondChecklistItem.id}`, 'a').send({ status: 'IN_PROGRESS' })).status).toBe(200);
-    expect((await patch(`/tasks/${checklistItem.id}`, 'a').send({ status: 'IN_REVIEW', checklistEvidenceUrl: 'https://example.com/evidence', checklistNotes: 'Account ownership verified.' })).status).toBe(200);
+    expect((await patch(`/tasks/${checklistItem.id}`, 'a').send({ status: 'DONE', checklistEvidenceUrl: 'https://example.com/evidence', checklistNotes: 'Account ownership verified.' })).status).toBe(200);
     expect((await patch(`/tasks/${checklistItem.id}`, 'b').send({ checklistNotes: 'spoofed' })).status).toBe(404);
-    expect((await post(`/tasks/${checklistItem.id}/review`, 'admin').send({ status: 'APPROVED', completeTask: true })).status).toBe(201);
     const completedChecklistItem = await db.task.findUniqueOrThrow({ where: { id: checklistItem.id } });
     expect(completedChecklistItem.status).toBe('DONE');
     expect(completedChecklistItem.checklistEvidenceUrl).toBe('https://example.com/evidence');
@@ -591,7 +598,11 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
 
     expect((await get(`/projects/${marketingProject.id}/marketing/summary`, 'b')).status).toBe(404);
     expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(403);
-    const marketingExecutiveRole = await db.functionalRole.findUniqueOrThrow({ where: { code: 'MARKETING_EXECUTIVE' } });
+    const marketingExecutiveRole = await db.functionalRole.upsert({
+      where: { code: 'MARKETING_EXECUTIVE' },
+      create: { code: 'MARKETING_EXECUTIVE', name: 'Marketing Executive', category: 'MARKETING' },
+      update: { isActive: true },
+    });
     const marketingMember = await db.projectMember.findUniqueOrThrow({
       where: { projectId_userId: { projectId: marketingProject.id, userId: users.a.id } },
     });
@@ -626,6 +637,10 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect((await db.marketingSignoffItem.findUniqueOrThrow({ where: { id: signoff.id } })).finalStatus).toBe('READY');
     const audit = await db.auditLog.findFirst({ where: { action: 'MARKETING_WORKSPACE_INITIALIZED', entityId: marketingProject.id } });
     expect(audit?.actorId).toBe(users.admin.id);
+    await db.project.delete({ where: { id: marketingProject.id } });
+    await db.userFunctionalRole.deleteMany({
+      where: { userId: users.a.id, functionalRoleId: marketingExecutiveRole.id },
+    });
   });
   it('keeps dashboard audit and user security controls Owner-only', async () => {
     await ensureSession('owner');

@@ -402,6 +402,22 @@ export class UsersService {
 
     await this.validateJobRoles(dto.functionalRoleIds, id);
     const previousFunctionalRoleIds = dto.functionalRoleIds === undefined ? [] : (await this.prisma.userFunctionalRole.findMany({ where: { userId: id }, select: { functionalRoleId: true } })).map((row) => row.functionalRoleId);
+    const removedFunctionalRoleIds = dto.functionalRoleIds === undefined
+      ? []
+      : previousFunctionalRoleIds.filter((roleId) => !dto.functionalRoleIds!.includes(roleId));
+    if (removedFunctionalRoleIds.length) {
+      const projectRoleCount = await this.prisma.projectMemberRoleAssignment.count({
+        where: {
+          functionalRoleId: { in: removedFunctionalRoleIds },
+          projectMember: { userId: id },
+        },
+      });
+      if (projectRoleCount) {
+        throw new BadRequestException(
+          `This role is still assigned in ${projectRoleCount} Product Team membership${projectRoleCount === 1 ? '' : 's'}. Remove the Product role first.`,
+        );
+      }
+    }
     const updated = await this.prisma.$transaction(async (tx) => {
     if (dto.teamIds !== undefined) {
       await tx.teamMember.deleteMany({

@@ -254,6 +254,7 @@ export class ProjectsService {
           userId: m.userId,
           role: m.role as ProjectMemberRole,
           user: m.user,
+          projectRoles: m.projectRoles.map((link) => link.functionalRole),
         })),
         totalTasksCount: totalTasks,
         completedTasksCount: completedTasks,
@@ -655,6 +656,12 @@ export class ProjectsService {
             select: { id: true, functionalRoleLinks: { where: { functionalRole: { isActive: true } }, select: { functionalRoleId: true } } },
           })
         : [];
+
+    if (eligibleMembers.length !== new Set(rawMemberIds).size) {
+      throw new BadRequestException(
+        "Every selected Product member must be active and available",
+      );
+    }
 
     const project = await this.prisma.project.create({
       data: {
@@ -1473,7 +1480,7 @@ export class ProjectsService {
     role: ProjectMemberRole,
     actorId: string,
     actorRole?: UserRole,
-    functionalRoleIds: string[] = [],
+    functionalRoleIds?: string[],
   ) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
@@ -1491,24 +1498,57 @@ export class ProjectsService {
     // Verify target user is an active TEAM_MEMBER
     const targetUser = await this.prisma.user.findUnique({
       where: { id: userId, deletedAt: null },
+      include: {
+        functionalRoleLinks: {
+          where: { functionalRole: { isActive: true } },
+          select: { functionalRoleId: true },
+        },
+      },
     });
     if (!targetUser || !targetUser.isActive) {
       throw new BadRequestException("Target user is not an active user");
     }
     if (![UserRole.TEAM_MEMBER, UserRole.ADMIN, UserRole.OWNER].includes(targetUser.globalRole as UserRole)) {
       throw new BadRequestException(
-        "Only TEAM_MEMBER users can be assigned as project members",
+        "Only active workspace users can be assigned as Product members",
       );
     }
 
-    await this.validateProjectRolesForUser(userId, functionalRoleIds);
-    const member = await this.prisma.projectMember.upsert({
-      where: { projectId_userId: { projectId, userId } },
-      create: { projectId, userId, role: ProjectMemberRole.MEMBER },
-      update: { role: ProjectMemberRole.MEMBER },
-      include: { user: { select: { id: true, firstName: true, lastName: true, avatarUrl: true, globalRole: true } }, projectRoles: true },
+    const selectedRoleIds = [...new Set(
+      functionalRoleIds ?? targetUser.functionalRoleLinks.map((link) => link.functionalRoleId),
+    )];
+    await this.validateProjectRolesForUser(userId, selectedRoleIds);
+    const member = await this.prisma.$transaction(async (tx) => {
+      const savedMember = await tx.projectMember.upsert({
+        where: { projectId_userId: { projectId, userId } },
+        create: { projectId, userId, role: ProjectMemberRole.MEMBER },
+        update: { role: ProjectMemberRole.MEMBER },
+      });
+      if (selectedRoleIds.length) {
+        await tx.projectMemberRoleAssignment.createMany({
+          data: selectedRoleIds.map((functionalRoleId) => ({
+            projectMemberId: savedMember.id,
+            functionalRoleId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      return tx.projectMember.findUniqueOrThrow({
+        where: { id: savedMember.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatarUrl: true,
+              globalRole: true,
+            },
+          },
+          projectRoles: { include: { functionalRole: true } },
+        },
+      });
     });
-    if (functionalRoleIds.length) await this.prisma.projectMemberRoleAssignment.createMany({ data: functionalRoleIds.map((functionalRoleId) => ({ projectMemberId: member.id, functionalRoleId })), skipDuplicates: true });
 
     await this.prisma.notification.create({
       data: {
@@ -1531,7 +1571,7 @@ export class ProjectsService {
         role: ProjectMemberRole.MEMBER,
       },
     );
-    for (const functionalRoleId of functionalRoleIds) await this.recordAudit(actorId, 'PROJECT_ROLE_ADDED' as AuditAction, 'ProjectMember', member.id, { projectId, userId, functionalRoleId });
+    for (const functionalRoleId of selectedRoleIds) await this.recordAudit(actorId, 'PROJECT_ROLE_ADDED' as AuditAction, 'ProjectMember', member.id, { projectId, userId, functionalRoleId });
 
     return member;
   }
@@ -1539,22 +1579,67 @@ export class ProjectsService {
   async updateMemberRoles(projectId: string, userId: string, functionalRoleIds: string[], actorId: string, actorRole?: UserRole) {
     if (actorRole === UserRole.TEAM_MEMBER) throw new ForbiddenException('Team members cannot manage Project roles.');
     await this.ensureManagementScope(projectId, actorId, actorRole);
-    const member = await this.prisma.projectMember.findUnique({ where: { projectId_userId: { projectId, userId } }, include: { projectRoles: true } });
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      include: { projectRoles: { include: { functionalRole: true } } },
+    });
     if (!member) throw new NotFoundException('Product member not found');
-    await this.validateProjectRolesForUser(userId, functionalRoleIds);
-    const removed = member.projectRoles.filter((link) => !functionalRoleIds.includes(link.functionalRoleId)).map((link) => link.functionalRoleId);
+    const selectedRoleIds = [...new Set(functionalRoleIds)];
+    await this.validateProjectRolesForUser(userId, selectedRoleIds);
+    const removed = member.projectRoles.filter((link) => !selectedRoleIds.includes(link.functionalRoleId)).map((link) => link.functionalRoleId);
     if (removed.length) {
-      const active = await this.prisma.task.count({ where: { projectId, assigneeId: userId, deletedAt: null, status: { in: ['UNASSIGNED','WAITING','READY','IN_PROGRESS','IN_REVIEW','BLOCKED'] }, checklistTemplateItem: { eligibleRoles: { some: { functionalRoleId: { in: removed } } } } } });
+      const selectedRoleCodes = new Set(
+        member.projectRoles
+          .filter((link) => selectedRoleIds.includes(link.functionalRoleId))
+          .map((link) => link.functionalRole.code),
+      );
+      const activeTasks = await this.prisma.task.findMany({
+        where: {
+          projectId,
+          assigneeId: userId,
+          deletedAt: null,
+          status: { in: ['UNASSIGNED', 'WAITING', 'READY', 'IN_PROGRESS', 'IN_REVIEW', 'BLOCKED'] },
+        },
+        select: {
+          workstream: true,
+          checklistTemplateItem: {
+            select: {
+              eligibleRoles: { select: { functionalRoleId: true } },
+            },
+          },
+        },
+      });
+      const active = activeTasks.filter((task) => {
+        if (task.workstream === 'MARKETING') {
+          return !MARKETING_PROJECT_ROLE_CODES.some((code) => selectedRoleCodes.has(code));
+        }
+        const eligibleRoleIds = task.checklistTemplateItem?.eligibleRoles.map((role) => role.functionalRoleId) || [];
+        return eligibleRoleIds.length > 0 && !eligibleRoleIds.some((roleId) => selectedRoleIds.includes(roleId));
+      }).length;
       if (active) throw new BadRequestException(`${active} active assignments still require the Project role being removed. Reassign them first.`);
     }
-    await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       await tx.projectMemberRoleAssignment.deleteMany({ where: { projectMemberId: member.id } });
-      if (functionalRoleIds.length) await tx.projectMemberRoleAssignment.createMany({ data: functionalRoleIds.map((functionalRoleId) => ({ projectMemberId: member.id, functionalRoleId })) });
-      await tx.auditLog.create({ data: { actorId, action: 'PROJECT_ROLES_UPDATED', entityType: 'ProjectMember', entityId: member.id, detailsJson: JSON.stringify({ projectId, userId, functionalRoleIds }) } });
-      for (const functionalRoleId of functionalRoleIds.filter((id) => !member.projectRoles.some((role) => role.functionalRoleId === id))) await tx.auditLog.create({ data: { actorId, action: 'PROJECT_ROLE_ADDED', entityType: 'ProjectMember', entityId: member.id, detailsJson: JSON.stringify({ projectId, userId, functionalRoleId }) } });
+      if (selectedRoleIds.length) await tx.projectMemberRoleAssignment.createMany({ data: selectedRoleIds.map((functionalRoleId) => ({ projectMemberId: member.id, functionalRoleId })) });
+      await tx.auditLog.create({ data: { actorId, action: 'PROJECT_ROLES_UPDATED', entityType: 'ProjectMember', entityId: member.id, detailsJson: JSON.stringify({ projectId, userId, functionalRoleIds: selectedRoleIds }) } });
+      for (const functionalRoleId of selectedRoleIds.filter((id) => !member.projectRoles.some((role) => role.functionalRoleId === id))) await tx.auditLog.create({ data: { actorId, action: 'PROJECT_ROLE_ADDED', entityType: 'ProjectMember', entityId: member.id, detailsJson: JSON.stringify({ projectId, userId, functionalRoleId }) } });
       for (const functionalRoleId of removed) await tx.auditLog.create({ data: { actorId, action: 'PROJECT_ROLE_REMOVED', entityType: 'ProjectMember', entityId: member.id, detailsJson: JSON.stringify({ projectId, userId, functionalRoleId }) } });
+      return tx.projectMember.findUniqueOrThrow({
+        where: { id: member.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              avatarUrl: true,
+              globalRole: true,
+            },
+          },
+          projectRoles: { include: { functionalRole: true } },
+        },
+      });
     });
-    return { success: true };
   }
 
   async removeMember(

@@ -106,3 +106,37 @@ describe('UsersService temporary password reset', () => {
     await expect(service.resetPassword('owner-1', 'owner-1', UserRole.OWNER)).rejects.toBeInstanceOf(ForbiddenException);
   });
 });
+
+describe('UsersService functional role integrity', () => {
+  it('does not remove an account role that is still assigned on a Product Team', async () => {
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'member-1',
+          globalRole: UserRole.TEAM_MEMBER,
+        }),
+      },
+      functionalRole: { count: jest.fn().mockResolvedValue(1) },
+      userFunctionalRole: {
+        findMany: jest.fn().mockResolvedValue([
+          { functionalRoleId: 'marketing-role' },
+        ]),
+      },
+      projectMemberRoleAssignment: {
+        count: jest.fn().mockResolvedValue(1),
+      },
+      $transaction: jest.fn(),
+    };
+    const service = new UsersService(prisma as never);
+
+    await expect(
+      service.update(
+        'member-1',
+        { functionalRoleIds: ['developer-role'] },
+        'owner-1',
+        UserRole.OWNER,
+      ),
+    ).rejects.toThrow('Remove the Product role first');
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});

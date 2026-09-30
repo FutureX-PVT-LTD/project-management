@@ -6,7 +6,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Plus, Search, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { asArray, asRecord } from '@/lib/api-data';
-import { UserRole } from '@futurex/shared';
 import { AppShell } from '@/components/layout/AppShell';
 import { FormPageLayout } from '@/components/layout/FormPageLayout';
 import { Button } from '@/components/ui/Button';
@@ -43,6 +42,10 @@ export function ProjectMembersPage() {
   const project = asRecord(projectData);
   const currentMembers = asArray<any>(project.members);
   const currentMemberUserIds = currentMembers.map((m) => m.userId);
+  const userById = useMemo(
+    () => new Map(asArray<any>(usersData).map((user) => [user.id, user])),
+    [usersData],
+  );
 
   const availableUsers = useMemo(
     () =>
@@ -62,18 +65,39 @@ export function ProjectMembersPage() {
 
   const addMemberMutation = useMutation({
     mutationFn: ({ userId, functionalRoleIds }: { userId: string; functionalRoleIds: string[] }) => api.post(`/projects/${projectId}/members`, { userId, functionalRoleIds }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['assignment-workspace', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['project', projectId] }),
+        queryClient.invalidateQueries({ queryKey: ['assignment-workspace', projectId] }),
+        queryClient.invalidateQueries({ queryKey: ['marketing', projectId] }),
+        queryClient.invalidateQueries({ queryKey: ['projects'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
+      setRoleDrafts((drafts) => {
+        const next = { ...drafts };
+        delete next[variables.userId];
+        return next;
+      });
+      setError(null);
     },
     onError: (err: any) => setError(err.message || 'Failed to add member.'),
   });
 
   const updateRolesMutation = useMutation({
     mutationFn: ({ userId, functionalRoleIds }: { userId: string; functionalRoleIds: string[] }) => api.patch(`/projects/${projectId}/members/${userId}/roles`, { functionalRoleIds }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['project', projectId] }); queryClient.invalidateQueries({ queryKey: ['assignment-workspace', projectId] }); },
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['project', projectId] }),
+        queryClient.invalidateQueries({ queryKey: ['assignment-workspace', projectId] }),
+        queryClient.invalidateQueries({ queryKey: ['marketing', projectId] }),
+      ]);
+      setRoleDrafts((drafts) => {
+        const next = { ...drafts };
+        delete next[variables.userId];
+        return next;
+      });
+      setError(null);
+    },
     onError: (err: any) => setError(err.message || 'Project Roles could not be updated.'),
   });
 
@@ -123,7 +147,12 @@ export function ProjectMembersPage() {
             </p>
           ) : (
             <div className="rounded-[8px] border border-[#E3E7EC] divide-y divide-[#E3E7EC] overflow-hidden">
-              {currentMembers.map((m) => (
+              {currentMembers.map((m) => {
+                const accountUser = userById.get(m.userId) || m.user;
+                const availableRoles = accountUser?.functionalRoles ||
+                  accountUser?.functionalRoleLinks?.map((entry: any) => entry.functionalRole) || [];
+                const currentRoles = roleDrafts[m.userId] ?? (m.projectRoles || []).map((item: any) => item.id);
+                return (
                 <div key={m.id || m.userId} className="flex items-center justify-between gap-3 p-3 text-xs hover:bg-[#F7F8FA] transition-colors">
                   <div>
                     <p className="font-semibold text-[13.5px] text-[#181B20]">
@@ -133,20 +162,18 @@ export function ProjectMembersPage() {
                     {m.user?.jobTitle && <p className="text-[11.5px] text-[#626A73]">{m.user.jobTitle}</p>}
                     <p className="mt-1 text-[11px] text-[#626A73]">{m.activeAssignmentsCount || 0} active assignments</p>
                     <div className="mt-2 flex flex-wrap gap-2">
-                      {(m.user?.functionalRoleLinks || m.user?.functionalRoles || []).map((entry: any) => {
-                        const role = entry.functionalRole || entry;
-                        const current = roleDrafts[m.userId] ?? (m.projectRoles || []).map((item: any) => item.id);
+                      {availableRoles.map((role: any) => {
                         return (
                           <label key={role.id} className="flex items-center gap-1.5 rounded-[6px] border border-[#E3E7EC] bg-[#F7F8FA] px-2 py-0.5 text-[11px] text-[#181B20]">
                             <input
                               type="checkbox"
-                              checked={current.includes(role.id)}
+                              checked={currentRoles.includes(role.id)}
                               onChange={(event) =>
                                 setRoleDrafts((drafts) => ({
                                   ...drafts,
                                   [m.userId]: event.target.checked
-                                    ? [...current, role.id]
-                                    : current.filter((id: string) => id !== role.id),
+                                    ? [...currentRoles, role.id]
+                                    : currentRoles.filter((id: string) => id !== role.id),
                                 }))
                               }
                               className="rounded border-[#E3E7EC] text-[#2563EB]"
@@ -179,7 +206,8 @@ export function ProjectMembersPage() {
                     </Button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>
@@ -205,7 +233,9 @@ export function ProjectMembersPage() {
             </p>
           ) : (
             <div className="rounded-[8px] border border-[#E3E7EC] divide-y divide-[#E3E7EC] overflow-hidden">
-              {filteredAvailable.map((user) => (
+              {filteredAvailable.map((user) => {
+                const selectedRoleIds = roleDrafts[user.id] ?? (user.functionalRoles || []).map((role: any) => role.id);
+                return (
                 <div key={user.id} className="flex items-center justify-between gap-3 p-3 text-xs hover:bg-[#F7F8FA] transition-colors">
                   <div>
                     <p className="font-semibold text-[13.5px] text-[#181B20]">{user.firstName} {user.lastName}</p>
@@ -213,18 +243,17 @@ export function ProjectMembersPage() {
                     {user.jobTitle && <p className="text-[11.5px] text-[#626A73]">{user.jobTitle}</p>}
                     <div className="mt-2 flex flex-wrap gap-2">
                       {(user.functionalRoles || []).map((role: any) => {
-                        const current = roleDrafts[user.id] || [];
                         return (
                           <label key={role.id} className="flex items-center gap-1.5 rounded-[6px] border border-[#E3E7EC] bg-[#F7F8FA] px-2 py-0.5 text-[11px] text-[#181B20]">
                             <input
                               type="checkbox"
-                              checked={current.includes(role.id)}
+                              checked={selectedRoleIds.includes(role.id)}
                               onChange={(event) =>
                                 setRoleDrafts((drafts) => ({
                                   ...drafts,
                                   [user.id]: event.target.checked
-                                    ? [...current, role.id]
-                                    : current.filter((id: string) => id !== role.id),
+                                    ? [...selectedRoleIds, role.id]
+                                    : selectedRoleIds.filter((id: string) => id !== role.id),
                                 }))
                               }
                               className="rounded border-[#E3E7EC] text-[#2563EB]"
@@ -239,13 +268,14 @@ export function ProjectMembersPage() {
                     size="xs"
                     variant="secondary"
                     loading={addMemberMutation.isPending}
-                    onClick={() => addMemberMutation.mutate({ userId: user.id, functionalRoleIds: roleDrafts[user.id] || [] })}
+                    onClick={() => addMemberMutation.mutate({ userId: user.id, functionalRoleIds: selectedRoleIds })}
                     leftIcon={<Plus className="h-3 w-3" />}
                   >
                     Add
                   </Button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

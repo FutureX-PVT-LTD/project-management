@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/Button';
 import { Drawer } from '@/components/ui/Drawer';
-import { UserRole } from '@futurex/shared';
 import { Search, Plus, Trash2, Users, AlertCircle } from 'lucide-react';
 
 interface ManageMembersDrawerProps {
@@ -56,7 +55,10 @@ export function ManageMembersDrawer({
 
   // Add Member Mutation
   const addMemberMutation = useMutation({
-    mutationFn: (userId: string) => api.post(`/projects/${projectId}/members`, { userId }),
+    mutationFn: (user: any) => api.post(`/projects/${projectId}/members`, {
+      userId: user.id,
+      functionalRoleIds: (user.functionalRoles || []).map((role: any) => role.id),
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
       queryClient.invalidateQueries({ queryKey: ['projects'] });
@@ -228,7 +230,7 @@ export function ManageMembersDrawer({
                       size="xs"
                       variant="secondary"
                       isLoading={addMemberMutation.isPending}
-                      onClick={() => addMemberMutation.mutate(emp.id)}
+                      onClick={() => addMemberMutation.mutate(emp)}
                       leftIcon={<Plus className="w-3 h-3" />}
                     >
                       Add to Project

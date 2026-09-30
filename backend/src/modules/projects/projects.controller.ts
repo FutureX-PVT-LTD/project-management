@@ -172,7 +172,7 @@ export class ProjectsController {
     @Body() dto: AddProjectMemberDto,
     @CurrentUser() actor: AuthUser,
   ) {
-    return this.projectsService.addMember(id, dto.userId, dto.role || ProjectMemberRole.MEMBER, actor.id, actor.globalRole, dto.functionalRoleIds || []);
+    return this.projectsService.addMember(id, dto.userId, dto.role || ProjectMemberRole.MEMBER, actor.id, actor.globalRole, dto.functionalRoleIds);
   }
 
   @Roles(UserRole.OWNER, UserRole.ADMIN)

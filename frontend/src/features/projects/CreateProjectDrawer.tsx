@@ -6,7 +6,6 @@ import { api } from "@/lib/api-client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Drawer } from "@/components/ui/Drawer";
-import { UserRole } from "@futurex/shared";
 import { X, Search, Check, Users, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -109,7 +108,13 @@ export function CreateProjectDrawer({
       description: description.trim() || undefined,
       startDate: startDate ? new Date(startDate).toISOString() : undefined,
       targetDate: targetDate ? new Date(targetDate).toISOString() : undefined,
-      memberIds: selectedMemberIds,
+      memberIds: selectedMemberIds.map((userId) => {
+        const user = availableEmployees.find((employee) => employee.id === userId);
+        return {
+          userId,
+          functionalRoleIds: (user?.functionalRoles || []).map((role: any) => role.id),
+        };
+      }),
     });
   };
 
