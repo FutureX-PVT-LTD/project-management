@@ -57,6 +57,20 @@ export class MarketingService {
   private requireHead(access: { isHead: boolean }) {
     if (!access.isHead) throw new ForbiddenException('Marketing Head or management permission is required');
   }
+  private requireOperationalOwner(
+    access: { isOperator: boolean; isManager: boolean },
+    ownerId: string | null,
+    actor: AuthUser,
+    resource: string,
+  ) {
+    this.requireOperator(access);
+    if (access.isManager) {
+      throw new ForbiddenException(`Only the assigned Marketing member can update ${resource} progress`);
+    }
+    if (!ownerId || ownerId !== actor.id) {
+      throw new ForbiddenException(`${resource} update permission denied`);
+    }
+  }
   private async eligible(projectId: string, userId: string | null | undefined) {
     if (!userId) return;
     const user = await this.prisma.user.findFirst({ where: { id: userId, isActive: true, deletedAt: null, projectMemberships: { some: { projectId } } }, select: { id: true } });
@@ -261,11 +275,14 @@ export class MarketingService {
     }
 
   async updateChannel(projectId: string, id: string, dto: UpdateChannelDto, actor: AuthUser) {
-    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    const access = await this.marketingAccess(projectId, actor);
     const existing = await this.prisma.marketingChannel.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Marketing channel not found');
-    if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Channel update permission denied');
-    if (!access.isManager && (dto.ownerId !== undefined || dto.backupAdminId !== undefined)) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    const assignmentUpdate = dto.ownerId !== undefined || dto.backupAdminId !== undefined;
+    const operationalUpdate = Object.keys(dto).some((key) => !['ownerId', 'backupAdminId'].includes(key));
+    if (assignmentUpdate && !access.isManager) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    if (assignmentUpdate && operationalUpdate) throw new BadRequestException('Update Marketing assignments and work progress separately');
+    if (!assignmentUpdate) this.requireOperationalOwner(access, existing.ownerId, actor, 'Channel');
     await this.eligible(projectId, dto.ownerId); await this.eligible(projectId, dto.backupAdminId);
     return this.prisma.$transaction(async (tx: any) => {
       const row = await tx.marketingChannel.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, backupAdminId: dto.backupAdminId === undefined ? undefined : dto.backupAdminId || null } });
@@ -273,11 +290,14 @@ export class MarketingService {
     });
   }
   async updateContent(projectId: string, id: string, dto: UpdateContentDto, actor: AuthUser) {
-    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    const access = await this.marketingAccess(projectId, actor);
     const existing = await this.prisma.marketingContentItem.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Content item not found');
-    if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Content update permission denied');
-    if (!access.isManager && dto.ownerId !== undefined) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    const assignmentUpdate = dto.ownerId !== undefined;
+    const operationalUpdate = Object.keys(dto).some((key) => key !== 'ownerId');
+    if (assignmentUpdate && !access.isManager) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    if (assignmentUpdate && operationalUpdate) throw new BadRequestException('Update Marketing assignments and work progress separately');
+    if (!assignmentUpdate) this.requireOperationalOwner(access, existing.ownerId, actor, 'Content');
     await this.eligible(projectId, dto.ownerId);
     return this.prisma.$transaction(async (tx: any) => {
       const updated = await tx.marketingContentItem.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, targetDate: dto.targetDate === undefined ? undefined : dto.targetDate ? new Date(dto.targetDate) : null, scheduledDate: dto.scheduledDate === undefined ? undefined : dto.scheduledDate ? new Date(dto.scheduledDate) : null } });
@@ -285,11 +305,14 @@ export class MarketingService {
     });
   }
   async updateBuzz(projectId: string, id: string, dto: UpdateBuzzDto, actor: AuthUser) {
-    const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
+    const access = await this.marketingAccess(projectId, actor);
     const existing = await this.prisma.marketingBuzzActivity.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Buzz activity not found');
-    if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Buzz update permission denied');
-    if (!access.isManager && dto.ownerId !== undefined) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    const assignmentUpdate = dto.ownerId !== undefined;
+    const operationalUpdate = Object.keys(dto).some((key) => key !== 'ownerId');
+    if (assignmentUpdate && !access.isManager) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    if (assignmentUpdate && operationalUpdate) throw new BadRequestException('Update Marketing assignments and work progress separately');
+    if (!assignmentUpdate) this.requireOperationalOwner(access, existing.ownerId, actor, 'Buzz activity');
     await this.eligible(projectId, dto.ownerId);
     return this.prisma.$transaction(async (tx: any) => {
       const updated = await tx.marketingBuzzActivity.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null } });

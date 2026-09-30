@@ -59,6 +59,28 @@ describe('Marketing operational permissions', () => {
     expect(tx.marketingContentItem.update).not.toHaveBeenCalled();
   });
 
+  it('prevents an Admin from updating an assigned member\'s content progress', async () => {
+    const { service, prisma, tx } = setup('MARKETING_MANAGER');
+    prisma.marketingContentItem.findFirst.mockResolvedValue({
+      id: 'content', ownerId: 'executive', assetStatus: 'NOT_STARTED', postStatus: 'NOT_POSTED',
+    });
+
+    await expect(service.updateContent('project', 'content', { assetStatus: 'READY' }, admin('admin')))
+      .rejects.toThrow('Only the assigned Marketing member can update Content progress');
+    expect(tx.marketingContentItem.update).not.toHaveBeenCalled();
+  });
+
+  it('prevents the Marketing Head from updating another owner\'s content progress', async () => {
+    const { service, prisma, tx } = setup('MARKETING_MANAGER');
+    prisma.marketingContentItem.findFirst.mockResolvedValue({
+      id: 'content', ownerId: 'executive', assetStatus: 'NOT_STARTED', postStatus: 'NOT_POSTED',
+    });
+
+    await expect(service.updateContent('project', 'content', { assetStatus: 'READY' }, actor('head')))
+      .rejects.toThrow('Content update permission denied');
+    expect(tx.marketingContentItem.update).not.toHaveBeenCalled();
+  });
+
   it('prevents the Marketing Head from changing assignments', async () => {
     const { service, prisma, tx } = setup('MARKETING_MANAGER');
     prisma.marketingChannel.findFirst.mockResolvedValue({ id: 'channel', ownerId: null, status: 'NOT_CREATED' });
@@ -79,6 +101,21 @@ describe('Marketing operational permissions', () => {
     expect(tx.marketingChannel.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ ownerId: 'member' }),
     }));
+  });
+
+  it('rejects a request that mixes assignment and progress changes', async () => {
+    const { service, prisma, tx } = setup('MARKETING_MANAGER');
+    prisma.marketingContentItem.findFirst.mockResolvedValue({
+      id: 'content', ownerId: null, assetStatus: 'NOT_STARTED', postStatus: 'NOT_POSTED',
+    });
+
+    await expect(service.updateContent(
+      'project',
+      'content',
+      { ownerId: 'member', assetStatus: 'IN_PRODUCTION' },
+      admin('admin'),
+    )).rejects.toThrow('Update Marketing assignments and work progress separately');
+    expect(tx.marketingContentItem.update).not.toHaveBeenCalled();
   });
 
   it('lets a Marketing Coordinator update an assigned Buzz window', async () => {

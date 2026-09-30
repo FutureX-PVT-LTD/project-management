@@ -71,7 +71,8 @@ export function MarketingWorkspacePage() {
     currentRoleCodes.has('MARKETING_EXECUTIVE') ||
     currentRoleCodes.has('MARKETING_COORDINATOR');
 
-  const canEditOperationalRow = (row: any) => marketingHead || row.ownerId === user?.id;
+  const canEditOperationalRow = (row: any) =>
+    marketingOperator && !manager && Boolean(row.ownerId) && row.ownerId === user?.id;
 
   const { data: summaryData, isLoading } = useQuery({
     queryKey: ['marketing', projectId, 'summary'],
@@ -571,7 +572,7 @@ export function MarketingWorkspacePage() {
                 {row.platform}
               </span>,
               row.requirement.replace(/_/g, ' '),
-              marketingHead ? (
+              manager ? (
                 <OwnerSelect
                   key="owner"
                   value={row.ownerId}
@@ -620,7 +621,7 @@ export function MarketingWorkspacePage() {
                 {row.contentType}
               </span>,
               row.stage,
-              marketingHead ? (
+              manager ? (
                 <OwnerSelect
                   key="owner"
                   value={row.ownerId}
@@ -728,7 +729,7 @@ export function MarketingWorkspacePage() {
                 <div key={row.id} className={styles.buzzRow}>
                   <strong className="text-[#181B20]">{row.stage}</strong>
                   <span className="text-[#626A73]">{row.objective}</span>
-                  {marketingHead ? (
+                  {manager ? (
                     <OwnerSelect
                       value={row.ownerId}
                       members={marketingMembers}
