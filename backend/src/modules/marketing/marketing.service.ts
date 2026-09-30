@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuthUser, NotificationType, TaskPriority, TaskStatus, UserRole } from '@futurex/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { MARKETING_ROLE_CODES, requireMarketingAssignee } from '../../common/security/marketing-policy';
 import { projectScope, publicUserSelect, requireManager, requireProject } from '../../common/security/access-policy';
 import { marketingChecklistItems, MARKETING_TEMPLATE_VERSION } from './marketing-template';
 import { ApproveGateDto, AssignMarketingItemDto, MarketingAssignmentDto, UpdateBuzzDto, UpdateChannelDto, UpdateContentDto, UpdateSignoffDto } from './marketing.dto';
@@ -23,7 +24,7 @@ const gates = [
   ['MG-04', 'Initial Buzz Ready', 'Required pre-launch buzz activity is complete.'],
 ] as const;
 const signoffs = ['Ownership', 'Domain & Website', 'Social Footprint', 'Digital Links', 'Content Bank', 'Buzz Schedule', 'Tracking', 'Launch Approval'];
-const marketingRoleCodes = ['MARKETING_MANAGER', 'MARKETING_EXECUTIVE', 'MARKETING_COORDINATOR'];
+const marketingRoleCodes = MARKETING_ROLE_CODES;
 const marketingHeadRoleCodes = ['MARKETING_MANAGER'];
 
 @Injectable()
@@ -73,8 +74,7 @@ export class MarketingService {
   }
   private async eligible(projectId: string, userId: string | null | undefined) {
     if (!userId) return;
-    const user = await this.prisma.user.findFirst({ where: { id: userId, isActive: true, deletedAt: null, projectMemberships: { some: { projectId } } }, select: { id: true } });
-    if (!user) throw new BadRequestException('Assignee must be an active Product member');
+    await requireMarketingAssignee(this.prisma, projectId, userId);
   }
   private async audit(tx: any, actorId: string, action: string, type: string, id: string, details?: unknown) {
     await tx.auditLog.create({ data: { actorId, action, entityType: type, entityId: id, detailsJson: details ? JSON.stringify(details) : undefined } });
@@ -214,7 +214,30 @@ export class MarketingService {
     };
   }
 
-  async checklist(projectId: string, actor: AuthUser) { await this.project(projectId, actor); return this.prisma.task.findMany({ where: { projectId, workstream: 'MARKETING', deletedAt: null, ...(actor.globalRole === UserRole.TEAM_MEMBER ? { assigneeId: actor.id } : {}) }, include: { assignee: { select: publicUserSelect }, checklistTemplateItem: { select: { sourceConfirmed: true } } }, orderBy: { checklistOrder: 'asc' } }); }
+  async checklist(projectId: string, actor: AuthUser) {
+    await this.project(projectId, actor);
+    return this.prisma.task.findMany({
+      where: {
+        projectId,
+        workstream: 'MARKETING',
+        deletedAt: null,
+        ...(actor.globalRole === UserRole.TEAM_MEMBER ? { assigneeId: actor.id } : {}),
+      },
+      include: {
+        assignee: { select: publicUserSelect },
+        checklistTemplateItem: {
+          select: {
+            sourceConfirmed: true,
+            eligibleRoles: {
+              where: { functionalRole: { isActive: true } },
+              select: { functionalRole: { select: { id: true, code: true, name: true } } },
+            },
+          },
+        },
+      },
+      orderBy: { checklistOrder: 'asc' },
+    });
+  }
   async channels(projectId: string, actor: AuthUser) {
     const access = await this.marketingAccess(projectId, actor); this.requireOperator(access);
     return this.prisma.marketingChannel.findMany({ where: { projectId, ...(!access.isHead ? { ownerId: actor.id } : {}) }, include: { owner: { select: publicUserSelect }, backupAdmin: { select: publicUserSelect } }, orderBy: { code: 'asc' } });
@@ -279,7 +302,7 @@ export class MarketingService {
     const existing = await this.prisma.marketingChannel.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Marketing channel not found');
     const assignmentUpdate = dto.ownerId !== undefined || dto.backupAdminId !== undefined;
-    const operationalUpdate = Object.keys(dto).some((key) => !['ownerId', 'backupAdminId'].includes(key));
+    const operationalUpdate = Object.entries(dto).some(([key, value]) => value !== undefined && !['ownerId', 'backupAdminId'].includes(key));
     if (assignmentUpdate && !access.isManager) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
     if (assignmentUpdate && operationalUpdate) throw new BadRequestException('Update Marketing assignments and work progress separately');
     if (!assignmentUpdate) this.requireOperationalOwner(access, existing.ownerId, actor, 'Channel');
@@ -294,7 +317,7 @@ export class MarketingService {
     const existing = await this.prisma.marketingContentItem.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Content item not found');
     const assignmentUpdate = dto.ownerId !== undefined;
-    const operationalUpdate = Object.keys(dto).some((key) => key !== 'ownerId');
+    const operationalUpdate = Object.entries(dto).some(([key, value]) => value !== undefined && key !== 'ownerId');
     if (assignmentUpdate && !access.isManager) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
     if (assignmentUpdate && operationalUpdate) throw new BadRequestException('Update Marketing assignments and work progress separately');
     if (!assignmentUpdate) this.requireOperationalOwner(access, existing.ownerId, actor, 'Content');
@@ -309,7 +332,7 @@ export class MarketingService {
     const existing = await this.prisma.marketingBuzzActivity.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Buzz activity not found');
     const assignmentUpdate = dto.ownerId !== undefined;
-    const operationalUpdate = Object.keys(dto).some((key) => key !== 'ownerId');
+    const operationalUpdate = Object.entries(dto).some(([key, value]) => value !== undefined && key !== 'ownerId');
     if (assignmentUpdate && !access.isManager) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
     if (assignmentUpdate && operationalUpdate) throw new BadRequestException('Update Marketing assignments and work progress separately');
     if (!assignmentUpdate) this.requireOperationalOwner(access, existing.ownerId, actor, 'Buzz activity');

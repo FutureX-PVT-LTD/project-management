@@ -74,8 +74,9 @@ export function requestLimits() {
   return (req: Request, res: Response, next: NextFunction) => {
     const now = Date.now();
     for (const [key, value] of buckets) if (value.until <= now) buckets.delete(key);
-    const auth = req.path.endsWith('/auth/login');
-    const refresh = req.path.endsWith('/auth/refresh');
+    const requestPath = req.path.replace(/\/+$/, '').toLowerCase();
+    const auth = requestPath.endsWith('/auth/login');
+    const refresh = requestPath.endsWith('/auth/refresh');
     const scope = auth ? 'auth' : refresh ? 'refresh' : 'api';
     const keys = [`${scope}:${req.ip}`];
     if (auth && typeof req.body?.email === 'string') {

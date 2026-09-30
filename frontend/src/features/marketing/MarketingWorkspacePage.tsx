@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,6 +27,15 @@ import { roleLabel } from '@/lib/role-labels';
 import { useAuth } from '@/features/auth/AuthContext';
 
 type Tab = 'overview' | 'checklist' | 'channels' | 'content' | 'buzz' | 'signoff';
+type MarketingProjectRole = { id?: string; code?: string; name?: string; isActive?: boolean };
+type MarketingMember = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  projectRoles: MarketingProjectRole[];
+};
+
+const marketingRoleOrder = ['MARKETING_MANAGER', 'MARKETING_EXECUTIVE', 'MARKETING_COORDINATOR'];
 
 export function MarketingWorkspacePage() {
   const projectId = String(useParams()?.id || '');
@@ -53,6 +62,7 @@ export function MarketingWorkspacePage() {
       id: member.userId || member.user?.id,
       firstName: member.user?.firstName || member.firstName || '',
       lastName: member.user?.lastName || member.lastName || '',
+      globalRole: member.user?.globalRole || member.globalRole,
       projectRoles: member.projectRoles || [],
     }))
     .filter((member) => member.id);
@@ -63,7 +73,7 @@ export function MarketingWorkspacePage() {
   );
   const marketingRoleCodes = ['MARKETING_MANAGER', 'MARKETING_EXECUTIVE', 'MARKETING_COORDINATOR'];
   const marketingMembers = projectMembers.filter((member) =>
-    asArray<any>(member.projectRoles).some((role) => marketingRoleCodes.includes(role.code)),
+    member.globalRole === UserRole.TEAM_MEMBER && asArray<any>(member.projectRoles).some((role) => role.isActive !== false && marketingRoleCodes.includes(role.code)),
   );
   const marketingHead = manager || currentRoleCodes.has('MARKETING_MANAGER');
   const marketingOperator =
@@ -882,39 +892,98 @@ function MarketingAssigneeSelect({
   onChange,
 }: {
   row: any;
-  members: { id: string; firstName: string; lastName: string; projectRoles: unknown[] }[];
+  members: MarketingMember[];
   pending: boolean;
   onChange: (value: string) => void;
 }) {
   const locked = ['IN_REVIEW', 'DONE'].includes(row.status);
   const mustKeepOwner = ['IN_PROGRESS', 'BLOCKED'].includes(row.status);
-  const currentAssigneeIsEligible = members.some((member) => member.id === row.assigneeId);
   const lockReason =
     row.status === 'DONE' ? 'Completed work cannot be reassigned' : 'Return the review before reassignment';
+  const roleMap = new Map<string, MarketingProjectRole>();
+  for (const member of members) {
+    for (const role of asArray<MarketingProjectRole>(member.projectRoles)) {
+      if (
+        role.code &&
+        marketingRoleOrder.includes(role.code) &&
+        role.isActive !== false
+      ) {
+        roleMap.set(role.code, role);
+      }
+    }
+  }
+  const roles = [...roleMap.values()].sort(
+    (left, right) => marketingRoleOrder.indexOf(left.code || '') - marketingRoleOrder.indexOf(right.code || ''),
+  );
+  const currentMember = members.find((member) => member.id === row.assigneeId);
+  const currentRole = asArray<MarketingProjectRole>(currentMember?.projectRoles).find(
+    (role) => role.code && roleMap.has(role.code),
+  );
+  const [pendingRoleCode, setPendingRoleCode] = useState('');
+  const selectedRoleCode = pendingRoleCode || currentRole?.code || '';
+  const roleMembers = selectedRoleCode
+    ? members.filter((member) =>
+        asArray<MarketingProjectRole>(member.projectRoles).some((role) => role.code === selectedRoleCode),
+      )
+    : [];
+
+  useEffect(() => setPendingRoleCode(''), [row.assigneeId]);
+
+  const selectRole = (roleCode: string) => {
+    if (!roleCode) {
+      setPendingRoleCode('');
+      onChange('');
+      return;
+    }
+    const candidates = members.filter((member) =>
+      asArray<MarketingProjectRole>(member.projectRoles).some((role) => role.code === roleCode),
+    );
+    if (candidates.length === 1) {
+      setPendingRoleCode('');
+      onChange(candidates[0].id);
+      return;
+    }
+    setPendingRoleCode(roleCode);
+  };
 
   return (
-    <select
-      aria-label={`${row.checklistCode} assignee`}
-      value={row.assigneeId || ''}
-      disabled={pending || locked}
-      title={locked ? lockReason : 'Change assignee'}
-      onChange={(event) => onChange(event.target.value)}
-      className="h-8 min-w-44 rounded-[8px] border border-[#E3E7EC] bg-white px-2 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none disabled:bg-[#F2F4F7] disabled:text-[#929AA3]"
-    >
-      <option value="" disabled={mustKeepOwner}>
-        Unassigned
-      </option>
-      {row.assigneeId && !currentAssigneeIsEligible && (
-        <option value={row.assigneeId} disabled>
-          {ownerName(row.assignee)} · Role mismatch
+    <div className="flex flex-wrap gap-1.5">
+      <select
+        aria-label={`${row.checklistCode} role`}
+        value={selectedRoleCode}
+        disabled={pending || locked}
+        title={locked ? lockReason : 'Assign by Marketing role'}
+        onChange={(event) => selectRole(event.target.value)}
+        className="h-8 min-w-40 rounded-[8px] border border-[#E3E7EC] bg-white px-2 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none disabled:bg-[#F2F4F7] disabled:text-[#929AA3]"
+      >
+        <option value="" disabled={mustKeepOwner}>
+          {row.assigneeId && !currentRole ? 'Select valid role' : 'Unassigned'}
         </option>
+        {roles.map((role) => (
+          <option key={role.code} value={role.code}>
+            {role.name || String(role.code).replace(/_/g, ' ')}
+          </option>
+        ))}
+      </select>
+      {selectedRoleCode && roleMembers.length > 1 && (
+        <select
+          aria-label={`${row.checklistCode} member`}
+          value={roleMembers.some((member) => member.id === row.assigneeId) ? row.assigneeId : ''}
+          disabled={pending || locked}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-8 min-w-40 rounded-[8px] border border-[#E3E7EC] bg-white px-2 text-xs text-[#181B20] focus:border-[#2563EB] focus:outline-none disabled:bg-[#F2F4F7] disabled:text-[#929AA3]"
+        >
+          <option value="" disabled>
+            Choose member
+          </option>
+          {roleMembers.map((member) => (
+            <option key={member.id} value={member.id}>
+              {member.firstName} {member.lastName}
+            </option>
+          ))}
+        </select>
       )}
-      {members.map((member) => (
-        <option key={member.id} value={member.id}>
-          {member.firstName} {member.lastName} · {roleLabel(member.projectRoles, 'No project role')}
-        </option>
-      ))}
-    </select>
+    </div>
   );
 }
 

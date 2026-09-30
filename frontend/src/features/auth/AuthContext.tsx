@@ -23,6 +23,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
+  const ownerPage = pathname === '/admin/audit' || /^\/admin\/users\/[^/]+\/security\/?$/.test(pathname);
+  const managementPage = pathname.startsWith('/admin/') || pathname === '/reports' ||
+    pathname === '/projects/new' || /^\/projects\/[^/]+\/(edit|setup|members|tasks\/new)\/?$/.test(pathname);
+  const restrictedPage = ownerPage || managementPage;
+  const deniedPage = restrictedPage && (!user ||
+    (ownerPage ? user.globalRole !== UserRole.OWNER :
+      user.globalRole !== UserRole.ADMIN && user.globalRole !== UserRole.OWNER));
+
+  useEffect(() => {
+    if (!isLoading && deniedPage) router.replace(user ? '/my-work' : '/login');
+  }, [deniedPage, isLoading, router, user]);
 
   const refreshUser = useCallback(async () => {
     try {
@@ -147,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasRole,
       }}
     >
-      {children}
+      {restrictedPage && (isLoading || deniedPage) ? null : children}
     </AuthContext.Provider>
   );
 }

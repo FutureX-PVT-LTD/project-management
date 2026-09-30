@@ -395,6 +395,10 @@ export class UsersService {
       throw new ForbiddenException('Super Admin cannot demote their own account');
     }
 
+    if (user.globalRole === UserRole.OWNER && dto.isActive === false) {
+      throw new ForbiddenException('Owner account cannot be deactivated');
+    }
+
     const effectiveRole = dto.globalRole ?? (user.globalRole as UserRole);
     if (effectiveRole === UserRole.TEAM_MEMBER && dto.functionalRoleIds?.length === 0) {
       throw new BadRequestException('Choose at least one functional role for a Team Member');
@@ -522,7 +526,7 @@ export class UsersService {
     }
 
     const released = await this.prisma.$transaction(async (tx) => {
-      const [tasks, managedProjects, marketingProjects, phases, phaseMembers, channels, content, buzz, signoffs] = await Promise.all([
+      const [tasks, managedProjects, marketingProjects, phases, phaseMembers, channels, backupChannels, content, buzz, signoffs] = await Promise.all([
         tx.task.updateMany({
           where: { assigneeId: id, deletedAt: null, status: { notIn: ['DONE', 'CANCELED'] } },
           data: { assigneeId: null },
@@ -557,7 +561,7 @@ export class UsersService {
         tasks: tasks.count,
         projectOwnerships: managedProjects.count + marketingProjects.count,
         phaseAssignments: phases.count + phaseMembers.count,
-        marketingAssignments: channels.count + content.count + buzz.count + signoffs.count,
+        marketingAssignments: channels.count + backupChannels.count + content.count + buzz.count + signoffs.count,
       };
       await tx.auditLog.create({
         data: {

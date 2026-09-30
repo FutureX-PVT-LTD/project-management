@@ -1,6 +1,6 @@
 import { ProjectsService } from './projects.service';
 
-describe('ProjectsService Marketing assignment eligibility', () => {
+describe('ProjectsService Development membership eligibility', () => {
   const findFirst = jest.fn();
   const service = new ProjectsService(
     { projectMember: { findFirst } } as never,

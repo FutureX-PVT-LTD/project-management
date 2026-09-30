@@ -106,7 +106,7 @@ jobs:
             npm -v
 
             corepack enable
-            corepack prepare pnpm@12.3.4 --activate
+            corepack prepare pnpm@10.33.2 --activate
             pnpm -v
 
             echo "=============================="
@@ -140,6 +140,7 @@ jobs:
 
             # Production migrations only.
             # NEVER seed/reset automatically here.
+            node scripts/migration-preflight.cjs
             pnpm exec prisma migrate deploy
 
             echo "=============================="

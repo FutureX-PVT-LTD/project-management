@@ -10,7 +10,8 @@ async function main() {
     throw new Error('Production database reset is prohibited');
   }
   if (!process.env.OWNER_SEED_PASSWORD || !process.env.ADMIN_SEED_PASSWORD ||
-      process.env.OWNER_SEED_PASSWORD.length < 12 || process.env.ADMIN_SEED_PASSWORD.length < 12) {
+      process.env.OWNER_SEED_PASSWORD.length < 12 || process.env.ADMIN_SEED_PASSWORD.length < 12 ||
+      process.env.OWNER_SEED_PASSWORD === process.env.ADMIN_SEED_PASSWORD) {
     throw new Error('Set OWNER_SEED_PASSWORD and ADMIN_SEED_PASSWORD to independent passwords of at least 12 characters');
   }
   console.log('🌱 Starting FutureX database initialization...');

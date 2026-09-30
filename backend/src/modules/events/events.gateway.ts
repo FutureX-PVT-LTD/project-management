@@ -12,6 +12,7 @@ import { IncomingMessage } from 'http';
 import { PrismaService } from '../prisma/prisma.service';
 import { allowedOrigins } from '../../common/security/http-security';
 import { JwtPayload } from '@futurex/shared';
+import { IDLE_MS } from '../auth/session-policy';
 
 function parseCookies(cookieHeader?: string): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -49,6 +50,7 @@ export class EventsGateway
 
   private readonly logger = new Logger(EventsGateway.name);
   private clients = new Map<WebSocket, AuthenticatedClientMeta>();
+  private credentials = new Map<WebSocket, string>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -75,7 +77,7 @@ export class EventsGateway
         return;
       }
 
-      // 2. Token extraction: Cookie -> Authorization Header -> Query Param
+      // URL tokens leak into proxy/access logs; only cookies and headers are accepted.
       let token: string | undefined;
       const cookieHeader = request.headers.cookie;
       if (cookieHeader) {
@@ -88,14 +90,6 @@ export class EventsGateway
           token = parts[1];
         }
       }
-      if (!token && request.url) {
-        try {
-          const url = new URL(request.url, 'http://localhost');
-          token = url.searchParams.get('token') || undefined;
-        } catch {
-          // Ignored
-        }
-      }
 
       if (!token) {
         this.logger.warn('WS connection rejected: unauthenticated (no token found)');
@@ -106,7 +100,7 @@ export class EventsGateway
       // 3. Verify JWT signature and expiration
       let payload: JwtPayload;
       try {
-        payload = this.jwtService.verify<JwtPayload>(token);
+        payload = this.jwtService.verify<JwtPayload>(token, { algorithms: ['HS256'] });
       } catch (jwtErr) {
         this.logger.warn(
           `WS connection rejected: invalid JWT token (${jwtErr instanceof Error ? jwtErr.message : 'failed'})`,
@@ -129,6 +123,7 @@ export class EventsGateway
           userId: payload.sub,
           isRevoked: false,
           expiresAt: { gt: now },
+          lastSeenAt: { gt: new Date(now.getTime() - IDLE_MS) },
         },
         include: {
           user: {
@@ -138,12 +133,13 @@ export class EventsGateway
               globalRole: true,
               isActive: true,
               deletedAt: true,
+              mustChangePassword: true,
             },
           },
         },
       });
 
-      if (!session || !session.user || !session.user.isActive || session.user.deletedAt) {
+      if (!session || !session.user || !session.user.isActive || session.user.deletedAt || session.user.mustChangePassword) {
         this.logger.warn(
           `WS connection rejected: session revoked or user inactive for ${payload.sub}`,
         );
@@ -157,6 +153,7 @@ export class EventsGateway
         role: session.user.globalRole,
         email: session.user.email,
       });
+      this.credentials.set(client, token);
 
       this.logger.log(
         `Client connected: user ${session.user.id} (${session.user.globalRole}), total authenticated = ${this.clients.size}`,
@@ -171,16 +168,33 @@ export class EventsGateway
 
   handleDisconnect(client: WebSocket) {
     this.clients.delete(client);
+    this.credentials.delete(client);
     this.logger.log(`Client disconnected: total authenticated = ${this.clients.size}`);
   }
 
-  broadcast(
+  async broadcast(
     event: string,
     data: any,
     filter?: (meta: AuthenticatedClientMeta) => boolean,
   ) {
     const payload = JSON.stringify({ event, data });
-    for (const [client, meta] of this.clients.entries()) {
+    for (const [client] of this.clients.entries()) {
+      // Revalidate before every delivery; a quiet socket must not keep a session alive.
+      try {
+        const claims = this.jwtService.verify<JwtPayload>(this.credentials.get(client) || '', { algorithms: ['HS256'] });
+        const now = new Date();
+        const session = await this.prisma.session.findFirst({
+          where: { id: claims.sid, userId: claims.sub, isRevoked: false, expiresAt: { gt: now }, lastSeenAt: { gt: new Date(now.getTime() - IDLE_MS) }, user: { isActive: true, deletedAt: null, mustChangePassword: false } },
+          include: { user: { select: { id: true, globalRole: true, email: true } } },
+        });
+        if (!session) throw new Error('Session no longer valid');
+        this.clients.set(client, { userId: session.user.id, role: session.user.globalRole, email: session.user.email });
+      } catch {
+        client.close(1008, 'Session expired or revoked');
+        this.handleDisconnect(client);
+        continue;
+      }
+      const meta = this.clients.get(client)!;
       if (client.readyState === WebSocket.OPEN) {
         if (!filter || filter(meta)) {
           client.send(payload);
@@ -190,7 +204,7 @@ export class EventsGateway
   }
 
   sendToUser(userId: string, event: string, data: any) {
-    this.broadcast(event, data, (meta) => meta.userId === userId);
+    return this.broadcast(event, data, (meta) => meta.userId === userId);
   }
 
   getClientCount(): number {

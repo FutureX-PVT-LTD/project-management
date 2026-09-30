@@ -47,13 +47,13 @@ describe('EventsGateway Security & Authentication', () => {
     expect(socket.close).toHaveBeenCalledWith(1008, 'Unauthorized origin');
   });
 
-  it('rejects connection if no token is provided in cookie, header, or query', async () => {
+  it('rejects URL tokens instead of treating them as authentication', async () => {
     const socket = createMockSocket();
     const req = {
       headers: {
         origin: 'http://localhost:3000',
       },
-      url: '/events',
+      url: '/events?token=otherwise-valid-token',
     } as any;
 
     await gateway.handleConnection(socket, req);
@@ -130,15 +130,19 @@ describe('EventsGateway Security & Authentication', () => {
     expect(gateway.getClientCount()).toBe(1);
 
     // Targeted message to this user succeeds
-    gateway.sendToUser('user-123', 'NOTIFICATION', { title: 'Test' });
+    await gateway.sendToUser('user-123', 'NOTIFICATION', { title: 'Test' });
     expect(socket.send).toHaveBeenCalledWith(
       JSON.stringify({ event: 'NOTIFICATION', data: { title: 'Test' } }),
     );
 
     // Targeted message to another user is NOT sent to this socket
-    gateway.sendToUser('foreign-user-999', 'SECRET', { secret: 'data' });
+    await gateway.sendToUser('foreign-user-999', 'SECRET', { secret: 'data' });
     expect(socket.send).toHaveBeenCalledTimes(1);
 
+    prisma.session.findFirst.mockResolvedValue(null);
+    await gateway.sendToUser('user-123', 'SECRET', { secret: 'revoked' });
+    expect(socket.send).toHaveBeenCalledTimes(1);
+    expect(socket.close).toHaveBeenCalledWith(1008, 'Session expired or revoked');
     // On disconnect, client is removed
     gateway.handleDisconnect(socket);
     expect(gateway.getClientCount()).toBe(0);

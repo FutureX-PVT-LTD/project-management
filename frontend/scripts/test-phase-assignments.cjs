@@ -29,8 +29,8 @@ const fs = require('node:fs');
       });
       await page.goto((process.env.APP_URL || 'http://localhost:3000') + '/projects/demo/setup');
       await page.getByRole('heading', { name: 'Assign Development Work', exact: true }).waitFor();
-      await page.getByLabel('Core Development default assignee').selectOption('a');
-      await page.getByRole('button', { name: 'Add phase member', exact: true }).click();
+      await page.getByLabel('Core Development assigned member').selectOption('a');
+      await page.getByRole('button', { name: 'Add member', exact: true }).click();
       await page.getByLabel('Add member to Core Development').selectOption('b');
       await page.getByRole('button', { name: 'Apply Assignments', exact: true }).click();
       assert.deepEqual(saved, { workstream: 'DEVELOPMENT', assignments: [{ phaseKey: 'Core Development', defaultAssigneeId: 'a', additionalMemberIds: ['b'], reassignActive: false }] });
@@ -46,6 +46,22 @@ const fs = require('node:fs');
       assert.deepEqual(errors, []);
       await page.close();
     }
-    console.log('Admin/Owner shared phase assignment, additional member, payload, mobile overflow and runtime checks passed.');
+    for (const [role, routes] of [
+      ['TEAM_MEMBER', ['/admin/users', '/admin/submissions', '/projects/demo/setup', '/projects/new', '/reports']],
+      ['ADMIN', ['/admin/audit', '/admin/users/demo/security']],
+    ]) {
+      for (const routePath of routes) {
+        const page = await browser.newPage();
+        await page.route('**/api/v1/**', route => route.fulfill({ json: { success: true, data:
+          new URL(route.request().url()).pathname.endsWith('/auth/me')
+            ? { id: 'restricted-user', firstName: 'Test', lastName: 'User', globalRole: role }
+            : [] } }));
+        await page.goto((process.env.APP_URL || 'http://localhost:3000') + routePath);
+        await page.waitForURL('**/my-work');
+        assert.equal(await page.getByRole('button', { name: 'Add User', exact: true }).count(), 0);
+        await page.close();
+      }
+    }
+    console.log('Admin/Owner phase assignments, mobile overflow, runtime checks and seven restricted-route redirects passed.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -90,14 +90,16 @@ describe('Marketing operational permissions', () => {
     expect(tx.marketingChannel.update).not.toHaveBeenCalled();
   });
 
-  it('lets an Admin assign any active Product Team member', async () => {
+  it('lets an Admin assign an eligible Marketing Product Team member', async () => {
     const { service, prisma, tx } = setup('MARKETING_MANAGER');
     prisma.marketingChannel.findFirst.mockResolvedValue({ id: 'channel', ownerId: null, status: 'NOT_CREATED' });
     tx.marketingChannel.update.mockResolvedValue({ id: 'channel', ownerId: 'member', status: 'NOT_CREATED' });
 
     await service.updateChannel('project', 'channel', { ownerId: 'member' }, admin('admin'));
 
-    expect(prisma.user.findFirst).toHaveBeenCalled();
+    expect(prisma.projectMember.findFirst).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ user: { isActive: true, deletedAt: null, globalRole: 'TEAM_MEMBER' }, projectRoles: expect.any(Object) }),
+    }));
     expect(tx.marketingChannel.update).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ ownerId: 'member' }),
     }));

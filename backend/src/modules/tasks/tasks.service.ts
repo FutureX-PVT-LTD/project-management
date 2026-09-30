@@ -1,3 +1,4 @@
+import { requireMarketingAssignee } from '../../common/security/marketing-policy';
 import {
   Injectable,
   NotFoundException,
@@ -1237,6 +1238,9 @@ export class TasksService implements OnModuleInit {
     }
     if (actorRole === UserRole.ADMIN || actorRole === UserRole.OWNER) {
       await this.validateReferences(task.projectId, dto, id);
+      if (task.workstream === 'MARKETING' && dto.assigneeId) {
+        await requireMarketingAssignee(this.prisma, task.projectId, dto.assigneeId);
+      }
     }
 
     // Subtask indicator

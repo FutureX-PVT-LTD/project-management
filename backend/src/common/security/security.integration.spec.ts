@@ -585,7 +585,23 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     const marketingWorkspaceResponse = await get(`/projects/${marketingProject.id}/assignment-workspace?workstream=MARKETING`, 'admin');
     expect(marketingWorkspaceResponse.status).toBe(200);
     const marketingWorkspace = marketingWorkspaceResponse.body.data ?? marketingWorkspaceResponse.body;
-    expect(marketingWorkspace.members.find((member: { id: string }) => member.id === users.a.id)?.eligibleForWorkstream).toBe(true);
+    expect(marketingWorkspace.members.find((member: { id: string }) => member.id === users.a.id)?.eligibleForWorkstream).toBe(false);
+    expect((await post(`/projects/${marketingProject.id}/phase-assignments/apply`, 'admin').send({
+      workstream: 'MARKETING',
+      assignments: [{ phaseKey: checklistItem.checklistPhase, defaultAssigneeId: users.a.id }],
+    })).status).toBe(400);
+    expect((await patch(`/tasks/${checklistItem.id}`, 'admin').send({ assigneeId: users.a.id })).status).toBe(400);
+    expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(403);
+    const marketingExecutiveRole = await db.functionalRole.upsert({
+      where: { code: 'MARKETING_EXECUTIVE' },
+      create: { code: 'MARKETING_EXECUTIVE', name: 'Marketing Executive', category: 'MARKETING' },
+      update: { isActive: true },
+    });
+    const marketingMember = await db.projectMember.findUniqueOrThrow({
+      where: { projectId_userId: { projectId: marketingProject.id, userId: users.a.id } },
+    });
+    await db.userFunctionalRole.create({ data: { userId: users.a.id, functionalRoleId: marketingExecutiveRole.id } });
+    await db.projectMemberRoleAssignment.create({ data: { projectMemberId: marketingMember.id, functionalRoleId: marketingExecutiveRole.id } });
     expect((await post(`/projects/${marketingProject.id}/phase-assignments/apply`, 'admin').send({
       workstream: 'MARKETING',
       assignments: [{ phaseKey: checklistItem.checklistPhase, defaultAssigneeId: users.a.id }],
@@ -605,21 +621,6 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect(await db.task.count({ where: { projectId: marketingProject.id, workstream: 'MARKETING' } })).toBe(38);
 
     expect((await get(`/projects/${marketingProject.id}/marketing/summary`, 'b')).status).toBe(404);
-    expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(403);
-    const marketingExecutiveRole = await db.functionalRole.upsert({
-      where: { code: 'MARKETING_EXECUTIVE' },
-      create: { code: 'MARKETING_EXECUTIVE', name: 'Marketing Executive', category: 'MARKETING' },
-      update: { isActive: true },
-    });
-    const marketingMember = await db.projectMember.findUniqueOrThrow({
-      where: { projectId_userId: { projectId: marketingProject.id, userId: users.a.id } },
-    });
-    await db.userFunctionalRole.create({
-      data: { userId: users.a.id, functionalRoleId: marketingExecutiveRole.id },
-    });
-    await db.projectMemberRoleAssignment.create({
-      data: { projectMemberId: marketingMember.id, functionalRoleId: marketingExecutiveRole.id },
-    });
     expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(200);
     expect((await post(`/projects/${marketingProject.id}/phase-assignments/apply`, 'a').send({
       workstream: 'MARKETING',
@@ -628,6 +629,9 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
 
     const content = await db.marketingContentItem.findFirstOrThrow({ where: { projectId: marketingProject.id } });
     expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'admin').send({ ownerId: users.a.id })).status).toBe(200);
+    expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'admin').send({ assetStatus: 'READY' })).status).toBe(403);
+    expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'admin').send({ ownerId: users.a.id, assetStatus: 'READY' })).status).toBe(400);
+    expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'a').send({ ownerId: users.a.id })).status).toBe(403);
     expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'a').send({ assetStatus: 'IN_PRODUCTION' })).status).toBe(200);
     expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'b').send({ assetStatus: 'READY' })).status).toBe(404);
     const gate = await db.marketingGate.findFirstOrThrow({ where: { projectId: marketingProject.id } });
@@ -654,6 +658,44 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
       where: { userId: users.a.id, functionalRoleId: marketingExecutiveRole.id },
     });
   });
+  it.each(['MARKETING_MANAGER', 'MARKETING_EXECUTIVE', 'MARKETING_COORDINATOR'])('executes Marketing work with a real %s login and exposes updates to both managers', async (code) => {
+    const key = code.toLowerCase();
+    users[key] = await db.user.create({ data: { email: `${key}@security.invalid`, firstName: code, lastName: 'Acceptance', globalRole: 'TEAM_MEMBER', passwordHash: await argon2.hash(password) } });
+    await login(key);
+    await ensureSession('admin'); await ensureSession('owner'); await ensureSession('b');
+    const role = await db.functionalRole.upsert({ where: { code }, create: { code, name: code, category: 'MARKETING' }, update: { isActive: true } });
+    const project = await db.project.create({ data: { key: `QA${code.slice(-3)}`, name: code, targetDate: new Date('2026-12-01'), projectManagerId: users.admin.id,
+      members: { create: [{ userId: users[key].id, projectRoles: { create: { functionalRoleId: role.id } } }, { userId: users.b.id }, { userId: users.admin.id }] } } });
+    expect((await post(`/projects/${project.id}/marketing/initialize`, 'admin').send({})).status).toBe(201);
+    const content = await db.marketingContentItem.findFirstOrThrow({ where: { projectId: project.id } });
+    const endpoint = `/projects/${project.id}/marketing/content/${content.id}`;
+    expect((await patch(endpoint, 'admin').send({ ownerId: users.b.id })).status).toBe(400);
+    expect((await patch(endpoint, 'admin').send({ ownerId: users.admin.id })).status).toBe(400);
+    expect((await patch(endpoint, 'admin').send({ ownerId: users[key].id })).status).toBe(200);
+    expect((await patch(endpoint, key).send({ ownerId: users[key].id })).status).toBe(403);
+    expect((await patch(endpoint, 'b').send({ assetStatus: 'READY' })).status).toBe(403);
+    expect((await patch(endpoint, key).send({ assetStatus: 'IN_PRODUCTION' })).status).toBe(200);
+    expect((await patch(endpoint, key).send({ assetStatus: 'READY' })).status).toBe(200);
+    for (const manager of ['admin', 'owner']) {
+      expect((await patch(endpoint, manager).send({ assetStatus: 'NOT_STARTED' })).status).toBe(403);
+      const response = await get(`/projects/${project.id}/marketing/content`, manager);
+      expect(response.status).toBe(200);
+      expect((response.body.data ?? response.body).find((row: any) => row.id === content.id).assetStatus).toBe('READY');
+    }
+    const task = await db.task.findFirstOrThrow({ where: { projectId: project.id, workstream: 'MARKETING' } });
+    expect((await patch(`/projects/${project.id}/checklist/${task.id}/assignment`, 'admin').send({ assigneeId: users.b.id })).status).toBe(400);
+    expect((await patch(`/projects/${project.id}/checklist/${task.id}/assignment`, 'admin').send({ assigneeId: users[key].id })).status).toBe(200);
+    await db.projectMemberRoleAssignment.deleteMany({ where: { projectMember: { projectId: project.id, userId: users[key].id } } });
+    expect((await patch(endpoint, key).send({ assetStatus: 'IN_PRODUCTION' })).status).toBe(403);
+    await db.project.delete({ where: { id: project.id } });
+  });
+
+  it('prevents bypassing Owner deactivation protection through profile updates', async () => {
+    await ensureSession('owner');
+    expect((await patch(`/users/${users.owner.id}`, 'owner').send({ isActive: false })).status).toBe(403);
+    expect((await db.user.findUniqueOrThrow({ where: { id: users.owner.id } })).isActive).toBe(true);
+  });
+
   it('keeps dashboard audit and user security controls Owner-only', async () => {
     await ensureSession('owner');
     await ensureSession('admin');
