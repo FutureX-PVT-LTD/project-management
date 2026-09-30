@@ -62,19 +62,6 @@ export class MarketingService {
     const user = await this.prisma.user.findFirst({ where: { id: userId, isActive: true, deletedAt: null, projectMemberships: { some: { projectId } } }, select: { id: true } });
     if (!user) throw new BadRequestException('Assignee must be an active Product member');
   }
-  private async eligibleMarketingOperator(projectId: string, userId: string | null | undefined) {
-    if (!userId) return;
-    const member = await this.prisma.projectMember.findFirst({
-      where: {
-        projectId,
-        userId,
-        user: { isActive: true, deletedAt: null },
-        projectRoles: { some: { functionalRole: { code: { in: marketingRoleCodes }, isActive: true } } },
-      },
-      select: { id: true },
-    });
-    if (!member) throw new BadRequestException('Owner must be an active Product member with a Marketing role');
-  }
   private async audit(tx: any, actorId: string, action: string, type: string, id: string, details?: unknown) {
     await tx.auditLog.create({ data: { actorId, action, entityType: type, entityId: id, detailsJson: details ? JSON.stringify(details) : undefined } });
   }
@@ -278,8 +265,8 @@ export class MarketingService {
     const existing = await this.prisma.marketingChannel.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Marketing channel not found');
     if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Channel update permission denied');
-    if (!access.isHead && dto.ownerId !== undefined) throw new ForbiddenException('Only Marketing Head or management can change the owner');
-    await this.eligibleMarketingOperator(projectId, dto.ownerId); await this.eligible(projectId, dto.backupAdminId);
+    if (!access.isManager && (dto.ownerId !== undefined || dto.backupAdminId !== undefined)) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    await this.eligible(projectId, dto.ownerId); await this.eligible(projectId, dto.backupAdminId);
     return this.prisma.$transaction(async (tx: any) => {
       const row = await tx.marketingChannel.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, backupAdminId: dto.backupAdminId === undefined ? undefined : dto.backupAdminId || null } });
       await this.audit(tx, actor.id, 'CHANNEL_REGISTRY_UPDATED', 'MarketingChannel', id, { previousStatus: existing.status, status: row.status, previousOwnerId: existing.ownerId, ownerId: row.ownerId }); return row;
@@ -290,8 +277,8 @@ export class MarketingService {
     const existing = await this.prisma.marketingContentItem.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Content item not found');
     if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Content update permission denied');
-    if (!access.isHead && dto.ownerId !== undefined) throw new ForbiddenException('Only Marketing Head or management can change the owner');
-    await this.eligibleMarketingOperator(projectId, dto.ownerId);
+    if (!access.isManager && dto.ownerId !== undefined) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    await this.eligible(projectId, dto.ownerId);
     return this.prisma.$transaction(async (tx: any) => {
       const updated = await tx.marketingContentItem.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null, targetDate: dto.targetDate === undefined ? undefined : dto.targetDate ? new Date(dto.targetDate) : null, scheduledDate: dto.scheduledDate === undefined ? undefined : dto.scheduledDate ? new Date(dto.scheduledDate) : null } });
       await this.audit(tx, actor.id, 'CONTENT_ITEM_UPDATED', 'MarketingContentItem', id, { previousAssetStatus: existing.assetStatus, assetStatus: updated.assetStatus, previousPostStatus: existing.postStatus, postStatus: updated.postStatus, previousOwnerId: existing.ownerId, ownerId: updated.ownerId }); return updated;
@@ -302,8 +289,8 @@ export class MarketingService {
     const existing = await this.prisma.marketingBuzzActivity.findFirst({ where: { id, projectId } });
     if (!existing) throw new NotFoundException('Buzz activity not found');
     if (!access.isHead && existing.ownerId !== actor.id) throw new ForbiddenException('Buzz update permission denied');
-    if (!access.isHead && dto.ownerId !== undefined) throw new ForbiddenException('Only Marketing Head or management can change the owner');
-    await this.eligibleMarketingOperator(projectId, dto.ownerId);
+    if (!access.isManager && dto.ownerId !== undefined) throw new ForbiddenException('Only Admin or Super Admin can change Marketing assignments');
+    await this.eligible(projectId, dto.ownerId);
     return this.prisma.$transaction(async (tx: any) => {
       const updated = await tx.marketingBuzzActivity.update({ where: { id }, data: { ...dto, ownerId: dto.ownerId === undefined ? undefined : dto.ownerId || null } });
       await this.audit(tx, actor.id, 'BUZZ_ACTIVITY_UPDATED', 'MarketingBuzzActivity', id, { previousStatus: existing.status, status: updated.status, previousOwnerId: existing.ownerId, ownerId: updated.ownerId }); return updated;

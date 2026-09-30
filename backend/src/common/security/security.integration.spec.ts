@@ -582,6 +582,14 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
 
     const checklistItem = await db.task.findFirstOrThrow({ where: { projectId: marketingProject.id, checklistCode: 'MI-01' } });
     const secondChecklistItem = await db.task.findFirstOrThrow({ where: { projectId: marketingProject.id, checklistCode: 'MI-02' } });
+    const marketingWorkspaceResponse = await get(`/projects/${marketingProject.id}/assignment-workspace?workstream=MARKETING`, 'admin');
+    expect(marketingWorkspaceResponse.status).toBe(200);
+    const marketingWorkspace = marketingWorkspaceResponse.body.data ?? marketingWorkspaceResponse.body;
+    expect(marketingWorkspace.members.find((member: { id: string }) => member.id === users.a.id)?.eligibleForWorkstream).toBe(true);
+    expect((await post(`/projects/${marketingProject.id}/phase-assignments/apply`, 'admin').send({
+      workstream: 'MARKETING',
+      assignments: [{ phaseKey: checklistItem.checklistPhase, defaultAssigneeId: users.a.id }],
+    })).status).toBe(201);
     await db.task.updateMany({ where: { id: { in: [checklistItem.id, secondChecklistItem.id] } }, data: { assigneeId: users.a.id, status: 'READY', allowParallelWork: false } });
     expect((await patch(`/tasks/${checklistItem.id}`, 'a').send({ status: 'IN_PROGRESS' })).status).toBe(200);
     expect((await patch(`/tasks/${secondChecklistItem.id}`, 'a').send({ status: 'IN_PROGRESS' })).status).toBe(200);
@@ -613,6 +621,10 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
       data: { projectMemberId: marketingMember.id, functionalRoleId: marketingExecutiveRole.id },
     });
     expect((await get(`/projects/${marketingProject.id}/marketing/channels`, 'a')).status).toBe(200);
+    expect((await post(`/projects/${marketingProject.id}/phase-assignments/apply`, 'a').send({
+      workstream: 'MARKETING',
+      assignments: [{ phaseKey: checklistItem.checklistPhase, defaultAssigneeId: users.a.id }],
+    })).status).toBe(403);
 
     const content = await db.marketingContentItem.findFirstOrThrow({ where: { projectId: marketingProject.id } });
     expect((await patch(`/projects/${marketingProject.id}/marketing/content/${content.id}`, 'admin').send({ ownerId: users.a.id })).status).toBe(200);
@@ -761,9 +773,10 @@ suite('Security: real HTTP, guards, services and isolated PostgreSQL', () => {
     expect((await post(`/projects/${p.id}/phase-assignments/apply`, 'admin').send({ workstream: 'DEVELOPMENT', assignments: [{ phaseKey: 'Test', defaultAssigneeId: users.b.id, additionalMemberIds: [users.a.id], reassignActive: false }] })).status).toBe(201);
     expect((await db.task.findUniqueOrThrow({ where: { id: task.id } })).assigneeId).toBe(users.a.id);
     expect((await db.task.findUniqueOrThrow({ where: { id: unassignedTask.id } })).assigneeId).toBe(users.b.id);
-    expect((await db.projectPhaseAssignment.findUniqueOrThrow({ where: { projectId_workstream_phaseKey: { projectId: p.id, workstream: 'DEVELOPMENT', phaseKey: 'Test' } } })).defaultAssigneeId).toBe(users.b.id);
+    const developmentPhaseAssignment = await db.projectPhaseAssignment.findUniqueOrThrow({ where: { projectId_workstream_phaseKey: { projectId: p.id, workstream: 'DEVELOPMENT', phaseKey: 'Test' } } });
+    expect(developmentPhaseAssignment.defaultAssigneeId).toBe(users.b.id);
     expect(await db.auditLog.count({ where: { actorId: users.admin.id, action: 'DEVELOPMENT_PHASE_ASSIGNED', entityType: 'ProjectPhaseAssignment' } })).toBeGreaterThan(0);
-    expect(await db.auditLog.count({ where: { actorId: users.admin.id, action: 'PHASE_MEMBER_ADDED', entityType: 'ProjectPhaseAssignment' } })).toBe(2);
+    expect(await db.auditLog.count({ where: { actorId: users.admin.id, action: 'PHASE_MEMBER_ADDED', entityType: 'ProjectPhaseAssignment', entityId: developmentPhaseAssignment.id } })).toBe(2);
     expect(await db.taskAssignmentHistory.count({ where: { taskId: unassignedTask.id, previousAssigneeId: null, newAssigneeId: users.b.id } })).toBe(1);
     expect((await patch(`/projects/${p.id}/checklist/${task.id}/assignment`, 'admin').send({ assigneeId: users.b.id, confirmReassignment: true, reason: 'Coverage change' })).status).toBe(200);
     expect((await db.task.findUniqueOrThrow({ where: { id: task.id } }))).toMatchObject({ assigneeId: users.b.id, status: 'IN_PROGRESS', progress: 20 });

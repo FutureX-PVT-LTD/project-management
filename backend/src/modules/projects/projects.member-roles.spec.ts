@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import { ProjectMemberRole, UserRole } from '@futurex/shared';
 import { ProjectsService } from './projects.service';
 
@@ -84,11 +83,11 @@ describe('ProjectsService Product member roles', () => {
     expect(tx.projectMemberRoleAssignment.createMany).not.toHaveBeenCalled();
   });
 
-  it('blocks removing the last Marketing role while active Marketing work is assigned', async () => {
+  it('allows removing a Product role when the member only owns Marketing work', async () => {
     const tx = {
       projectMemberRoleAssignment: { deleteMany: jest.fn(), createMany: jest.fn() },
       auditLog: { create: jest.fn() },
-      projectMember: { findUniqueOrThrow: jest.fn() },
+      projectMember: { findUniqueOrThrow: jest.fn().mockResolvedValue({ id: 'membership-1', projectRoles: [] }) },
     };
     const prisma = {
       projectMember: {
@@ -112,15 +111,13 @@ describe('ProjectsService Product member roles', () => {
     };
     const service = new ProjectsService(prisma as never, {} as never);
 
-    await expect(
-      service.updateMemberRoles(
-        'project-1',
-        'member-1',
-        [],
-        'owner-1',
-        UserRole.OWNER,
-      ),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    await expect(service.updateMemberRoles(
+      'project-1',
+      'member-1',
+      [],
+      'owner-1',
+      UserRole.OWNER,
+    )).resolves.toMatchObject({ id: 'membership-1' });
+    expect(prisma.$transaction).toHaveBeenCalled();
   });
 });

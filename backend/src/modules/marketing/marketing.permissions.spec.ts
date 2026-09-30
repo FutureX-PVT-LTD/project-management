@@ -2,6 +2,7 @@ import { UserRole } from '@futurex/shared';
 import { MarketingService } from './marketing.service';
 
 const actor = (id: string) => ({ id, globalRole: UserRole.TEAM_MEMBER } as any);
+const admin = (id: string) => ({ id, globalRole: UserRole.ADMIN } as any);
 const roleMembership = (code: string) => ({
   projectRoles: [{ functionalRole: { code, isActive: true } }],
 });
@@ -58,16 +59,25 @@ describe('Marketing operational permissions', () => {
     expect(tx.marketingContentItem.update).not.toHaveBeenCalled();
   });
 
-  it('lets the Marketing Head assign an operational owner', async () => {
+  it('prevents the Marketing Head from changing assignments', async () => {
     const { service, prisma, tx } = setup('MARKETING_MANAGER');
     prisma.marketingChannel.findFirst.mockResolvedValue({ id: 'channel', ownerId: null, status: 'NOT_CREATED' });
-    tx.marketingChannel.update.mockResolvedValue({ id: 'channel', ownerId: 'executive', status: 'NOT_CREATED' });
 
-    await service.updateChannel('project', 'channel', { ownerId: 'executive' }, actor('head'));
+    await expect(service.updateChannel('project', 'channel', { ownerId: 'executive' }, actor('head')))
+      .rejects.toThrow('Only Admin or Super Admin can change Marketing assignments');
+    expect(tx.marketingChannel.update).not.toHaveBeenCalled();
+  });
 
-    expect(prisma.projectMember.findFirst).toHaveBeenCalled();
+  it('lets an Admin assign any active Product Team member', async () => {
+    const { service, prisma, tx } = setup('MARKETING_MANAGER');
+    prisma.marketingChannel.findFirst.mockResolvedValue({ id: 'channel', ownerId: null, status: 'NOT_CREATED' });
+    tx.marketingChannel.update.mockResolvedValue({ id: 'channel', ownerId: 'member', status: 'NOT_CREATED' });
+
+    await service.updateChannel('project', 'channel', { ownerId: 'member' }, admin('admin'));
+
+    expect(prisma.user.findFirst).toHaveBeenCalled();
     expect(tx.marketingChannel.update).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ ownerId: 'executive' }),
+      data: expect.objectContaining({ ownerId: 'member' }),
     }));
   });
 

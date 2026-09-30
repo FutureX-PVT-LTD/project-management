@@ -32,12 +32,6 @@ import { IdGeneratorUtil } from "../../common/utils/id-generator.util";
 import { projectScope } from '../../common/security/access-policy';
 import { MarketingService } from '../marketing/marketing.service';
 
-const MARKETING_PROJECT_ROLE_CODES = [
-  'MARKETING_MANAGER',
-  'MARKETING_EXECUTIVE',
-  'MARKETING_COORDINATOR',
-];
-
 @Injectable()
 export class ProjectsService {
   constructor(private prisma: PrismaService, private marketing: MarketingService) {}
@@ -1588,11 +1582,6 @@ export class ProjectsService {
     await this.validateProjectRolesForUser(userId, selectedRoleIds);
     const removed = member.projectRoles.filter((link) => !selectedRoleIds.includes(link.functionalRoleId)).map((link) => link.functionalRoleId);
     if (removed.length) {
-      const selectedRoleCodes = new Set(
-        member.projectRoles
-          .filter((link) => selectedRoleIds.includes(link.functionalRoleId))
-          .map((link) => link.functionalRole.code),
-      );
       const activeTasks = await this.prisma.task.findMany({
         where: {
           projectId,
@@ -1610,9 +1599,7 @@ export class ProjectsService {
         },
       });
       const active = activeTasks.filter((task) => {
-        if (task.workstream === 'MARKETING') {
-          return !MARKETING_PROJECT_ROLE_CODES.some((code) => selectedRoleCodes.has(code));
-        }
+        if (task.workstream === 'MARKETING') return false;
         const eligibleRoleIds = task.checklistTemplateItem?.eligibleRoles.map((role) => role.functionalRoleId) || [];
         return eligibleRoleIds.length > 0 && !eligibleRoleIds.some((roleId) => selectedRoleIds.includes(roleId));
       }).length;
@@ -1943,7 +1930,7 @@ export class ProjectsService {
     if (!task) throw new NotFoundException("Checklist item not found");
 
     const assigneeId = dto.assigneeId || null;
-    if (assigneeId) await this.ensureEligibleWorkstreamAssignee(projectId, assigneeId, task.workstream);
+    if (assigneeId) await this.ensureActiveProductMember(projectId, assigneeId);
     if (task.assigneeId !== assigneeId && task.status === TaskStatus.IN_REVIEW) throw new BadRequestException('Return or cancel the review before reassignment');
     if (task.assigneeId !== assigneeId && task.status === TaskStatus.DONE) throw new BadRequestException('Completed work ownership is historical and cannot be changed');
     if (task.assigneeId !== assigneeId && task.status === TaskStatus.IN_PROGRESS && !dto.confirmReassignment) throw new BadRequestException('Confirm reassignment of work in progress');
@@ -2047,13 +2034,7 @@ export class ProjectsService {
         id: member.userId,
         ...member.user,
         projectRoles: member.projectRoles.map((link) => link.functionalRole),
-        eligibleForWorkstream:
-          stream !== 'MARKETING' ||
-          member.projectRoles.some(
-            (link) =>
-              link.functionalRole.isActive &&
-              MARKETING_PROJECT_ROLE_CODES.includes(link.functionalRole.code),
-          ),
+        eligibleForWorkstream: true,
       })),
       phases: phaseRows,
     };
@@ -2073,9 +2054,7 @@ export class ProjectsService {
     const validPhases = new Set(tasks.map((task) => task.checklistPhase?.trim() || 'Uncategorized'));
     const memberIds = [...new Set(dto.assignments.flatMap((item) => [item.defaultAssigneeId, ...(item.additionalMemberIds || [])]).filter(Boolean) as string[])];
     await Promise.all(
-      memberIds.map((userId) =>
-        this.ensureEligibleWorkstreamAssignee(projectId, userId, stream),
-      ),
+      memberIds.map((userId) => this.ensureActiveProductMember(projectId, userId)),
     );
 
     let assignedCount = 0;
@@ -2141,7 +2120,8 @@ export class ProjectsService {
       const primary = eligible.find((link) => link.isPrimary) || eligible[0];
       const assigneeId = primary ? mappings[primary.functionalRoleId] : null;
       if (!assigneeId) continue;
-      await this.ensureEligibleProductAssignee(projectId, assigneeId, task.id);
+      if (stream === 'MARKETING') await this.ensureActiveProductMember(projectId, assigneeId);
+      else await this.ensureEligibleProductAssignee(projectId, assigneeId, task.id);
       const status = await this.resolveAssignmentStatus(task.id, assigneeId);
       await this.prisma.$transaction(async (tx) => {
         await tx.task.update({ where: { id: task.id }, data: { assigneeId, status } });
@@ -2371,43 +2351,6 @@ export class ProjectsService {
       throw new BadRequestException({
         code: 'INVALID_PRODUCT_ASSIGNEE',
         message: 'Select an active user who belongs to this Product Team.',
-      });
-    }
-  }
-
-  private async ensureEligibleWorkstreamAssignee(
-    projectId: string,
-    userId: string,
-    workstream?: string | null,
-  ) {
-    const member = await this.prisma.projectMember.findFirst({
-      where: { projectId, userId, user: { isActive: true, deletedAt: null } },
-      include: {
-        projectRoles: {
-          include: {
-            functionalRole: { select: { code: true, isActive: true } },
-          },
-        },
-      },
-    });
-    if (!member) {
-      throw new BadRequestException({
-        code: 'INVALID_PRODUCT_ASSIGNEE',
-        message: 'Select an active user who belongs to this Product Team.',
-      });
-    }
-    if (
-      workstream === 'MARKETING' &&
-      !member.projectRoles.some(
-        (link) =>
-          link.functionalRole.isActive &&
-          MARKETING_PROJECT_ROLE_CODES.includes(link.functionalRole.code),
-      )
-    ) {
-      throw new BadRequestException({
-        code: 'ASSIGNEE_ROLE_MISMATCH',
-        message:
-          'Marketing work can only be assigned to a Marketing Head, Marketing Executive, or Marketing Coordinator.',
       });
     }
   }

@@ -1,6 +1,6 @@
 import { ProjectsService } from './projects.service';
 
-describe('ProjectsService marketing assignment eligibility', () => {
+describe('ProjectsService Marketing assignment eligibility', () => {
   const findFirst = jest.fn();
   const service = new ProjectsService(
     { projectMember: { findFirst } } as never,
@@ -11,49 +11,26 @@ describe('ProjectsService marketing assignment eligibility', () => {
     jest.clearAllMocks();
   });
 
-  it('rejects a Product Team member without an active Marketing role', async () => {
-    findFirst.mockResolvedValue({ projectRoles: [] });
+  it('rejects a user who is not an active Product Team member', async () => {
+    findFirst.mockResolvedValue(null);
 
     await expect(
-      (service as any).ensureEligibleWorkstreamAssignee(
+      (service as any).ensureActiveProductMember(
         'project-1',
         'member-1',
-        'MARKETING',
       ),
     ).rejects.toMatchObject({
-      response: expect.objectContaining({ code: 'ASSIGNEE_ROLE_MISMATCH' }),
+      response: expect.objectContaining({ code: 'INVALID_PRODUCT_ASSIGNEE' }),
     });
   });
 
-  it('accepts a Product Team member with an active Marketing role', async () => {
-    findFirst.mockResolvedValue({
-      projectRoles: [
-        {
-          functionalRole: {
-            code: 'MARKETING_EXECUTIVE',
-            isActive: true,
-          },
-        },
-      ],
-    });
+  it('accepts an active Product Team member without requiring a Marketing role', async () => {
+    findFirst.mockResolvedValue({ id: 'membership-1' });
 
     await expect(
-      (service as any).ensureEligibleWorkstreamAssignee(
+      (service as any).ensureActiveProductMember(
         'project-1',
         'member-1',
-        'MARKETING',
-      ),
-    ).resolves.toBeUndefined();
-  });
-
-  it('does not apply the Marketing role restriction to Development work', async () => {
-    findFirst.mockResolvedValue({ projectRoles: [] });
-
-    await expect(
-      (service as any).ensureEligibleWorkstreamAssignee(
-        'project-1',
-        'member-1',
-        'DEVELOPMENT',
       ),
     ).resolves.toBeUndefined();
   });
