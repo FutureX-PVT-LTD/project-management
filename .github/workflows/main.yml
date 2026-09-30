@@ -17,20 +17,17 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # ============================================================
+      # ==========================================================
       # CHECKOUT
-      # ============================================================
-
+      # ==========================================================
       - name: Checkout GitHub source
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-
-      # ============================================================
-      # SSH
-      # ============================================================
-
+      # ==========================================================
+      # SSH SETUP
+      # ==========================================================
       - name: Configure SSH
         shell: bash
         run: |
@@ -56,7 +53,9 @@ jobs:
 
           chmod 644 ~/.ssh/known_hosts
 
-
+      # ==========================================================
+      # TEST SSH
+      # ==========================================================
       - name: Test server connection
         shell: bash
         run: |
@@ -76,11 +75,9 @@ jobs:
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "echo 'SSH connection successful' && hostname && ls -la /var/www/project-management"
 
-
-      # ============================================================
-      # UPLOAD GITHUB SOURCE
-      # ============================================================
-
+      # ==========================================================
+      # UPLOAD SOURCE
+      # ==========================================================
       - name: Upload GitHub source to server
         shell: bash
         run: |
@@ -92,24 +89,20 @@ jobs:
             SSH_PORT="22"
           fi
 
-          echo "Uploading GitHub source..."
+          echo "Uploading latest GitHub source..."
 
           rsync \
             -az \
             --delete \
             --delete-delay \
             -e "ssh -i ~/.ssh/deploy_key -p $SSH_PORT" \
-            \
             --exclude=".git" \
             --exclude=".github" \
-            \
             --exclude="node_modules" \
             --exclude="backend/node_modules" \
             --exclude="frontend/node_modules" \
-            \
             --exclude="backend/dist" \
             --exclude="frontend/.next" \
-            \
             --exclude=".env" \
             --exclude=".env.*" \
             --exclude="backend/.env" \
@@ -117,24 +110,19 @@ jobs:
             --exclude="frontend/.env" \
             --exclude="frontend/.env.local" \
             --exclude="frontend/.env.production" \
-            \
             --exclude="uploads" \
             --exclude="backend/uploads" \
-            \
             --exclude="logs" \
             --exclude="*.log" \
-            \
             ./ \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/project-management/"
 
-          echo "Source upload completed."
+          echo "Upload completed."
 
-
-      # ============================================================
-      # SAVE DEPLOY COMMIT
-      # ============================================================
-
-      - name: Write deployment version
+      # ==========================================================
+      # DEPLOY SHA
+      # ==========================================================
+      - name: Write pending deployment version
         shell: bash
         run: |
           set -euo pipefail
@@ -151,11 +139,9 @@ jobs:
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
             "printf '%s\n' '${{ github.sha }}' > /var/www/project-management/DEPLOY_SHA_PENDING"
 
-
-      # ============================================================
+      # ==========================================================
       # BUILD + DEPLOY
-      # ============================================================
-
+      # ==========================================================
       - name: Build and deploy on server
         shell: bash
         run: |
@@ -174,10 +160,6 @@ jobs:
 
             set -euo pipefail
 
-            # ======================================================
-            # PATHS
-            # ======================================================
-
             PROJECT_DIR="/var/www/project-management"
             BACKEND_DIR="$PROJECT_DIR/backend"
             FRONTEND_DIR="$PROJECT_DIR/frontend"
@@ -185,18 +167,15 @@ jobs:
             export CI=true
             export NODE_ENV=production
 
-
             echo ""
             echo "======================================"
             echo " PROJECT MANAGEMENT DEPLOYMENT"
             echo "======================================"
-            echo ""
 
-
-            # ======================================================
+            # ====================================================
             # RUNTIME
-            # ======================================================
-
+            # ====================================================
+            echo ""
             echo "======================================"
             echo " Runtime"
             echo "======================================"
@@ -205,68 +184,61 @@ jobs:
             npm -v
 
             corepack enable
-
             corepack prepare pnpm@10.33.2 --activate
 
-            echo "pnpm:"
+            echo "pnpm version:"
             pnpm -v
 
-
-            # ======================================================
-            # CHECK FILE STRUCTURE
-            # ======================================================
-
+            # ====================================================
+            # CHECK PROJECT STRUCTURE
+            # ====================================================
             echo ""
             echo "======================================"
-            echo " Checking project structure"
+            echo " Check project structure"
             echo "======================================"
 
             test -d "$PROJECT_DIR"
             test -d "$BACKEND_DIR"
             test -d "$FRONTEND_DIR"
 
-            test -f "$PROJECT_DIR/package.json" || {
+            if [ ! -f "$PROJECT_DIR/package.json" ]; then
               echo "ERROR: root package.json missing"
               exit 1
-            }
+            fi
 
-            test -f "$BACKEND_DIR/package.json" || {
-              echo "ERROR: backend/package.json missing"
+            if [ ! -f "$BACKEND_DIR/package.json" ]; then
+              echo "ERROR: backend package.json missing"
               exit 1
-            }
+            fi
 
-            test -f "$FRONTEND_DIR/package.json" || {
-              echo "ERROR: frontend/package.json missing"
+            if [ ! -f "$FRONTEND_DIR/package.json" ]; then
+              echo "ERROR: frontend package.json missing"
               exit 1
-            }
+            fi
 
-
-            # ======================================================
-            # ENV FILES
-            # ======================================================
-
+            # ====================================================
+            # CHECK ENV FILES
+            # ====================================================
             echo ""
             echo "======================================"
-            echo " Checking production env files"
+            echo " Check production env files"
             echo "======================================"
 
             if [ ! -f "$BACKEND_DIR/.env" ]; then
-              echo "ERROR: $BACKEND_DIR/.env missing"
+              echo "ERROR: backend/.env missing"
               exit 1
             fi
 
             if [ ! -f "$FRONTEND_DIR/.env.production" ]; then
-              echo "ERROR: $FRONTEND_DIR/.env.production missing"
+              echo "ERROR: frontend/.env.production missing"
               exit 1
             fi
 
             echo "Production env files found."
 
-
-            # ======================================================
+            # ====================================================
             # INSTALL DEPENDENCIES
-            # ======================================================
-
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Install dependencies"
@@ -278,11 +250,9 @@ jobs:
 
             pnpm install --frozen-lockfile
 
-
-            # ======================================================
+            # ====================================================
             # PRISMA
-            # ======================================================
-
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Prisma"
@@ -290,51 +260,27 @@ jobs:
 
             cd "$BACKEND_DIR"
 
-            echo "Generating Prisma client..."
+            echo "Generating Prisma Client..."
             pnpm exec prisma generate
 
-
-            # ======================================================
-            # OPTIONAL MIGRATION PREFLIGHT
-            # ======================================================
-
-            if [ -f "$BACKEND_DIR/scripts/migration-preflight.cjs" ]; then
-
-              echo ""
-              echo "Running migration preflight..."
-
-              node "$BACKEND_DIR/scripts/migration-preflight.cjs"
-
-            else
-
-              echo "migration-preflight.cjs not found - skipping preflight."
-
-            fi
-
-
-            # ======================================================
-            # DATABASE MIGRATIONS
-            # ======================================================
+            echo ""
+            echo "Current migration status:"
+            pnpm exec prisma migrate status || true
 
             echo ""
-            echo "======================================"
-            echo " Production database migrations"
-            echo "======================================"
+            echo "Applying production migrations..."
 
-            # NEVER use:
-            # prisma migrate reset
-            # prisma db push --accept-data-loss
-            # prisma db seed
-
+            # IMPORTANT:
+            # No migrate reset
+            # No seed
+            # No db push --accept-data-loss
             pnpm exec prisma migrate deploy
 
             echo "Prisma migrations completed."
 
-
-            # ======================================================
+            # ====================================================
             # BACKEND BUILD
-            # ======================================================
-
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Build backend"
@@ -349,18 +295,16 @@ jobs:
             MAIN_FILE=$(find dist -type f -name "main.js" | head -n 1)
 
             if [ -z "$MAIN_FILE" ]; then
-              echo "ERROR: Backend main.js not found."
+              echo "ERROR: backend main.js not found"
               exit 1
             fi
 
-            echo "Backend entry file:"
+            echo "Backend entry:"
             echo "$MAIN_FILE"
 
-
-            # ======================================================
+            # ====================================================
             # FRONTEND BUILD
-            # ======================================================
-
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Build frontend"
@@ -374,23 +318,21 @@ jobs:
             export NEXT_PUBLIC_APP_URL="https://projects.futurex.lk"
             export NEXT_TELEMETRY_DISABLED="1"
 
-            # VPS has limited RAM.
+            # 1 GB RAM VPS
             export NODE_OPTIONS="--max-old-space-size=1024"
 
             pnpm run build
 
             if [ ! -f "$FRONTEND_DIR/.next/BUILD_ID" ]; then
-              echo "ERROR: Frontend build failed. .next/BUILD_ID missing."
+              echo "ERROR: frontend .next/BUILD_ID missing"
               exit 1
             fi
 
             echo "Frontend build completed."
 
-
-            # ======================================================
+            # ====================================================
             # RESTART BACKEND
-            # ======================================================
-
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Restart backend"
@@ -409,20 +351,17 @@ jobs:
               --cwd "$BACKEND_DIR" \
               --update-env
 
-
-            # ======================================================
-            # BACKEND HEALTH CHECK
-            # ======================================================
-
+            # ====================================================
+            # WAIT FOR BACKEND
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Waiting for backend"
             echo "======================================"
 
-            BACKEND_OK="false"
+            BACKEND_OK=false
 
             for ATTEMPT in $(seq 1 20); do
-
               echo "Backend health attempt $ATTEMPT/20..."
 
               if curl \
@@ -433,25 +372,20 @@ jobs:
                 http://127.0.0.1:5040/api/v1/health \
                 > /dev/null; then
 
-                BACKEND_OK="true"
-
+                BACKEND_OK=true
                 echo "Backend is healthy."
-
                 break
               fi
 
               sleep 3
-
             done
 
-
             if [ "$BACKEND_OK" != "true" ]; then
+              echo ""
+              echo "ERROR: Backend failed to start."
 
               echo ""
-              echo "ERROR: Backend failed to become healthy."
-              echo ""
-
-              echo "========== PM2 =========="
+              echo "========== PM2 STATUS =========="
               pm2 list || true
 
               echo ""
@@ -461,18 +395,15 @@ jobs:
               echo ""
               echo "========== BACKEND LOGS =========="
               pm2 logs project-management-api \
-                --lines 120 \
+                --lines 150 \
                 --nostream || true
 
               exit 1
-
             fi
 
-
-            # ======================================================
+            # ====================================================
             # RESTART FRONTEND
-            # ======================================================
-
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Restart frontend"
@@ -480,8 +411,8 @@ jobs:
 
             pm2 delete project-management-frontend 2>/dev/null || true
 
-            API_URL=http://127.0.0.1:5040 \
             NODE_ENV=production \
+            API_URL=http://127.0.0.1:5040 \
             pm2 start "$FRONTEND_DIR/node_modules/next/dist/bin/next" \
               --name project-management-frontend \
               --cwd "$FRONTEND_DIR" \
@@ -489,20 +420,17 @@ jobs:
               -p 3040 \
               -H 127.0.0.1
 
-
-            # ======================================================
-            # FRONTEND HEALTH CHECK
-            # ======================================================
-
+            # ====================================================
+            # WAIT FOR FRONTEND
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Waiting for frontend"
             echo "======================================"
 
-            FRONTEND_OK="false"
+            FRONTEND_OK=false
 
             for ATTEMPT in $(seq 1 20); do
-
               echo "Frontend health attempt $ATTEMPT/20..."
 
               if curl \
@@ -514,25 +442,20 @@ jobs:
                 http://127.0.0.1:3040 \
                 > /dev/null; then
 
-                FRONTEND_OK="true"
-
+                FRONTEND_OK=true
                 echo "Frontend is healthy."
-
                 break
               fi
 
               sleep 3
-
             done
 
-
             if [ "$FRONTEND_OK" != "true" ]; then
+              echo ""
+              echo "ERROR: Frontend failed to start."
 
               echo ""
-              echo "ERROR: Frontend failed to become healthy."
-              echo ""
-
-              echo "========== PM2 =========="
+              echo "========== PM2 STATUS =========="
               pm2 list || true
 
               echo ""
@@ -542,18 +465,15 @@ jobs:
               echo ""
               echo "========== FRONTEND LOGS =========="
               pm2 logs project-management-frontend \
-                --lines 120 \
+                --lines 150 \
                 --nostream || true
 
               exit 1
-
             fi
 
-
-            # ======================================================
-            # PM2 SAVE
-            # ======================================================
-
+            # ====================================================
+            # SAVE PM2
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Save PM2"
@@ -561,34 +481,28 @@ jobs:
 
             pm2 save
 
-
-            # ======================================================
+            # ====================================================
             # NGINX
-            # ======================================================
-
+            # ====================================================
             echo ""
             echo "======================================"
             echo " Nginx"
             echo "======================================"
 
             nginx -t
-
             systemctl reload nginx
 
-
-            # ======================================================
-            # DOMAIN HEALTH CHECK
-            # ======================================================
-
+            # ====================================================
+            # PUBLIC WEBSITE CHECK
+            # ====================================================
             echo ""
             echo "======================================"
-            echo " Public domain health check"
+            echo " Public website health"
             echo "======================================"
 
-            DOMAIN_OK="false"
+            DOMAIN_OK=false
 
             for ATTEMPT in $(seq 1 10); do
-
               echo "Domain health attempt $ATTEMPT/10..."
 
               if curl \
@@ -600,43 +514,30 @@ jobs:
                 https://projects.futurex.lk \
                 > /dev/null; then
 
-                DOMAIN_OK="true"
-
+                DOMAIN_OK=true
                 echo "Public website is healthy."
-
                 break
               fi
 
               sleep 3
-
             done
 
-
             if [ "$DOMAIN_OK" != "true" ]; then
-
               echo ""
-              echo "ERROR: Public domain health check failed."
-              echo ""
+              echo "ERROR: Public domain failed health check."
 
-              echo "========== NGINX =========="
               nginx -t || true
-
-              echo ""
-              echo "========== PM2 =========="
               pm2 list || true
 
               exit 1
-
             fi
 
-
-            # ======================================================
-            # PUBLIC API HEALTH CHECK
-            # ======================================================
-
+            # ====================================================
+            # PUBLIC API CHECK
+            # ====================================================
             echo ""
             echo "======================================"
-            echo " Public API health check"
+            echo " Public API health"
             echo "======================================"
 
             curl \
@@ -646,27 +547,21 @@ jobs:
               --max-time 10 \
               https://projects.futurex.lk/api/v1/health
 
-
-            # ======================================================
+            # ====================================================
             # DEPLOY VERSION
-            # ======================================================
-
+            # ====================================================
             if [ -f "$PROJECT_DIR/DEPLOY_SHA_PENDING" ]; then
-
               mv \
                 "$PROJECT_DIR/DEPLOY_SHA_PENDING" \
                 "$PROJECT_DIR/DEPLOY_SHA"
-
             fi
 
             date -u +"%Y-%m-%dT%H:%M:%SZ" \
               > "$PROJECT_DIR/DEPLOY_TIME"
 
-
-            # ======================================================
-            # COMPLETE
-            # ======================================================
-
+            # ====================================================
+            # DONE
+            # ====================================================
             echo ""
             echo "======================================"
             echo " DEPLOYMENT SUCCESSFUL"
@@ -676,29 +571,25 @@ jobs:
             echo "https://projects.futurex.lk"
 
             echo ""
-
             echo "API:"
             echo "https://projects.futurex.lk/api/v1"
 
             echo ""
-
             echo "Deploy SHA:"
             cat "$PROJECT_DIR/DEPLOY_SHA" 2>/dev/null || true
 
             echo ""
-
-            echo "Deploy time:"
+            echo "Deploy Time:"
             cat "$PROJECT_DIR/DEPLOY_TIME" 2>/dev/null || true
 
+            echo ""
             echo "======================================"
 
           EOF
 
-
-      # ============================================================
-      # CLEAN TEMP SSH KEY
-      # ============================================================
-
+      # ==========================================================
+      # CLEANUP
+      # ==========================================================
       - name: Remove temporary SSH key
         if: always()
         shell: bash
